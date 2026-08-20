@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>KiposPro</title>
+
+<!-- ══════════════════════════════════════════════════════════════
+     ΤΟ ΜΟΝΟ ΠΟΥ ΠΡΕΠΕΙ ΝΑ ΑΛΛΑΞΕΙΣ:
+     βάλε παρακάτω τη διεύθυνση /exec της εφαρμογής σου.
+     ══════════════════════════════════════════════════════════ -->
+<script>
+var KP_APP_URL = "https://script.google.com/macros/s/AKfycbxAM8SSO5C7OL7dbaGApmaRKLSoBXduLZ1ejZK-h6T53Wj7qgPf8FN1RLjr5aa4l6OSmg/exec";
+</script>
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="KiposPro">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2A4C39">
+
+<link rel="icon" type="image/png" href="icon-512.png">
+<link rel="apple-touch-icon" href="icon-512.png">
+<link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#2A4C39;-webkit-font-smoothing:antialiased}
+/* η ζώνη της ώρας/notch μένει στο σκούρο πράσινο της εφαρμογής,
+   και το πλαίσιο ξεκινά ακριβώς από κάτω */
+#kp-frame{position:fixed;left:0;right:0;border:0;display:block;background:#F4F1EA;
+  top:env(safe-area-inset-top,0px);
+  height:calc(100% - env(safe-area-inset-top,0px))}
+
+/* οθόνη εκκίνησης — φεύγει μόλις φορτώσει η εφαρμογή */
+#kp-splash{position:fixed;inset:0;z-index:10;background:#F4F1EA;
+  padding-top:env(safe-area-inset-top,0px);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:22px;transition:opacity .35s}
+#kp-splash.gone{opacity:0;pointer-events:none}
+#kp-splash img{width:96px;height:96px;border-radius:26px;background:#fff;
+  box-shadow:0 6px 26px rgba(36,58,43,.14)}
+#kp-name{font:800 19px/1 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  color:#243A2B;letter-spacing:-.02em}
+#kp-sub{font:500 11px/1 ui-monospace,SFMono-Regular,monospace;color:#9C8F73;
+  letter-spacing:.16em;text-transform:uppercase;margin-top:-14px}
+#kp-bar{width:132px;height:3px;border-radius:2px;background:#E5E0D3;overflow:hidden}
+#kp-bar i{display:block;width:40%;height:100%;border-radius:2px;background:#2D6B4C;
+  animation:kpslide 1.15s ease-in-out infinite}
+@keyframes kpslide{0%{transform:translateX(-100%)}100%{transform:translateX(330%)}}
+
+#kp-err{position:fixed;inset:0;z-index:20;background:#F4F1EA;display:none;
+  flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;text-align:center}
+#kp-err.on{display:flex}
+#kp-err p{font:500 15px/1.55 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#243A2B;max-width:300px}
+#kp-err a{font:700 14px -apple-system,BlinkMacSystemFont,sans-serif;color:#fff;background:#2D6B4C;
+  text-decoration:none;padding:13px 26px;border-radius:12px}
+</style>
+</head>
+<body>
+
+<div id="kp-splash">
+  <img src="icon-512.png" alt="">
+  <div>
+    <div id="kp-name">KiposPro</div>
+  </div>
+  <div id="kp-sub">Διαχείριση Κήπων</div>
+  <div id="kp-bar"><i></i></div>
+</div>
+
+<div id="kp-err">
+  <p>Δεν φόρτωσε η εφαρμογή. Έλεγξε τη σύνδεσή σου.</p>
+  <a href="#" onclick="location.reload();return false;">Δοκίμασε ξανά</a>
+</div>
+
+<iframe id="kp-frame" title="KiposPro"
+        allow="clipboard-write; geolocation"
+        referrerpolicy="no-referrer-when-downgrade"></iframe>
+
+<script>
+(function(){
+  var frame  = document.getElementById('kp-frame');
+  var splash = document.getElementById('kp-splash');
+  var errBox = document.getElementById('kp-err');
+
+  if (KP_APP_URL.indexOf('ΒΑΛΕ_ΤΟ_ID') >= 0) {
+    splash.classList.add('gone');
+    errBox.querySelector('p').textContent =
+      'Λείπει η διεύθυνση της εφαρμογής. Άνοιξε το index.html και συμπλήρωσε το KP_APP_URL.';
+    errBox.classList.add('on');
+    return;
+  }
+
+  frame.src = KP_APP_URL;
+
+  var hidden = false;
+  function hideSplash(){
+    if (hidden) return;
+    hidden = true;
+    setTimeout(function(){ splash.classList.add('gone'); }, 450);
+  }
+  frame.addEventListener('load', hideSplash);
+
+  /* το iframe του Apps Script δεν στέλνει πάντα load — δίχτυ ασφαλείας */
+  setTimeout(hideSplash, 6000);
+  setTimeout(function(){
+    if (!hidden) { errBox.classList.add('on'); }
+  }, 22000);
+})();
+</script>
+</body>
+</html>
