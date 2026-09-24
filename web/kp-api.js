@@ -188,6 +188,27 @@
 
     if (fn === 'loginWithEmail') {
       var em = String(args[0] || '').toLowerCase().trim();
+      var last0 = ls(LS_LOGIN);
+      var fast = last0 && last0.email === em && last0.pin === String(args[1] || '') && ls(LS_TOKEN);
+      if (fast) {
+        // Άμεση είσοδος — ο έλεγχος συνδρομής γίνεται στο παρασκήνιο
+        ok(last0.result, user);
+        call(fn, args).then(function (r) {
+          if (r && r.success) {
+            if (r.apiToken) ls(LS_TOKEN, r.apiToken);
+            var c2 = {}; for (var k2 in r) if (k2 !== 'apiToken') c2[k2] = r[k2];
+            ls(LS_LOGIN, { email: em, pin: String(args[1] || ''), result: c2 });
+            setOffline(false);
+          } else if (r && r.success === false) {
+            // λήξη / απενεργοποίηση / άλλαξε το PIN
+            ls(LS_LOGIN, null); ls(LS_TOKEN, null);
+            localStorage.removeItem('kipospro_email'); localStorage.removeItem('kipospro_pin');
+            alert(r.error || 'Συνδεθείτε ξανά');
+            location.reload();
+          }
+        }, function (e) { if (e.network) setOffline(true); });
+        return;
+      }
       call(fn, args).then(function (r) {
         if (r && r.success) {
           if (r.apiToken) ls(LS_TOKEN, r.apiToken);
@@ -215,6 +236,25 @@
         }
         return false;
       };
+      // Αν υπάρχει αντίγραφο: δείξε το αμέσως, φέρε τα νέα στο παρασκήνιο
+      var cached = ls(LS_CACHE);
+      if (cached && cached.email === email) {
+        ok(cached.data, user);
+        var before = '';
+        try { before = JSON.stringify(cached.data); } catch (x) {}
+        flush().then(function () {
+          return call('loadAll', args);
+        }).then(function (raw) {
+          setOffline(false);
+          storeLoadAll(email, raw);
+          var fresh = typeof raw === 'string' ? raw : JSON.stringify(raw);
+          if (fresh !== before && !queue().length) ok(raw, user);
+        }, function (e) {
+          if (e.network) setOffline(true);
+          else if (e.server) kpNote('⚠ Η Google δεν απάντησε — δείχνω τα αποθηκευμένα', true);
+        });
+        return;
+      }
       // πρώτα στέλνουμε ό,τι περιμένει, μετά φέρνουμε τα νέα δεδομένα
       flush().then(function () {
         return call('loadAll', args);
