@@ -1,10 +1,15 @@
 /* KiposPro — αποθηκεύει την εφαρμογή στο κινητό ώστε να ανοίγει χωρίς σήμα.
    Άλλαξε το VERSION σε κάθε νέο ανέβασμα για να παίρνουν όλοι την ενημέρωση. */
-var VERSION = 'kp-2026-09-24c';
+var VERSION = 'kp-2026-09-24d';
 var CORE = ['./', './index.html', './kp-api.js', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable.png'];
 
 self.addEventListener('install', function (e) {
-  e.waitUntil(caches.open(VERSION).then(function (c) { return c.addAll(CORE); }).then(function () { return self.skipWaiting(); }));
+  // cache:'reload' — παρακάμπτει την προσωρινή μνήμη του GitHub ώστε να παίρνει σίγουρα τα νέα αρχεία
+  e.waitUntil(caches.open(VERSION).then(function (c) {
+    return Promise.all(CORE.map(function (u) {
+      return fetch(new Request(u, { cache: 'reload' })).then(function (r) { if (r.ok) return c.put(u, r); });
+    }));
+  }).then(function () { return self.skipWaiting(); }));
 });
 
 self.addEventListener('activate', function (e) {
@@ -25,17 +30,19 @@ self.addEventListener('fetch', function (e) {
   }
   if (url.origin !== self.location.origin) return;
 
-  // Η σελίδα: ανοίγει ακαριαία από την αποθήκη, ενημερώνεται στο παρασκήνιο
+  // Η σελίδα: ανοίγει ακαριαία από την αποθήκη (το SW την ανανεώνει όταν αλλάζει VERSION)
   if (req.mode === 'navigate') {
     e.respondWith(caches.open(VERSION).then(function (c) {
       return c.match('./index.html').then(function (hit) {
-        var net = fetch(req).then(function (r) { if (r && r.ok) c.put('./index.html', r.clone()); return r; });
-        return hit || net;
+        return hit || fetch(req);
       });
-    }));
+    }).catch(function () { return fetch(req); }));
     return;
   }
-  e.respondWith(swr(req, VERSION));
+  // Αρχεία της εφαρμογής: μόνο από την αποθήκη της τρέχουσας έκδοσης
+  e.respondWith(caches.open(VERSION).then(function (c) {
+    return c.match(req, { ignoreSearch: true }).then(function (hit) { return hit || fetch(req); });
+  }));
 });
 
 function swr(req, cacheName) {

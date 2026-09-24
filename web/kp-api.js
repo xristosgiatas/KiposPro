@@ -20,7 +20,9 @@
   };
   var SLOW = { uploadPhoto:1, uploadDocFile:1, createQuotePdf:1, createReceipt:1, sendReceiptEmail:1, loadAll:1 };
 
+  var KP_VERSION = '2026-09-24d';
   window.KP_WEB = true;
+  window.KP_VERSION = KP_VERSION;
 
   function ls(k, v) {
     try {
@@ -385,7 +387,7 @@
     badge(); if (queue().length) flush();
     if (/[?&]diag\b/.test(location.search)) {
       var L = ls('kp_log') || [];
-      alert('KiposPro — τελευταία γεγονότα:\n\n' + (L.length ? L.join('\n') : '(κανένα)') + '\n\nΣε αναμονή: ' + queue().length);
+      alert('KiposPro ' + KP_VERSION + ' — τελευταία γεγονότα:\n\n' + (L.length ? L.join('\n') : '(κανένα)') + '\n\nΣε αναμονή: ' + queue().length);
     }
   });
 
@@ -393,8 +395,28 @@
 
   /* ---------- service worker ---------- */
   if ('serviceWorker' in navigator) {
+    // ?reset — σβήνει την αποθηκευμένη εφαρμογή (όχι τα δεδομένα) και φορτώνει από την αρχή
+    if (/[?&]reset\b/.test(location.search)) {
+      navigator.serviceWorker.getRegistrations().then(function (rs) {
+        return Promise.all(rs.map(function (r) { return r.unregister(); }));
+      }).then(function () {
+        return window.caches ? caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }) : null;
+      }).then(function () { location.replace(location.pathname); });
+      return;
+    }
+    // Μόλις εγκατασταθεί νέα έκδοση, ξαναφορτώνει μία φορά για να την πάρει
+    var hadCtrl = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (!hadCtrl) return;
+      if (sessionStorage.getItem('kp_sw_reloaded')) return;
+      sessionStorage.setItem('kp_sw_reloaded', '1');
+      snapshot();
+      location.reload();
+    });
     window.addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js').catch(function () {});
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function (reg) {
+        try { reg.update(); } catch (e) {}
+      }).catch(function () {});
     });
   }
 })();
