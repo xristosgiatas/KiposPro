@@ -1,6 +1,6 @@
 /* KiposPro — αποθηκεύει την εφαρμογή στο κινητό ώστε να ανοίγει χωρίς σήμα.
    Άλλαξε το VERSION σε κάθε νέο ανέβασμα για να παίρνουν όλοι την ενημέρωση. */
-var VERSION = 'kp-2026-09-24e';
+var VERSION = 'kp-2026-09-24f';
 var CORE = ['./', './index.html', './kp-api.js', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable.png'];
 
 self.addEventListener('install', function (e) {

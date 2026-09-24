@@ -20,7 +20,7 @@
   };
   var SLOW = { uploadPhoto:1, uploadDocFile:1, createQuotePdf:1, createReceipt:1, sendReceiptEmail:1, loadAll:1 };
 
-  var KP_VERSION = '2026-09-24e';
+  var KP_VERSION = '2026-09-24f';
   window.KP_WEB = true;
   window.KP_VERSION = KP_VERSION;
 
@@ -45,6 +45,8 @@
   window.kpLog = kpLog;
 
   function post1(fn, args, opId) {
+    var tStart = Date.now();
+    if (fn === 'loginWithEmail' || fn === 'loadAll') kpLog('→ ' + fn);
     var ctrl = window.AbortController ? new AbortController() : null;
     var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, SLOW[fn] ? 120000 : 45000);
     return fetch(API_URL, {
@@ -57,6 +59,7 @@
     }).then(function (r) {
       clearTimeout(timer);
       return r.text().then(function (txt) {
+        if (fn === 'loginWithEmail' || fn === 'loadAll') kpLog('← ' + fn + ' ' + (Date.now() - tStart) + 'ms · ' + Math.round(txt.length / 1024) + 'KB');
         try { return JSON.parse(txt); }
         catch (e) {
           var clean = String(txt || '').replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 180);
@@ -424,7 +427,26 @@
     badge(); if (queue().length) flush();
     if (/[?&]diag\b/.test(location.search)) {
       var L = ls('kp_log') || [];
-      alert('KiposPro ' + KP_VERSION + ' — τελευταία γεγονότα:\n\n' + (L.length ? L.join('\n') : '(κανένα)') + '\n\nΣε αναμονή: ' + queue().length);
+      var head = 'KiposPro ' + KP_VERSION + '\n\nΤελευταία γεγονότα:\n' + (L.length ? L.slice(-10).join('\n') : '(κανένα)') + '\n\nΣε αναμονή: ' + queue().length;
+      var res = [];
+      function probe(label, opts) {
+        var t = Date.now();
+        var ctrl = new AbortController();
+        var to = setTimeout(function () { ctrl.abort(); }, 20000);
+        opts.signal = ctrl.signal;
+        return fetch(API_URL, opts).then(function (r) {
+          return r.text().then(function (x) { clearTimeout(to); res.push('✓ ' + label + ': ' + (Date.now() - t) + 'ms · ' + r.status + ' · ' + (r.redirected ? 'redir' : 'direct') + ' · ' + x.slice(0, 40)); });
+        }, function (e) { clearTimeout(to); res.push('✗ ' + label + ': ' + (Date.now() - t) + 'ms · ' + (e.name || '') + ' ' + (e.message || '')); });
+      }
+      var body = JSON.stringify({ fn: 'ping', args: [] });
+      kpNote('⏳ Δοκιμή σύνδεσης… (έως 1 λεπτό)');
+      probe('POST text/plain', { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: body, redirect: 'follow', cache: 'no-store' })
+        .then(function () { return probe('POST χωρίς header', { method: 'POST', body: body, redirect: 'follow' }); })
+        .then(function () { return probe('GET', { method: 'GET', redirect: 'follow', cache: 'no-store' }); })
+        .then(function () { return probe('POST credentials:omit', { method: 'POST', body: body, redirect: 'follow', credentials: 'omit', cache: 'no-store' }); })
+        .then(function () {
+          alert(head + '\n\nΔοκιμή τώρα:\n' + res.join('\n') + '\n\nonline: ' + navigator.onLine + ' · SW: ' + (!!(navigator.serviceWorker && navigator.serviceWorker.controller)));
+        });
     }
   });
 
