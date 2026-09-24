@@ -20,7 +20,7 @@
   };
   var SLOW = { uploadPhoto:1, uploadDocFile:1, createQuotePdf:1, createReceipt:1, sendReceiptEmail:1, loadAll:1 };
 
-  var KP_VERSION = '2026-09-24d';
+  var KP_VERSION = '2026-09-24e';
   window.KP_WEB = true;
   window.KP_VERSION = KP_VERSION;
 
@@ -115,7 +115,47 @@
     });
   }
 
-  /* ---------- τοπικό αντίγραφο ---------- */
+  /* ---------- τοπικό αντίγραφο (IndexedDB — χωράει πολύ περισσότερα από το localStorage) ---------- */
+  var _db = null, _mem = undefined;
+  function db() {
+    if (_db) return _db;
+    _db = new Promise(function (res, rej) {
+      if (!window.indexedDB) return rej(new Error('no idb'));
+      var r = indexedDB.open('kipospro', 1);
+      r.onupgradeneeded = function () { r.result.createObjectStore('kv'); };
+      r.onsuccess = function () { res(r.result); };
+      r.onerror = function () { rej(r.error); };
+    });
+    return _db;
+  }
+  function idbGet(k) {
+    return db().then(function (d) {
+      return new Promise(function (res) {
+        var q = d.transaction('kv', 'readonly').objectStore('kv').get(k);
+        q.onsuccess = function () { res(q.result); };
+        q.onerror = function () { res(undefined); };
+      });
+    }).catch(function () { return undefined; });
+  }
+  function idbSet(k, v) {
+    return db().then(function (d) {
+      return new Promise(function (res) {
+        var tx = d.transaction('kv', 'readwrite');
+        tx.objectStore('kv').put(v, k);
+        tx.oncomplete = function () { res(true); };
+        tx.onerror = tx.onabort = function () { kpLog('✗ αποθήκευση αντιγράφου: ' + (tx.error && tx.error.message)); res(false); };
+      });
+    }).catch(function (e) { kpLog('✗ IndexedDB: ' + (e && e.message)); return false; });
+  }
+  function getCache() {
+    if (_mem !== undefined) return Promise.resolve(_mem);
+    return idbGet('cache').then(function (c) {
+      if (!c) { var old = ls(LS_CACHE); if (old) { c = old; ls(LS_CACHE, null); idbSet('cache', c); } }
+      _mem = c || null; return _mem;
+    });
+  }
+  getCache();   // ξεκινά να διαβάζει από νωρίς
+
   var _snapT = null;
   function snapshotSoon() {
     clearTimeout(_snapT);
@@ -123,19 +163,23 @@
   }
   function snapshot() {
     var em = window._kpEmail || localStorage.getItem('kipospro_email') || '';
-    if (!em) return;
-    var base = ls(LS_CACHE);
-    if (!base || base.email !== em) return;
-    DATA_KEYS.forEach(function (k) { if (Array.isArray(window[k])) base.data[k] = window[k]; });
-    base.savedAt = Date.now();
-    ls(LS_CACHE, base);
+    if (!em || !_mem || _mem.email !== em) return;
+    var data = {};
+    for (var k0 in _mem.data) data[k0] = _mem.data[k0];
+    DATA_KEYS.forEach(function (k) {
+      if (Array.isArray(window[k])) { try { data[k] = JSON.parse(JSON.stringify(window[k])); } catch (e) {} }
+    });
+    _mem = { email: em, data: data, savedAt: Date.now() };
+    idbSet('cache', _mem);
   }
   function storeLoadAll(email, raw) {
     try {
       var data = typeof raw === 'string' ? JSON.parse(raw) : raw;
       if (!data || data.error) return;
-      ls(LS_CACHE, { email: email, data: data, savedAt: Date.now() });
-    } catch (e) {}
+      _mem = { email: email, data: data, savedAt: Date.now() };
+      var size = typeof raw === 'string' ? raw.length : 0;
+      idbSet('cache', _mem).then(function (okk) { kpLog((okk ? '✓' : '✗') + ' αντίγραφο αποθηκεύτηκε' + (size ? ' (' + Math.round(size / 1024) + ' KB)' : '')); });
+    } catch (e) { kpLog('✗ storeLoadAll: ' + e.message); }
   }
 
   /* ---------- ουρά ---------- */
@@ -211,7 +255,9 @@
         }, function (e) { if (e.network) setOffline(true); });
         return;
       }
+      var tL = Date.now();
       call(fn, args).then(function (r) {
+        kpLog('login ' + (Date.now() - tL) + 'ms');
         if (r && r.success) {
           if (r.apiToken) ls(LS_TOKEN, r.apiToken);
           var copy = {}; for (var k in r) if (k !== 'apiToken') copy[k] = r[k];
@@ -229,43 +275,34 @@
 
     if (fn === 'loadAll') {
       var email = args[0];
-      var useCache = function (e) {
-        var c = ls(LS_CACHE);
-        if (c && c.email === email) {
-          setOffline(!!(e && e.network));
-          if (e && e.server) kpNote('⚠ Η Google δεν απάντησε — δείχνω τα αποθηκευμένα', true);
-          ok(c.data, user); return true;
+      var t0 = Date.now();
+      getCache().then(function (C) {
+        var mine = C && C.email === email ? C : null;
+        kpLog('αντίγραφο: ' + (mine ? 'ναι (' + Math.round((Date.now() - (mine.savedAt || 0)) / 60000) + ' λεπτά)' : 'όχι') + ' · ' + (Date.now() - t0) + 'ms');
+        if (mine) {
+          // Δείξε το αντίγραφο αμέσως, φέρε τα νέα στο παρασκήνιο
+          ok(mine.data, user);
+          flush().then(function () {
+            var t1 = Date.now();
+            return call('loadAll', args).then(function (raw) { kpLog('loadAll ' + (Date.now() - t1) + 'ms'); return raw; });
+          }).then(function (raw) {
+            setOffline(false);
+            storeLoadAll(email, raw);
+            if (!queue().length) ok(raw, user);
+          }, function (e) {
+            if (e.network) setOffline(true);
+            else if (e.server) kpNote('⚠ Η Google δεν απάντησε — δείχνω τα αποθηκευμένα', true);
+          });
+          return;
         }
-        return false;
-      };
-      // Αν υπάρχει αντίγραφο: δείξε το αμέσως, φέρε τα νέα στο παρασκήνιο
-      var cached = ls(LS_CACHE);
-      if (cached && cached.email === email) {
-        ok(cached.data, user);
-        var before = '';
-        try { before = JSON.stringify(cached.data); } catch (x) {}
         flush().then(function () {
-          return call('loadAll', args);
+          var t1 = Date.now();
+          return call('loadAll', args).then(function (raw) { kpLog('loadAll ' + (Date.now() - t1) + 'ms'); return raw; });
         }).then(function (raw) {
           setOffline(false);
           storeLoadAll(email, raw);
-          var fresh = typeof raw === 'string' ? raw : JSON.stringify(raw);
-          if (fresh !== before && !queue().length) ok(raw, user);
-        }, function (e) {
-          if (e.network) setOffline(true);
-          else if (e.server) kpNote('⚠ Η Google δεν απάντησε — δείχνω τα αποθηκευμένα', true);
-        });
-        return;
-      }
-      // πρώτα στέλνουμε ό,τι περιμένει, μετά φέρνουμε τα νέα δεδομένα
-      flush().then(function () {
-        return call('loadAll', args);
-      }).then(function (raw) {
-        setOffline(false);
-        storeLoadAll(email, raw);
-        ok(raw, user);
-      }, function (e) {
-        if (!((e.network || e.server) && useCache(e))) failCb(e, user);
+          ok(raw, user);
+        }, function (e) { failCb(e, user); });
       });
       return;
     }
