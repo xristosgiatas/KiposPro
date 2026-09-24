@@ -33,24 +33,56 @@
   function netErr(msg) { var e = new Error(msg || 'Χωρίς σύνδεση'); e.network = true; return e; }
 
   /* ---------- δίκτυο ---------- */
-  function post(fn, args, opId) {
-    if (navigator.onLine === false) return Promise.reject(netErr());
+  function kpLog(msg) {
+    try {
+      var L = ls('kp_log') || [];
+      L.push(new Date().toLocaleTimeString('el-GR') + ' ' + msg);
+      ls('kp_log', L.slice(-40));
+    } catch (e) {}
+  }
+  window.kpLog = kpLog;
+
+  function post1(fn, args, opId) {
     var ctrl = window.AbortController ? new AbortController() : null;
-    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, SLOW[fn] ? 120000 : 30000);
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, SLOW[fn] ? 120000 : 45000);
     return fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ fn: fn, args: args, token: ls(LS_TOKEN) || '', opId: opId || '' }),
       redirect: 'follow',
+      cache: 'no-store',
       signal: ctrl ? ctrl.signal : undefined
     }).then(function (r) {
       clearTimeout(timer);
-      if (!r.ok) throw netErr('Σφάλμα διακομιστή ' + r.status);
-      return r.json().catch(function () { throw netErr('Άκυρη απάντηση'); });
+      return r.text().then(function (txt) {
+        try { return JSON.parse(txt); }
+        catch (e) {
+          var clean = String(txt || '').replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 180);
+          var er = new Error('Η Google απάντησε με σφάλμα (' + r.status + '): ' + (clean || 'κενή απάντηση'));
+          er.server = true; throw er;
+        }
+      });
     }, function (e) {
       clearTimeout(timer);
-      throw netErr();
+      throw netErr(e && e.name === 'AbortError' ? 'Αργή απάντηση — λήξη χρόνου' : 'Χωρίς σύνδεση' + (e && e.message ? ' (' + e.message + ')' : ''));
     });
+  }
+
+  // Ξαναδοκιμάζει μέχρι 2 φορές — το Apps Script έχει συχνά προσωρινά σφάλματα
+  function post(fn, args, opId) {
+    var tries = 0;
+    function attempt() {
+      tries++;
+      return post1(fn, args, opId).then(function (res) {
+        if (tries > 1) kpLog('✓ ' + fn + ' πέρασε στην ' + tries + 'η προσπάθεια');
+        return res;
+      }, function (e) {
+        kpLog('✗ ' + fn + ' #' + tries + ': ' + e.message);
+        if (tries < 3) return new Promise(function (ok) { setTimeout(ok, tries * 1500); }).then(attempt);
+        throw e;
+      });
+    }
+    return attempt();
   }
 
   // Νέο κλειδί με τα αποθηκευμένα στοιχεία, αν έληξε
@@ -121,7 +153,6 @@
     if (_flushing) return Promise.resolve();
     var q = queue();
     if (!q.length) return Promise.resolve();
-    if (navigator.onLine === false) { badge(); return Promise.resolve(); }
     _flushing = true; badge();
     var synced = 0;
     function next() {
@@ -135,7 +166,7 @@
         if (cb && cb.ok) try { cb.ok(result, cb.user); } catch (e) {}
         return next();
       }, function (err) {
-        if (err && err.network) throw err;          // σταματάμε, ξαναδοκιμάζουμε αργότερα
+        if (err && (err.network || err.server)) throw err;          // σταματάμε, ξαναδοκιμάζουμε αργότερα
         // σφάλμα εφαρμογής: η αλλαγή απορρίφθηκε — τη βγάζουμε για να μην κολλήσει η ουρά
         setQueue(queue().filter(function (x) { return x.opId !== op.opId; }));
         var cb = _pending[op.opId]; delete _pending[op.opId];
@@ -166,8 +197,8 @@
         ok(r, user);
       }, function (e) {
         var last = ls(LS_LOGIN);
-        if (e.network && last && last.email === em && last.pin === String(args[1] || '')) {
-          setOffline(true); ok(last.result, user);
+        if ((e.network || e.server) && last && last.email === em && last.pin === String(args[1] || '')) {
+          setOffline(!!e.network); ok(last.result, user);
         } else failCb(e, user);
       });
       return;
@@ -175,12 +206,15 @@
 
     if (fn === 'loadAll') {
       var email = args[0];
-      var useCache = function (why) {
+      var useCache = function (e) {
         var c = ls(LS_CACHE);
-        if (c && c.email === email) { setOffline(true); ok(c.data, user); return true; }
+        if (c && c.email === email) {
+          setOffline(!!(e && e.network));
+          if (e && e.server) kpNote('⚠ Η Google δεν απάντησε — δείχνω τα αποθηκευμένα', true);
+          ok(c.data, user); return true;
+        }
         return false;
       };
-      if (navigator.onLine === false && useCache()) return;
       // πρώτα στέλνουμε ό,τι περιμένει, μετά φέρνουμε τα νέα δεδομένα
       flush().then(function () {
         return call('loadAll', args);
@@ -189,7 +223,7 @@
         storeLoadAll(email, raw);
         ok(raw, user);
       }, function (e) {
-        if (!(e.network && useCache())) failCb(e, user);
+        if (!((e.network || e.server) && useCache(e))) failCb(e, user);
       });
       return;
     }
@@ -205,7 +239,7 @@
     // Αλλαγές δεδομένων: ουρά
     var op = enqueue(fn, args);
     snapshotSoon();
-    if (navigator.onLine === false || isOffline()) {
+    if (isOffline()) {
       ok({ success: true, queued: true }, user);
       scheduleRetry();
       return;
@@ -276,7 +310,11 @@
     _pill.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 8px);'
       + 'z-index:99999;padding:7px 14px;border-radius:999px;font:600 12.5px/1.2 Inter,system-ui,sans-serif;'
       + 'box-shadow:0 4px 14px rgba(0,0,0,.18);display:none;align-items:center;gap:6px;white-space:nowrap;pointer-events:auto;cursor:pointer';
-    _pill.onclick = function () { flush(); };
+    _pill.onclick = function () {
+      var L = ls('kp_log') || [];
+      if (L.length && confirm('Να δεις τι έγινε;\n\n' + L.slice(-8).join('\n') + '\n\n(OK = ξαναδοκιμή)')) flush();
+      else flush();
+    };
     document.body.appendChild(_pill);
     return _pill;
   }
@@ -284,7 +322,7 @@
     var p = pill(); if (!p) return;
     if (_noteT) return;
     var n = queue().length;
-    if (_offline || navigator.onLine === false) {
+    if (_offline) {
       p.style.background = '#3a3a3a'; p.style.color = '#fff';
       p.textContent = '⚡ Χωρίς σήμα' + (n ? ' · ' + n + ' σε αναμονή' : '');
       p.style.display = 'flex';
@@ -303,7 +341,13 @@
     p.textContent = msg; p.style.display = 'flex';
     _noteT = setTimeout(function () { _noteT = null; badge(); }, bad ? 6000 : 2500);
   }
-  document.addEventListener('DOMContentLoaded', function () { badge(); if (queue().length) flush(); });
+  document.addEventListener('DOMContentLoaded', function () {
+    badge(); if (queue().length) flush();
+    if (/[?&]diag\b/.test(location.search)) {
+      var L = ls('kp_log') || [];
+      alert('KiposPro — τελευταία γεγονότα:\n\n' + (L.length ? L.join('\n') : '(κανένα)') + '\n\nΣε αναμονή: ' + queue().length);
+    }
+  });
 
   window.KP_SYNC = { flush: flush, queue: queue, snapshot: snapshot };
 
