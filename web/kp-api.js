@@ -20,7 +20,7 @@
   };
   var SLOW = { uploadPhoto:1, uploadDocFile:1, createQuotePdf:1, createReceipt:1, sendReceiptEmail:1, loadAll:1 };
 
-  var KP_VERSION = '2026-09-25c';
+  var KP_VERSION = '2026-09-25d';
   window.KP_WEB = true;
   window.KP_VERSION = KP_VERSION;
 
@@ -307,6 +307,7 @@
 
     if (fn === 'loadAll') {
       var email = args[0];
+      _lastLoad = { args: args, ok: ok, user: user, at: Date.now() };
       var t0 = Date.now();
       getCache().then(function (C) {
         var mine = C && C.email === email ? C : null;
@@ -390,6 +391,45 @@
   window.google.script = window.google.script || {};
   Object.defineProperty(window.google.script, 'run', { get: function () { return runner(); }, configurable: true });
 
+  /* ---------- αυτόματη ανανέωση ---------- */
+  // Όταν γυρνάς στην εφαρμογή (ή κάθε 3 λεπτά όσο είναι ανοιχτή) φέρνει τα νέα δεδομένα
+  var _lastLoad = null, _refreshing = false;
+  function refresh(why) {
+    if (!_lastLoad || _refreshing || _offline) return;
+    if (document.visibilityState === 'hidden') return;
+    if (Date.now() - _lastLoad.at < 45000) return;
+    _refreshing = true;
+    var L = _lastLoad;
+    flush().then(function () {
+      if (queue().length) throw new Error('queue');
+      return call('loadAll', L.args);
+    }).then(function (raw) {
+      _refreshing = false;
+      L.at = Date.now();
+      var prev = _mem && _mem.data ? JSON.stringify(_mem.data) : '';
+      storeLoadAll(L.args[0], raw);
+      var fresh = typeof raw === 'string' ? raw : JSON.stringify(raw);
+      kpLog('ανανέωση (' + why + ')' + (fresh !== prev ? ' · νέα δεδομένα' : ''));
+      if (fresh !== prev && !queue().length && !SD_busy()) L.ok(raw, L.user);
+    }, function (e) {
+      _refreshing = false;
+      if (e && e.network) suspectOffline();
+    });
+  }
+  // μην ξαναζωγραφίζεις την οθόνη ενώ ο χρήστης σέρνει κάρτα ή γράφει σε φόρμα
+  function SD_busy() {
+    try {
+      if (window.SD && window.SD.on) return true;
+      var a = document.activeElement;
+      if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT')) return true;
+      var m = document.querySelector('#modal-bg.open');
+      if (m) return true;
+    } catch (e) {}
+    return false;
+  }
+  setInterval(function () { refresh('χρόνος'); }, 180000);
+  window.addEventListener('focus', function () { refresh('επιστροφή'); });
+
   /* ---------- κατάσταση σήματος ---------- */
   var _offline = false;
   function isOffline() { return _offline; }
@@ -423,7 +463,7 @@
   window.addEventListener('online', function () { setOffline(false); flush(); });
   window.addEventListener('offline', function () { suspectOffline(); });
   document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'visible') { if (_offline) post1('ping', []).then(function () { setOffline(false); }, function () {}); else if (queue().length) flush(); }
+    if (document.visibilityState === 'visible') { setTimeout(function () { refresh('επιστροφή'); }, 300); if (_offline) post1('ping', []).then(function () { setOffline(false); }, function () {}); else if (queue().length) flush(); }
     if (document.visibilityState === 'hidden') snapshot();
   });
   window.addEventListener('pagehide', snapshot);
