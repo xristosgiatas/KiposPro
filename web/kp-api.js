@@ -20,7 +20,7 @@
   };
   var SLOW = { uploadPhoto:1, uploadDocFile:1, createQuotePdf:1, createReceipt:1, sendReceiptEmail:1, loadAll:1 };
 
-  var KP_VERSION = '2026-09-25a';
+  var KP_VERSION = '2026-09-25b';
   window.KP_WEB = true;
   window.KP_VERSION = KP_VERSION;
 
@@ -48,7 +48,7 @@
     var tStart = Date.now();
     if (fn === 'loginWithEmail' || fn === 'loadAll') kpLog('→ ' + fn);
     var ctrl = window.AbortController ? new AbortController() : null;
-    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, SLOW[fn] ? 120000 : 45000);
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, SLOW[fn] ? 120000 : (fn === 'ping' ? 12000 : 45000));
     return fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -198,8 +198,9 @@
     return op;
   }
 
+  var _flushP = null;
   function flush() {
-    if (_flushing) return Promise.resolve();
+    if (_flushing && _flushP) return _flushP;
     var q = queue();
     if (!q.length) return Promise.resolve();
     _flushing = true; badge();
@@ -224,10 +225,11 @@
         return next();
       });
     }
-    return next().then(function () {
-      _flushing = false; badge();
+    _flushP = next().then(function () {
+      _flushing = false; _flushP = null; badge();
       if (synced && _wasQueued && !queue().length) { _wasQueued = false; kpNote('✓ Συγχρονίστηκαν ' + synced + ' αλλαγ' + (synced === 1 ? 'ή' : 'ές')); }
-    }, function () { _flushing = false; badge(); });
+    }, function (e) { _flushing = false; _flushP = null; badge(); if (e && e.network) suspectOffline(); });
+    return _flushP;
   }
 
   /* ---------- δρομολόγηση κλήσεων ---------- */
@@ -255,7 +257,7 @@
             alert(r.error || 'Συνδεθείτε ξανά');
             location.reload();
           }
-        }, function (e) { if (e.network) setOffline(true); });
+        }, function (e) { if (e.network) suspectOffline(); });
         return;
       }
       var tL = Date.now();
@@ -270,7 +272,7 @@
       }, function (e) {
         var last = ls(LS_LOGIN);
         if ((e.network || e.server) && last && last.email === em && last.pin === String(args[1] || '')) {
-          setOffline(!!e.network); ok(last.result, user);
+          (e.network ? suspectOffline() : 0); ok(last.result, user);
         } else failCb(e, user);
       });
       return;
@@ -293,7 +295,7 @@
             storeLoadAll(email, raw);
             if (!queue().length) ok(raw, user);
           }, function (e) {
-            if (e.network) setOffline(true);
+            if (e.network) suspectOffline();
             else if (e.server) kpNote('⚠ Η Google δεν απάντησε — δείχνω τα αποθηκευμένα', true);
           });
           return;
@@ -312,7 +314,7 @@
 
     if (ONLINE_ONLY[fn]) {
       call(fn, args).then(function (r) { setOffline(false); ok(r, user); }, function (e) {
-        if (e.network) { setOffline(true); failCb(new Error('Χρειάζεται σύνδεση στο internet'), user); }
+        if (e.network) { suspectOffline(); failCb(new Error('Χρειάζεται σύνδεση στο internet'), user); }
         else failCb(e, user);
       });
       return;
@@ -337,7 +339,7 @@
       if (queue().some(function (x) { return x.opId === op.opId; })) {
         var cb = _pending[op.opId];
         if (cb) { delete _pending[op.opId]; try { cb.ok({ success: true, queued: true }, cb.user); } catch (e) {} }
-        setOffline(true); scheduleRetry();
+        suspectOffline(); scheduleRetry();
       } else setOffline(false);
     });
   }
@@ -366,20 +368,35 @@
   function isOffline() { return _offline; }
   function setOffline(v) { if (_offline !== v) { _offline = v; badge(); if (!v) flush(); } }
 
+  // Δείχνει «Χωρίς σήμα» μόνο αν επιβεβαιωθεί με γρήγορο ping.
+  // Στο iPhone τα αιτήματα κόβονται όταν βγαίνεις από την εφαρμογή — αυτά δεν μετράνε.
+  var _checking = null;
+  function suspectOffline() {
+    if (_offline || _checking) return;
+    if (document.visibilityState === 'hidden') return;
+    _checking = post1('ping', []).then(function () {
+      _checking = null; setOffline(false);
+    }, function (e) {
+      _checking = null;
+      if (document.visibilityState === 'hidden') return;
+      if (e && e.network) { setOffline(true); scheduleRetry(); }
+    });
+  }
+
   var _retryT = null;
   function scheduleRetry() {
     if (_retryT) return;
     _retryT = setTimeout(function () {
       _retryT = null;
       if (!queue().length) return;
-      post('ping', []).then(function () { setOffline(false); flush(); }, function () { scheduleRetry(); });
+      post1('ping', []).then(function () { setOffline(false); flush(); }, function () { scheduleRetry(); });
     }, 20000);
   }
 
   window.addEventListener('online', function () { setOffline(false); flush(); });
-  window.addEventListener('offline', function () { setOffline(true); });
+  window.addEventListener('offline', function () { suspectOffline(); });
   document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'visible' && queue().length) flush();
+    if (document.visibilityState === 'visible') { if (_offline) post1('ping', []).then(function () { setOffline(false); }, function () {}); else if (queue().length) flush(); }
     if (document.visibilityState === 'hidden') snapshot();
   });
   window.addEventListener('pagehide', snapshot);
