@@ -20,7 +20,7 @@
   };
   var SLOW = { uploadPhoto:1, uploadDocFile:1, createQuotePdf:1, createReceipt:1, sendReceiptEmail:1, loadAll:1 };
 
-  var KP_VERSION = '2026-09-24f';
+  var KP_VERSION = '2026-09-25a';
   window.KP_WEB = true;
   window.KP_VERSION = KP_VERSION;
 
@@ -226,7 +226,7 @@
     }
     return next().then(function () {
       _flushing = false; badge();
-      if (synced) kpNote('✓ Συγχρονίστηκαν ' + synced + ' αλλαγ' + (synced === 1 ? 'ή' : 'ές'));
+      if (synced && _wasQueued && !queue().length) { _wasQueued = false; kpNote('✓ Συγχρονίστηκαν ' + synced + ' αλλαγ' + (synced === 1 ? 'ή' : 'ές')); }
     }, function () { _flushing = false; badge(); });
   }
 
@@ -392,27 +392,37 @@
     _pill.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 8px);'
       + 'z-index:99999;padding:7px 14px;border-radius:999px;font:600 12.5px/1.2 Inter,system-ui,sans-serif;'
       + 'box-shadow:0 4px 14px rgba(0,0,0,.18);display:none;align-items:center;gap:6px;white-space:nowrap;pointer-events:auto;cursor:pointer';
-    _pill.onclick = function () {
-      var L = ls('kp_log') || [];
-      if (L.length && confirm('Να δεις τι έγινε;\n\n' + L.slice(-8).join('\n') + '\n\n(OK = ξαναδοκιμή)')) flush();
-      else flush();
-    };
+    _pill.onclick = function () { flush(); };
     document.body.appendChild(_pill);
     return _pill;
   }
+  var _slowT = null, _wasQueued = false;
   function badge() {
     var p = pill(); if (!p) return;
     if (_noteT) return;
     var n = queue().length;
+    if (n) _wasQueued = _wasQueued || _offline;
     if (_offline) {
+      clearTimeout(_slowT); _slowT = null;
       p.style.background = '#3a3a3a'; p.style.color = '#fff';
       p.textContent = '⚡ Χωρίς σήμα' + (n ? ' · ' + n + ' σε αναμονή' : '');
       p.style.display = 'flex';
     } else if (n) {
-      p.style.background = '#FFF4DB'; p.style.color = '#7A5200';
-      p.textContent = (_flushing ? '↻ Συγχρονισμός… ' : '↻ ') + n + ' σε αναμονή';
-      p.style.display = 'flex';
+      // Κανονική αποθήκευση: δεν δείχνουμε τίποτα, εκτός αν κολλήσει > 5s
+      if (p.style.display !== 'flex' && !_slowT) {
+        _slowT = setTimeout(function () {
+          _slowT = null;
+          if (!queue().length || _offline || _noteT) return;
+          _wasQueued = true;
+          p.style.background = '#FFF4DB'; p.style.color = '#7A5200';
+          p.textContent = '↻ ' + queue().length + ' σε αναμονή';
+          p.style.display = 'flex';
+        }, 5000);
+      } else if (p.style.display === 'flex') {
+        p.textContent = '↻ ' + n + ' σε αναμονή';
+      }
     } else {
+      clearTimeout(_slowT); _slowT = null;
       p.style.display = 'none';
     }
   }
