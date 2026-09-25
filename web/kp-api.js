@@ -20,7 +20,7 @@
   };
   var SLOW = { uploadPhoto:1, uploadDocFile:1, createQuotePdf:1, createReceipt:1, sendReceiptEmail:1, loadAll:1 };
 
-  var KP_VERSION = '2026-09-25b';
+  var KP_VERSION = '2026-09-25c';
   window.KP_WEB = true;
   window.KP_VERSION = KP_VERSION;
 
@@ -198,31 +198,58 @@
     return op;
   }
 
-  var _flushP = null;
+  var _flushP = null, _noBatch = false;
   function flush() {
     if (_flushing && _flushP) return _flushP;
     var q = queue();
     if (!q.length) return Promise.resolve();
     _flushing = true; badge();
     var synced = 0;
-    function next() {
+    function done(op, result) {
+      setQueue(queue().filter(function (x) { return x.opId !== op.opId; }));
+      synced++;
+      var cb = _pending[op.opId]; delete _pending[op.opId];
+      if (cb && cb.ok) try { cb.ok(result, cb.user); } catch (e) {}
+    }
+    function rejected(op, err) {
+      // σφάλμα εφαρμογής: η αλλαγή απορρίφθηκε — τη βγάζουμε για να μην κολλήσει η ουρά
+      setQueue(queue().filter(function (x) { return x.opId !== op.opId; }));
+      var cb = _pending[op.opId]; delete _pending[op.opId];
+      if (cb && cb.fail) try { cb.fail(err, cb.user); } catch (e) {}
+      else kpNote('⚠ Δεν αποθηκεύτηκε: ' + op.fn + ' — ' + err.message, true);
+    }
+    function one() {
       var q2 = queue();
       if (!q2.length) return Promise.resolve();
       var op = q2[0];
       return call(op.fn, op.args, op.opId).then(function (result) {
-        setQueue(queue().filter(function (x) { return x.opId !== op.opId; }));
-        synced++;
-        var cb = _pending[op.opId]; delete _pending[op.opId];
-        if (cb && cb.ok) try { cb.ok(result, cb.user); } catch (e) {}
+        done(op, result); return next();
+      }, function (err) {
+        if (err && (err.network || err.server)) throw err;
+        rejected(op, err); return next();
+      });
+    }
+    // Όλες οι αλλαγές σε ένα αίτημα (έως 25) — πολύ πιο γρήγορο από μία-μία
+    function next() {
+      var q2 = queue();
+      if (!q2.length) return Promise.resolve();
+      if (q2.length === 1 || _noBatch) return one();
+      var ops = q2.slice(0, 25);
+      var t0 = Date.now();
+      return call('batch', [ops.map(function (o) { return { fn: o.fn, args: o.args, opId: o.opId }; })]).then(function (results) {
+        kpLog('batch ' + ops.length + ' σε ' + (Date.now() - t0) + 'ms');
+        if (!Array.isArray(results)) throw new Error('batch');
+        ops.forEach(function (op, i) {
+          var r = results[i] || {};
+          if (r.ok) done(op, r.result);
+          else rejected(op, new Error(r.error || 'Σφάλμα'));
+        });
         return next();
       }, function (err) {
-        if (err && (err.network || err.server)) throw err;          // σταματάμε, ξαναδοκιμάζουμε αργότερα
-        // σφάλμα εφαρμογής: η αλλαγή απορρίφθηκε — τη βγάζουμε για να μην κολλήσει η ουρά
-        setQueue(queue().filter(function (x) { return x.opId !== op.opId; }));
-        var cb = _pending[op.opId]; delete _pending[op.opId];
-        if (cb && cb.fail) try { cb.fail(err, cb.user); } catch (e) {}
-        else kpNote('⚠ Δεν αποθηκεύτηκε: ' + op.fn + ' — ' + err.message, true);
-        return next();
+        if (err && (err.network || err.server)) throw err;
+        // Το Code-api δεν έχει ακόμα batch — συνεχίζουμε μία-μία
+        _noBatch = true; kpLog('batch μη διαθέσιμο: ' + err.message);
+        return one();
       });
     }
     _flushP = next().then(function () {
@@ -434,7 +461,7 @@
           p.style.background = '#FFF4DB'; p.style.color = '#7A5200';
           p.textContent = '↻ ' + queue().length + ' σε αναμονή';
           p.style.display = 'flex';
-        }, 5000);
+        }, 10000);
       } else if (p.style.display === 'flex') {
         p.textContent = '↻ ' + n + ' σε αναμονή';
       }
