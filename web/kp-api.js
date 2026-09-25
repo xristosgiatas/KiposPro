@@ -20,7 +20,7 @@
   };
   var SLOW = { uploadPhoto:1, uploadDocFile:1, createQuotePdf:1, createReceipt:1, sendReceiptEmail:1, loadAll:1 };
 
-  var KP_VERSION = '2026-09-25d';
+  var KP_VERSION = '2026-09-25f';
   window.KP_WEB = true;
   window.KP_VERSION = KP_VERSION;
 
@@ -394,13 +394,14 @@
   /* ---------- αυτόματη ανανέωση ---------- */
   // Όταν γυρνάς στην εφαρμογή (ή κάθε 3 λεπτά όσο είναι ανοιχτή) φέρνει τα νέα δεδομένα
   var _lastLoad = null, _refreshing = false;
-  function refresh(why) {
-    if (!_lastLoad || _refreshing || _offline) return;
-    if (document.visibilityState === 'hidden') return;
-    if (Date.now() - _lastLoad.at < 45000) return;
+  function refresh(why, force) {
+    if (!_lastLoad || _refreshing) return Promise.resolve(false);
+    if (_offline && !force) return Promise.resolve(false);
+    if (document.visibilityState === 'hidden') return Promise.resolve(false);
+    if (!force && Date.now() - _lastLoad.at < 45000) return Promise.resolve(false);
     _refreshing = true;
     var L = _lastLoad;
-    flush().then(function () {
+    return flush().then(function () {
       if (queue().length) throw new Error('queue');
       return call('loadAll', L.args);
     }).then(function (raw) {
@@ -410,12 +411,16 @@
       storeLoadAll(L.args[0], raw);
       var fresh = typeof raw === 'string' ? raw : JSON.stringify(raw);
       kpLog('ανανέωση (' + why + ')' + (fresh !== prev ? ' · νέα δεδομένα' : ''));
-      if (fresh !== prev && !queue().length && !SD_busy()) L.ok(raw, L.user);
+      setOffline(false);
+      if ((force || fresh !== prev) && !queue().length && !SD_busy()) L.ok(raw, L.user);
+      return true;
     }, function (e) {
       _refreshing = false;
       if (e && e.network) suspectOffline();
+      return false;
     });
   }
+  window.kpRefresh = function () { return refresh('χειροκίνητα', true); };
   // μην ξαναζωγραφίζεις την οθόνη ενώ ο χρήστης σέρνει κάρτα ή γράφει σε φόρμα
   function SD_busy() {
     try {
@@ -429,6 +434,79 @@
   }
   setInterval(function () { refresh('χρόνος'); }, 180000);
   window.addEventListener('focus', function () { refresh('επιστροφή'); });
+
+
+  /* ---------- τράβηγμα προς τα κάτω για ανανέωση ---------- */
+  (function () {
+    var y0 = null, x0 = 0, dy = 0, armed = false, busy = false, ind = null;
+    var TH = 75;
+    function el() {
+      if (ind) return ind;
+      ind = document.createElement('div');
+      ind.style.cssText = 'position:fixed;left:50%;top:0;z-index:99998;width:38px;height:38px;margin-left:-19px;border-radius:50%;'
+        + 'background:#fff;box-shadow:0 3px 12px rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center;'
+        + 'font:700 18px/1 system-ui;color:#17624A;transform:translateY(-50px);opacity:0;pointer-events:none;transition:none';
+      ind.textContent = '↻';
+      document.body.appendChild(ind);
+      return ind;
+    }
+    function blocked(t) {
+      if (busy) return true;
+      if (window.SD && (window.SD.on || window.SD.t)) return true;
+      if (document.querySelector('#modal-bg.open, #kp-login')) return true;
+      var sb = document.querySelector('.sb.open, #sb.open'); if (sb) return true;
+      for (var n = t; n && n !== document.body; n = n.parentElement) {
+        if (n.scrollTop > 0) return true;
+        if (n.tagName === 'INPUT' || n.tagName === 'TEXTAREA' || n.tagName === 'SELECT') return true;
+      }
+      return (window.scrollY || document.documentElement.scrollTop || 0) > 0;
+    }
+    document.addEventListener('touchstart', function (e) {
+      if (e.touches.length !== 1 || blocked(e.target)) { y0 = null; return; }
+      y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; dy = 0; armed = false;
+    }, { passive: true });
+    document.addEventListener('touchmove', function (e) {
+      if (y0 === null) return;
+      if (window.SD && window.SD.on) { reset(); return; }
+      var t = e.touches[0];
+      dy = t.clientY - y0;
+      if (dy <= 0 || Math.abs(t.clientX - x0) > dy) { if (dy < -5) reset(); return; }
+      var pull = Math.min(dy * 0.5, 110);
+      var i = el();
+      i.style.transition = 'none';
+      i.style.opacity = String(Math.min(1, pull / 40));
+      i.style.transform = 'translateY(' + (pull - 40) + 'px) rotate(' + (pull * 3) + 'deg)';
+      armed = dy * 0.5 >= TH * 0.6 + 20;
+      i.style.color = armed ? '#fff' : '#17624A';
+      i.style.background = armed ? '#17624A' : '#fff';
+    }, { passive: true });
+    function reset() {
+      y0 = null; armed = false;
+      if (!ind) return;
+      ind.style.transition = 'transform .25s, opacity .25s';
+      ind.style.transform = 'translateY(-50px)'; ind.style.opacity = '0';
+    }
+    document.addEventListener('touchend', function () {
+      if (y0 === null) return;
+      if (!armed) { reset(); return; }
+      y0 = null; busy = true;
+      var i = el(), r = 0;
+      i.style.transition = 'transform .2s';
+      i.style.transform = 'translateY(24px)';
+      var spin = setInterval(function () { r += 30; i.style.transform = 'translateY(24px) rotate(' + r + 'deg)'; }, 40);
+      var t0 = Date.now();
+      refresh('τράβηγμα', true).then(function (okk) {
+        var wait = Math.max(0, 500 - (Date.now() - t0));
+        setTimeout(function () {
+          clearInterval(spin); busy = false;
+          i.style.background = '#17624A'; i.style.color = '#fff';
+          reset();
+          kpNote(okk ? '✓ Ενημερώθηκε' : (_offline ? '⚡ Χωρίς σήμα — δείχνω τα αποθηκευμένα' : '⚠ Δεν ήρθαν νέα δεδομένα'), !okk);
+        }, wait);
+      });
+    });
+    document.addEventListener('touchcancel', reset);
+  })();
 
   /* ---------- κατάσταση σήματος ---------- */
   var _offline = false;
@@ -517,11 +595,9 @@
     p.textContent = msg; p.style.display = 'flex';
     _noteT = setTimeout(function () { _noteT = null; badge(); }, bad ? 6000 : 2500);
   }
-  document.addEventListener('DOMContentLoaded', function () {
-    badge(); if (queue().length) flush();
-    if (/[?&]diag\b/.test(location.search)) {
+  function showDiag() {
       var L = ls('kp_log') || [];
-      var head = 'KiposPro ' + KP_VERSION + '\n\nΤελευταία γεγονότα:\n' + (L.length ? L.slice(-10).join('\n') : '(κανένα)') + '\n\nΣε αναμονή: ' + queue().length;
+      var head = 'KiposPro ' + KP_VERSION + '\n\nΤελευταία γεγονότα:\n' + (L.length ? L.slice(-10).join('\n') : '(κανένα)') + '\n\nΣε αναμονή: ' + queue().length + (queue().length ? ' (' + queue().map(function (o) { return o.fn.replace(/^save/, ''); }).slice(0, 6).join(', ') + ')' : '') + '\nΛειτουργία: ' + ((window.navigator.standalone || matchMedia('(display-mode: standalone)').matches) ? 'εικονίδιο' : 'browser');
       var res = [];
       function probe(label, opts) {
         var t = Date.now();
@@ -541,6 +617,24 @@
         .then(function () {
           alert(head + '\n\nΔοκιμή τώρα:\n' + res.join('\n') + '\n\nonline: ' + navigator.onLine + ' · SW: ' + (!!(navigator.serviceWorker && navigator.serviceWorker.controller)));
         });
+  }
+  window.kpDiag = showDiag;
+  document.addEventListener('DOMContentLoaded', function () {
+    badge(); if (queue().length) flush();
+    if (/[?&]diag\b/.test(location.search)) showDiag();
+    // 5 γρήγορα πατήματα στο «KiposPro» ή στην έκδοση πάνω δεξιά → διάγνωση (δουλεύει και από το εικονίδιο)
+    var taps = 0, tapT = null;
+    ['mob-title','sb-logo-t','kp-build-tag'].forEach(function (id) {
+      var el = document.getElementById(id); if (!el) return;
+      el.addEventListener('click', function () {
+        taps++; clearTimeout(tapT); tapT = setTimeout(function () { taps = 0; }, 1500);
+        if (taps >= 5) { taps = 0; showDiag(); }
+      });
+    });
+    var tag = document.getElementById('kp-build-tag');
+    if (tag) {
+      var upd = function () { var n = queue().length; tag.textContent = KP_VERSION + (n ? ' · ' + n + '⏳' : ''); };
+      upd(); setInterval(upd, 3000);
     }
   });
 
