@@ -900,6 +900,11 @@ body.d-fs #d-row-zones .zone-btn{padding:4px 9px;font-size:11.5px}
 #pg-quote .pq-main{min-height:0}
 #pg-quote .pq-drawer{z-index:600}
 #pg-quote .pq-btn:active{transform:none;filter:none}
+#pg-quote .pq-vat{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border:1px solid var(--field-line);border-radius:8px;overflow:hidden}
+#pg-quote .pq-vat button{min-height:36px;border:0;border-left:1px solid var(--field-line);background:var(--panel);font:inherit;font-size:12.5px;font-weight:500;color:var(--muted);cursor:pointer;padding:0 6px}
+#pg-quote .pq-vat button:first-child{border-left:0}
+#pg-quote .pq-vat button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:600}
+#pg-quote .pq-vat button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 </style>
 </head>
 <body>
@@ -10419,7 +10424,8 @@ function calc(quote){
 
 /* ---------- model ---------- */
 function blankRow(){ return {desc:"", qty:"", price:"", total:""}; }
-function blankSection(){ return {title:"", totalLabel:"", rows:[blankRow(), blankRow()]}; }
+function blankSection(){ return {title:"", totalLabel:"", vat:"", rows:[blankRow(), blankRow()]}; }
+var VAT_TXT = {"": "", "with": "με ΦΠΑ", "without": "χωρίς ΦΠΑ"};
 function blankQuote(){
   return { id: uid(), client:"", address:"", project:"", date: new Date().toLocaleDateString("el-GR"),
     sections:[blankSection()], labor:"", laborLabel:"Σύνολο Εργασίας (χωρίς ΦΠΑ)",
@@ -10430,7 +10436,7 @@ function normalize(d, id){
   var o = Object.assign(b, JSON.parse(JSON.stringify(d || {})));
   o.id = id || o.id;
   if (!Array.isArray(o.sections)) o.sections = [];
-  o.sections = o.sections.map(function(s){ s = s || {}; return { title: s.title||"", totalLabel: s.totalLabel||"", rows: Array.isArray(s.rows) ? s.rows.map(function(r){ return Object.assign(blankRow(), r||{}); }) : [] }; });
+  o.sections = o.sections.map(function(s){ s = s || {}; return { title: s.title||"", totalLabel: s.totalLabel||"", vat: VAT_TXT[s.vat]!=null ? s.vat||"" : "", rows: Array.isArray(s.rows) ? s.rows.map(function(r){ return Object.assign(blankRow(), r||{}); }) : [] }; });
   return o;
 }
 function isEmpty(quote){
@@ -10452,13 +10458,13 @@ function paperHTML(quote){
     var rows = s.rows.filter(function(r){ return (r.desc+r.qty+r.price+r.total).trim(); });
     if (!s.title.trim() && !rows.length) return;
     h += '<div class="p-sec"><div class="p-bar">'+esc(s.title)+'</div>'+
-      '<div class="p-th"><span>Περιγραφή Υλικών</span><span>Ποσότητα</span><span>Τιμή Μον.</span><span>Σύνολο</span></div>';
+      '<div class="p-th"><span>Περιγραφή Υλικών</span><span>Ποσότητα</span><span>Τιμή Μον.'+(s.vat?'<br><small style="font-weight:600;font-size:9.5px">('+VAT_TXT[s.vat]+')</small>':'')+'</span><span>Σύνολο</span></div>';
     rows.forEach(function(r){
       var rc = rowCalc(r);
       var priceTxt = rc.price ? moneyR(rc.price) : (r.price.trim() || "-");
       h += '<div class="p-tr" data-brk><span>'+esc(r.desc)+'</span><span>'+esc(r.qty.trim()||"-")+'</span><span>'+esc(priceTxt)+'</span><span>'+esc(moneyR(rc.total))+'</span></div>';
     });
-    h += '<div class="p-sub" data-brk><span>'+esc(s.totalLabel.trim() || ("Σύνολο " + s.title.trim()).trim())+':</span><span>'+esc(moneyR(c.secs[i]))+'</span></div></div>';
+    h += '<div class="p-sub" data-brk><span>'+esc((s.totalLabel.trim() || ("Σύνολο " + s.title.trim()).trim()) + (s.vat ? " (" + VAT_TXT[s.vat] + ")" : ""))+':</span><span>'+esc(moneyR(c.secs[i]))+'</span></div></div>';
   });
   h += '<div class="p-tot" data-brk><div><span>Σύνολο Υλικών:</span><span>'+moneyR(c.mat)+'</span></div>'+
     (c.labor ? '<div><span>'+esc(quote.laborLabel)+':</span><span>'+moneyR(c.labor)+'</span></div>' : '')+
@@ -10500,6 +10506,7 @@ function renderForm(){
     h += '<div class="pq-sec"><div class="pq-sec-top"><div class="pq-field"><label for="pq-s'+si+'_title">Ενότητα '+(si+1)+'</label>'+
       '<input id="pq-s'+si+'_title" data-s="'+si+'" data-k="title" value="'+esc(s.title)+'" placeholder="π.χ. ΑΥΤΟΜΑΤΟ ΠΟΤΙΣΜΑ"></div>'+
       '<button class="pq-icon" type="button" data-act="delsec" data-s="'+si+'" aria-label="Διαγραφή ενότητας '+(si+1)+'"><svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div>'+
+      '<div class="pq-vat" role="group" aria-label="ΦΠΑ ενότητας">'+[["","Χωρίς ένδειξη"],["with","Με ΦΠΑ"],["without","Χωρίς ΦΠΑ"]].map(function(o){ return '<button type="button" data-act="vat" data-s="'+si+'" data-v="'+o[0]+'" aria-pressed="'+((s.vat||"")===o[0])+'">'+o[1]+'</button>'; }).join("")+'</div>'+
       '<div class="pq-rows"><div class="pq-rowh" aria-hidden="true"><span>Ποσότητα</span><span>Τιμή μον.</span><span>Σύνολο</span><span></span></div>';
     s.rows.forEach(function(r, ri){
       var c = rowCalc(r);
@@ -10529,22 +10536,28 @@ function renderForm(){
 function pqNorm(s){ s=String(s||"").toLowerCase().trim(); try{ s=s.normalize("NFD").replace(/[\u0300-\u036f]/g,""); }catch(e){} return s.replace(/\s+/g," "); }
 function pqPeople(){
   var seen={}, out=[];
-  [].concat(window.clients||[], window.ektas||[]).forEach(function(c){
-    var n=String(c&&c.name||"").trim(); if(!n) return;
-    var k=pqNorm(n); if(seen[k]) return; seen[k]=1;
-    out.push({name:n, address:String(c.address||"").trim()});
-  });
+  var add=function(c, src){
+    var n=String(c&&(c.name||c.clientName)||"").trim(); if(!n) return;
+    var k=pqNorm(n), addr=String(c.address||"").trim();
+    if(seen[k]){ if(!seen[k].address && addr) seen[k].address=addr; return; }
+    seen[k]={name:n, address:addr, src:src}; out.push(seen[k]);
+  };
+  (window.clients||[]).forEach(function(c){ add(c,"Συντήρηση"); });
+  (window.appointments||[]).slice().sort(function(a,b){ return String(b.date||"").localeCompare(String(a.date||"")); }).forEach(function(c){ add(c,"Ραντεβού"); });
+  (window.ektas||[]).forEach(function(c){ add(c,"Κατασκευή"); });
   return out.sort(function(a,b){ return a.name.localeCompare(b.name,"el"); });
 }
 function clientDatalist(){
-  return '<datalist id="pq-clientlist">'+pqPeople().map(function(p){ return '<option value="'+esc(p.name)+'">'+esc(p.address)+'</option>'; }).join("")+'</datalist>';
+  return '<datalist id="pq-clientlist">'+pqPeople().map(function(p){ return '<option value="'+esc(p.name)+'">'+esc([p.address,p.src].filter(Boolean).join(" · "))+'</option>'; }).join("")+'</datalist>';
 }
 var _autoAddr="";
 function pqFillAddress(){
   var hit=null, k=pqNorm(q.client);
   pqPeople().forEach(function(p){ if(pqNorm(p.name)===k) hit=p; });
   if(!hit || !hit.address) return;
-  if(q.address.trim() && q.address !== _autoAddr) return;
+  // Αλλάζει τη διεύθυνση αν είναι κενή ή αν ήρθε από άλλον πελάτη της λίστας — όχι αν την έγραψες εσύ
+  var cur=q.address.trim();
+  if(cur && cur !== _autoAddr && !pqPeople().some(function(p){ return p.address === cur; })) return;
   q.address = hit.address; _autoAddr = hit.address;
   var el=$("f_address"); if(el) el.value = hit.address;
 }
@@ -10575,6 +10588,7 @@ $("form").addEventListener("click", function(e){
   var si = +b.dataset.s, act = b.dataset.act;
   if (act === "addrow"){ q.sections[si].rows.push(blankRow()); renderForm(); focusLast(si); }
   else if (act === "delrow"){ q.sections[si].rows.splice(+b.dataset.r, 1); renderForm(); }
+  else if (act === "vat"){ q.sections[si].vat = b.dataset.v || ""; renderForm(); }
   else if (act === "addsec"){ q.sections.push(blankSection()); renderForm(); var el=$("s"+(q.sections.length-1)+"_title"); if (el) el.focus(); }
   else if (act === "delsec"){
     var s = q.sections[si];
