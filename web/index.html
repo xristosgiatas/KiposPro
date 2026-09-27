@@ -900,6 +900,11 @@ body.d-fs #d-row-zones .zone-btn{padding:4px 9px;font-size:11.5px}
 #pg-quote .pq-main{min-height:0}
 #pg-quote .pq-drawer{z-index:600}
 #pg-quote .pq-btn:active{transform:none;filter:none}
+#pg-quote .pq-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+#pg-quote .pq-chips .pq-hint{width:100%}
+#pg-quote .pq-chip{min-height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--field-line);background:var(--accent-soft);color:var(--accent);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+#pg-quote .pq-chip small{font-weight:500;color:var(--muted);margin-left:4px}
+#pg-quote .pq-chip:hover{border-color:var(--accent)}
 #pg-quote .pq-vat{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border:1px solid var(--field-line);border-radius:8px;overflow:hidden}
 #pg-quote .pq-vat button{min-height:36px;border:0;border-left:1px solid var(--field-line);background:var(--panel);font:inherit;font-size:12.5px;font-weight:500;color:var(--muted);cursor:pointer;padding:0 6px}
 #pg-quote .pq-vat button:first-child{border-left:0}
@@ -8825,6 +8830,7 @@ function renderOffers(){
       +'</div>'
       +'<div style="display:flex;flex-direction:column;gap:6px;margin-left:10px">'
       +'<button data-oid="'+o.id+'" onclick="offerOk(this)" style="background:#3C6A88;color:#fff;border:none;padding:7px 12px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">🤝 Συμφωνία OK</button>'
+      +'<button data-oid="'+o.id+'" onclick="go(\'quote\');pqFromOffer(this.getAttribute(\'data-oid\'))" style="background:#3f6b3f;color:#fff;border:none;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">📄 Προσφορά</button>'
       +'<button data-oid="'+o.id+'" onclick="offerToClient(this)" style="background:var(--gl);color:var(--gd);border:1px solid var(--gm);padding:5px 10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">🌿 Συντήρηση</button>'
       +'<button data-oid="'+o.id+'" onclick="archiveOffer(this)" style="background:#FEF3C7;color:#92400E;border:1px solid #F59E0B;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">📦 Αρχείο</button>'
       +'<button data-oid="'+o.id+'" onclick="editOffer(this)" style="background:#F5F2EB;color:var(--tx);border:1px solid var(--brd);padding:5px 10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">✏ Επεξ.</button>'
@@ -10497,7 +10503,7 @@ function f(label, key, val, ph, type){
 }
 function renderForm(){
   var h = '<div class="pq-card"><h2>Πελάτης</h2>'+
-    f("Όνομα πελάτη","client",q.client,"Γράψε ή διάλεξε από τους πελάτες").replace('type="text"','type="text" list="pq-clientlist"')+clientDatalist()+
+    f("Όνομα πελάτη","client",q.client,"Γράψε ή διάλεξε από τους πελάτες").replace('type="text"','type="text" list="pq-clientlist"')+clientDatalist()+offerChips()+
     f("Διεύθυνση","address",q.address,"π.χ. Σόλωνος 4Γ, Γλυφάδα")+
     '<div class="pq-grid2">'+f("Έργο","project",q.project,"π.χ. Αυτόματο Πότισμα")+f("Ημερομηνία (προαιρετικά)","date",q.date,"")+'</div></div>';
   h += '<div class="pq-card"><div class="pq-card-head"><h2>Υλικά</h2></div>'+
@@ -10542,10 +10548,30 @@ function pqPeople(){
     if(seen[k]){ if(!seen[k].address && addr) seen[k].address=addr; return; }
     seen[k]={name:n, address:addr, src:src}; out.push(seen[k]);
   };
+  pqOffers().forEach(function(o){ add(o,"Ραντεβού προσφοράς"); });
   (window.clients||[]).forEach(function(c){ add(c,"Συντήρηση"); });
   (window.appointments||[]).slice().sort(function(a,b){ return String(b.date||"").localeCompare(String(a.date||"")); }).forEach(function(c){ add(c,"Ραντεβού"); });
   (window.ektas||[]).forEach(function(c){ add(c,"Κατασκευή"); });
-  return out.sort(function(a,b){ return a.name.localeCompare(b.name,"el"); });
+  var first=out.filter(function(p){ return p.src==="Ραντεβού προσφοράς"; });
+  var rest=out.filter(function(p){ return p.src!=="Ραντεβού προσφοράς"; }).sort(function(a,b){ return a.name.localeCompare(b.name,"el"); });
+  return first.concat(rest);
+}
+function pqOffers(){
+  return (window.offers||[]).filter(function(o){ return o && !o.archived && String(o.name||"").trim(); })
+    .slice().sort(function(a,b){ return String(b.date||"").localeCompare(String(a.date||"")); });
+}
+function offerChips(){
+  if (q.client.trim()) return "";
+  var list=pqOffers().slice(0,8); if(!list.length) return "";
+  return '<div class="pq-chips"><span class="pq-hint">Από ραντεβού προσφοράς:</span>'+list.map(function(o){
+    return '<button type="button" class="pq-chip" data-act="pickoffer" data-oid="'+esc(o.id)+'">'+esc(o.name)+(o.date?' <small>'+esc(fmtDate(o.date))+'</small>':'')+'</button>';
+  }).join("")+'</div>';
+}
+function fillFromOffer(o){
+  q.client=String(o.name||"").trim();
+  q.address=String(o.address||"").trim(); _autoAddr=q.address;
+  if(!q.project.trim() && o.desc) q.project=String(o.desc).trim();
+  q.offerId=String(o.id);
 }
 function clientDatalist(){
   return '<datalist id="pq-clientlist">'+pqPeople().map(function(p){ return '<option value="'+esc(p.name)+'">'+esc([p.address,p.src].filter(Boolean).join(" · "))+'</option>'; }).join("")+'</datalist>';
@@ -10588,6 +10614,10 @@ $("form").addEventListener("click", function(e){
   var si = +b.dataset.s, act = b.dataset.act;
   if (act === "addrow"){ q.sections[si].rows.push(blankRow()); renderForm(); focusLast(si); }
   else if (act === "delrow"){ q.sections[si].rows.splice(+b.dataset.r, 1); renderForm(); }
+  else if (act === "pickoffer"){
+    var o=(window.offers||[]).filter(function(x){ return String(x.id)===b.dataset.oid; })[0];
+    if(o){ fillFromOffer(o); renderForm(); var el=$("s0r0d"); if(el) el.focus(); }
+  }
   else if (act === "vat"){ q.sections[si].vat = b.dataset.v || ""; renderForm(); }
   else if (act === "addsec"){ q.sections.push(blankSection()); renderForm(); var el=$("s"+(q.sections.length-1)+"_title"); if (el) el.focus(); }
   else if (act === "delsec"){
@@ -10801,6 +10831,19 @@ function start(){
 }
 window.renderQuotePage = function(){
   if (!started) start(); else { renderForm(); }
+  setTimeout(fitPaper, 30);
+};
+// Από την κάρτα «Ραντεβού προσφοράς»: ανοίγει την προσφορά του πελάτη (ή νέα, συμπληρωμένη)
+window.pqFromOffer = function(oid){
+  var o=(window.offers||[]).filter(function(x){ return String(x.id)===String(oid); })[0];
+  if(!o) return;
+  if (!started) start();
+  saveNow();
+  var mine=quotes.filter(function(x){ return String(x.offerId||"")===String(oid); })[0]
+    || quotes.filter(function(x){ return !x.offerId && pqNorm(x.client)===pqNorm(o.name); })[0];
+  if (mine){ openQuote(normalize(mine, mine.id)); if(!q.offerId){ q.offerId=String(oid); scheduleSave(); } toast("Άνοιξε η προσφορά του πελάτη"); }
+  else { var n=blankQuote(); q=n; fillFromOffer(o); openQuote(q); scheduleSave(); }
+  setView("form");
   setTimeout(fitPaper, 30);
 };
 window.pqAddSection = function(title, rows, clientName){
