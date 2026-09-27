@@ -16,11 +16,12 @@
   var ONLINE_ONLY = {
     uploadPhoto:1, uploadDocFile:1, getClientPhotos:1, getDocsFolderUrl:1,
     createQuotePdf:1, createReceipt:1, sendReceiptEmail:1, getNextReceiptNumber:1,
-    getDrivingKm:1, getPortalLink:1, loadDesigns:1, resolveReport:1
+    getDrivingKm:1, getPortalLink:1, loadDesigns:1, resolveReport:1,
+    prosf_init:1, prosf_savePdf:1
   };
-  var SLOW = { uploadPhoto:1, uploadDocFile:1, createQuotePdf:1, createReceipt:1, sendReceiptEmail:1, loadAll:1 };
+  var SLOW = { uploadPhoto:1, uploadDocFile:1, createQuotePdf:1, createReceipt:1, sendReceiptEmail:1, loadAll:1, prosf_savePdf:1 };
 
-  var KP_VERSION = '2026-09-25f';
+  var KP_VERSION = '2026-09-27a';
   window.KP_WEB = true;
   window.KP_VERSION = KP_VERSION;
 
