@@ -3442,6 +3442,7 @@ function completeAppt(id){
     }
     toast(msg);
   }).saveEkta(window._kpEmail||localStorage.getItem('kipospro_email')||'',ekta);
+  pqMoveToClient(ekta.name);
 }
 
 
@@ -8803,6 +8804,13 @@ function delSupply(id){
 
 
 
+/* Μεταφέρει τα PDF προσφορών του πελάτη από τον γενικό φάκελο «Προσφορές» στον φάκελό του */
+function pqMoveToClient(name, offerId){
+  name=String(name||'').trim(); if(!name) return;
+  try{ google.script.run.withSuccessHandler(function(){}).withFailureHandler(function(){})
+    .prosf_moveToClient(window._kpEmail||localStorage.getItem('kipospro_email')||'', name, offerId?String(offerId):''); }catch(e){}
+}
+
 /* ===== OFFERS ===== */
 function renderOffers(){
   var el=document.getElementById('offers-list');
@@ -8991,6 +8999,7 @@ function confirmOffer(el){
     done:false
   };
   appointments.push(appt);
+  pqMoveToClient(o.name, o.id);
   offerSyncPlan({id:o.id,date:'',archived:true});
   apptSyncPlan(appt);
   offers=offers.filter(function(x){return x.id!=id;});
@@ -10332,6 +10341,7 @@ function saveC(){
     if(r&&r.id&&!editId) c.id=r.id;
     closeM(); go('clients'); sbFoot(); toast('Αποθηκεύτηκε!');
   }).saveClient(window._kpEmail||localStorage.getItem('kipospro_email')||'',c);
+  if(!editId) pqMoveToClient(c.name);
 }
 
 /* ===== EKTA FORM ===== */
@@ -10356,6 +10366,7 @@ function saveEkta(){
   var obj={id:Date.now().toString(),name:name,address:document.getElementById('ea').value.trim(),tel:document.getElementById('et').value.trim(),date:document.getElementById('ed').value,amt:amt,desc:document.getElementById('edesc').value.trim(),notes:document.getElementById('enotes').value};
   ektas.push(obj);
   google.script.run.withSuccessHandler(function(){closeM();go('ekta');sbFoot();toast('Αποθηκεύτηκε!');}).saveEkta(window._kpEmail||localStorage.getItem('kipospro_email')||'',obj);
+  pqMoveToClient(obj.name);
 }
 
 /* ===== INIT ===== */
