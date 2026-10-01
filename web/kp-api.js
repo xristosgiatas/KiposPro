@@ -21,7 +21,7 @@
   };
   var SLOW = { uploadPhoto:1, uploadDocFile:1, createQuotePdf:1, createReceipt:1, sendReceiptEmail:1, loadAll:1, prosf_savePdf:1 };
 
-  var KP_VERSION = '2026-09-27e';
+  var KP_VERSION = '2026-10-01a';
   window.KP_WEB = true;
   window.KP_VERSION = KP_VERSION;
 

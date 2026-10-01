@@ -9527,8 +9527,9 @@ function emailDocReceipt(){
 function openPhotos(cid){
   var c=gc(cid); if(!c) return;
   openM('Φωτογραφίες — '+c.name,
-    '<input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhotoUpload(\''+cid+'\')">'
-    +'<button class="btn btn-g btn-sm" style="width:100%;margin-bottom:12px" onclick="document.getElementById(\'photo-input\').click()">📤 Ανέβασμα φωτογραφίας</button>'
+    '<input type="file" id="photo-input" accept="image/*" multiple style="display:none" onchange="handlePhotoUpload(\''+cid+'\')">'
+    +'<button class="btn btn-g btn-sm" id="photo-up-btn" style="width:100%;margin-bottom:6px" onclick="document.getElementById(\'photo-input\').click()">📤 Ανέβασμα φωτογραφιών</button>'
+    +'<div style="font-size:11.5px;color:var(--tx2);text-align:center;margin-bottom:12px">Από το άλμπουμ μπορείς να διαλέξεις πολλές μαζί</div>'
     +'<div id="photo-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"><div style="grid-column:1/-1;color:var(--tx2);font-size:13px;text-align:center;padding:16px 0">Φόρτωση...</div></div>',
     '<button class="btn btn-out btn-sm" onclick="closeM()">Κλείσιμο</button>'
   );
@@ -9614,30 +9615,48 @@ function resizeImageForUpload(file, maxDim, quality){
 
 function handlePhotoUpload(cid){
   var input=document.getElementById('photo-input');
-  var file=input.files&&input.files[0];
-  if(!file) return;
+  var files=[].slice.call((input&&input.files)||[]).filter(function(f){ return !f.type || f.type.indexOf('image')===0; });
+  if(input) input.value='';
+  if(!files.length) return;
   var c=gc(cid); if(!c) return;
-  var btn=document.querySelector('#modal-bg .btn-g');
-  if(btn){btn.textContent='⏳ Επεξεργασία...';btn.disabled=true;}
-  resizeImageForUpload(file, 2000, 0.85).then(function(res){
-    if(btn) btn.textContent='⏳ Ανέβασμα...';
-    var uploadName=(file.name||'photo').replace(/\.[^.]+$/,'')+'.jpg';
-    google.script.run
-      .withSuccessHandler(function(r){
-        if(btn){btn.textContent='📤 Ανέβασμα φωτογραφίας';btn.disabled=false;}
-        if(r&&r.error){alert('Σφάλμα: '+r.error);return;}
-        loadPhotos(cid);
-      })
-      .withFailureHandler(function(e){
-        if(btn){btn.textContent='📤 Ανέβασμα φωτογραφίας';btn.disabled=false;}
-        alert('Σφάλμα ανεβάσματος: '+(e&&e.message?e.message:'Άγνωστο σφάλμα'));
-      })
-      .uploadPhoto(window._kpEmail||localStorage.getItem('kipospro_email')||'', c.name, uploadName, res.base64, res.mimeType);
-  }).catch(function(err){
-    if(btn){btn.textContent='📤 Ανέβασμα φωτογραφίας';btn.disabled=false;}
-    alert('Σφάλμα επεξεργασίας εικόνας: '+(err&&err.message?err.message:'Άγνωστο σφάλμα'));
-  });
-  input.value='';
+  var email=window._kpEmail||localStorage.getItem('kipospro_email')||'';
+  var btn=document.getElementById('photo-up-btn');
+  var total=files.length, done=0, failed=[], CONC=2, next=0, stamp=Date.now();
+  function label(){
+    if(!btn) return;
+    btn.disabled=true;
+    btn.textContent='⏳ Ανέβασμα '+Math.min(done+failed.length+1,total)+' από '+total+'…';
+  }
+  function finish(){
+    if(btn){ btn.disabled=false; btn.textContent='📤 Ανέβασμα φωτογραφιών'; }
+    loadPhotos(cid);
+    if(!failed.length) toast('✓ Ανέβηκ'+(total===1?'ε 1 φωτογραφία':'αν '+total+' φωτογραφίες'));
+    else alert('Ανέβηκαν '+done+' από '+total+'.\n\nΔεν ανέβηκαν:\n'+failed.map(function(f){return '• '+f.name+(f.err?' — '+f.err:'');}).join('\n'));
+  }
+  function one(i){
+    var file=files[i];
+    var base=(file.name||'photo').replace(/\.[^.]+$/,'');
+    var uploadName=(total>1 && /^(image|photo)$/i.test(base) ? base+'_'+stamp+'_'+(i+1) : base)+'.jpg';
+    return resizeImageForUpload(file, 2000, 0.85).then(function(res){
+      return new Promise(function(ok){
+        google.script.run
+          .withSuccessHandler(function(r){
+            if(r&&r.error) failed.push({name:file.name||('#'+(i+1)), err:r.error}); else done++;
+            ok();
+          })
+          .withFailureHandler(function(e){ failed.push({name:file.name||('#'+(i+1)), err:e&&e.message}); ok(); })
+          .uploadPhoto(email, c.name, uploadName, res.base64, res.mimeType);
+      });
+    }).catch(function(err){ failed.push({name:file.name||('#'+(i+1)), err:err&&err.message}); });
+  }
+  function worker(){
+    if(next>=total) return Promise.resolve();
+    var i=next++; label();
+    return one(i).then(function(){ label(); if(done>0 && (done%3===0)) loadPhotos(cid); return worker(); });
+  }
+  label();
+  var ws=[]; for(var k=0;k<Math.min(CONC,total);k++) ws.push(worker());
+  Promise.all(ws).then(finish);
 }
 
 function removePhoto(cid,fileId){
