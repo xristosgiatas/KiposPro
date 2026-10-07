@@ -900,6 +900,7 @@ body.d-fs #d-row-zones .zone-btn{padding:4px 9px;font-size:11.5px}
 #pg-quote .pq-main{min-height:0}
 #pg-quote .pq-drawer{z-index:600}
 #pg-quote .pq-btn:active{transform:none;filter:none}
+#pg-quote textarea.pq-grow{resize:none;overflow:hidden;min-height:64px;font-size:15px;line-height:1.55;padding:10px 12px;white-space:pre-wrap}
 #pg-quote .pq-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 #pg-quote .pq-chips .pq-hint{width:100%}
 #pg-quote .pq-chip{min-height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--field-line);background:var(--accent-soft);color:var(--accent);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
@@ -10506,9 +10507,10 @@ function paperHTML(quote){
     (c.labor ? '<div><span>'+esc(quote.laborLabel)+':</span><span>'+moneyR(c.labor)+'</span></div>' : '')+
     '<div class="p-grand"><span>ΓΕΝΙΚΟ ΣΥΝΟΛΟ:</span><span>'+moneyR(c.grand)+'</span></div></div>';
   var notes = String(quote.notes||"").split(/\n+/).map(function(x){ return x.trim(); }).filter(Boolean);
-  if (quote.payment.trim() || notes.length){
+  var pay = String(quote.payment||"").split(/\n+/).map(function(x){ return x.replace(/^\s*•\s*/,"").trim(); }).filter(Boolean);
+  if (pay.length || notes.length){
     h += '<div class="p-terms"><h3>ΟΡΟΙ &amp; ΣΗΜΕΙΩΣΕΙΣ ΠΡΟΣΦΟΡΑΣ</h3>';
-    if (quote.payment.trim()) h += '<div class="p-pay" data-brk>• Τρόπος Πληρωμής: '+esc(quote.payment)+'</div>';
+    pay.forEach(function(t, i){ h += '<div class="p-pay" data-brk>• '+(i===0?'Τρόπος Πληρωμής: ':'')+esc(t)+'</div>'; });
     if (notes.length){
       h += '<div class="p-notes">' + notes.map(function(t, i){ return '<div data-brk>'+(i===0?'<b>Περιγραφή Εργασιών: </b>':'')+esc(t)+'</div>'; }).join("") + '</div>';
     }
@@ -10561,8 +10563,8 @@ function renderForm(){
   h += '<button class="pq-btn pq-add" type="button" data-act="addsec"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Ενότητα</button></div>';
   h += '<div class="pq-card"><h2>Σύνολα</h2><div class="pq-grid2">'+f("Εργασία (€)","labor",q.labor,"π.χ. 1000")+f("Κείμενο εργασίας","laborLabel",q.laborLabel,"")+'</div>'+
     '<div class="pq-sum" id="pq-sum"></div></div>';
-  h += '<div class="pq-card"><h2>Όροι &amp; σημειώσεις</h2>'+f("Τρόπος πληρωμής","payment",q.payment,"")+
-    '<div class="pq-field"><label for="pq-f_notes">Περιγραφή εργασιών (κάθε γραμμή μία παράγραφος)</label><textarea id="pq-f_notes" data-f="notes" rows="6">'+esc(q.notes)+'</textarea></div></div>';
+  h += '<div class="pq-card"><h2>Όροι &amp; σημειώσεις</h2>'+'<div class="pq-field"><label for="pq-f_payment">Τρόπος πληρωμής &amp; όροι (Enter = νέα κουκκίδα)</label><textarea id="pq-f_payment" class="pq-grow" data-f="payment" rows="2">'+esc(payToText(q.payment))+'</textarea></div>'+
+    '<div class="pq-field"><label for="pq-f_notes">Περιγραφή εργασιών (κάθε γραμμή μία παράγραφος)</label><textarea id="pq-f_notes" class="pq-grow" data-f="notes" rows="4">'+esc(q.notes)+'</textarea></div></div>';
   h += '<details class="pq-card"><summary>Στοιχεία επιχείρησης</summary><div class="pq-field" style="gap:10px">'+
     cf("Ονοματεπώνυμο","name")+'<div class="pq-grid2">'+cf("Τηλέφωνο","phone")+cf("Email","email")+'</div><div class="pq-grid2">'+cf("Εταιρεία","company")+cf("Υπεύθυνος","responsible")+'</div>'+
     '<p class="pq-hint">Ισχύουν για όλες τις προσφορές.</p></div></details>';
@@ -10633,7 +10635,7 @@ function refreshRowPlaceholder(si, ri){
 $("form").addEventListener("submit", function(e){ e.preventDefault(); });
 $("form").addEventListener("input", function(e){
   var t = e.target;
-  if (t.dataset.f){ q[t.dataset.f] = t.value; if (t.dataset.f==="client") pqFillAddress(); }
+  if (t.dataset.f){ q[t.dataset.f] = t.dataset.f==="payment" ? textToPay(t.value) : t.value; if (t.dataset.f==="client") pqFillAddress(); if (t.classList.contains("pq-grow")) pqGrow(t); }
   else if (t.dataset.c){ company[t.dataset.c] = t.value; saveCompany(); }
   else if (t.dataset.s != null && t.dataset.r != null){ q.sections[+t.dataset.s].rows[+t.dataset.r][t.dataset.k] = t.value; refreshRowPlaceholder(+t.dataset.s, +t.dataset.r); }
   else if (t.dataset.s != null){ q.sections[+t.dataset.s][t.dataset.k] = t.value; }
@@ -10884,6 +10886,32 @@ window.pqAddSection = function(title, rows, clientName){
   if (clientName && !q.client.trim()){ q.client = clientName; pqFillAddress(); }
   renderForm(); changed(); setView("form");
 };
+function payToText(p){
+  var L = String(p||"").split(/\n/).map(function(x){ return x.replace(/^\s*•\s*/,""); });
+  if (L.length===1 && !L[0].trim()) return "";
+  return L.map(function(x){ return "• "+x; }).join("\n");
+}
+function textToPay(t){
+  return String(t||"").split(/\n/).map(function(x){ return x.replace(/^\s*•\s?/,""); }).join("\n").replace(/^\n+|\n+$/g,"");
+}
+function pqGrow(el){ el.style.height="auto"; el.style.height=(el.scrollHeight+2)+"px"; }
+function pqGrowAll(){ [].forEach.call(document.querySelectorAll("#pg-quote textarea.pq-grow"), pqGrow); }
+document.addEventListener("keydown", function(e){
+  var t=e.target; if(!t || t.id!=="pq-f_payment" || e.key!=="Enter" || e.shiftKey || e.isComposing) return;
+  e.preventDefault();
+  var s=t.selectionStart, en=t.selectionEnd, v=t.value;
+  var ins = (v.slice(0,s).trim()==="" ? "• " : "\n• ");
+  if (v.trim()==="") { t.value="• "; t.selectionStart=t.selectionEnd=2; }
+  else { t.value=v.slice(0,s)+ins+v.slice(en); t.selectionStart=t.selectionEnd=s+ins.length; }
+  t.dispatchEvent(new Event("input",{bubbles:true}));
+});
+document.addEventListener("focusin", function(e){
+  var t=e.target; if(t && t.id==="pq-f_payment" && !t.value.trim()){ t.value="• "; setTimeout(function(){ t.selectionStart=t.selectionEnd=2; },0); }
+});
+var _origRenderForm = renderForm;
+renderForm = function(){ _origRenderForm.apply(this, arguments); setTimeout(pqGrowAll, 0); };
+var _origSetView = setView;
+setView = function(){ var r=_origSetView.apply(this, arguments); setTimeout(pqGrowAll, 0); return r; };
 var _origSave = saveNow;
 saveNow = function(){ var p=_origSave(); try{ var c=lsGet("pq_cache_"+kpEmail(), {company:company, quotes:[]}); c.quotes=quotes; c.company=company; lsSet("pq_cache_"+kpEmail(), c); }catch(e){} return p; };
 })();
