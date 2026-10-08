@@ -21,7 +21,7 @@
   };
   var SLOW = { uploadPhoto:1, uploadDocFile:1, createQuotePdf:1, createReceipt:1, sendReceiptEmail:1, loadAll:1, prosf_savePdf:1 };
 
-  var KP_VERSION = '2026-10-07b';
+  var KP_VERSION = '2026-10-08a';
   window.KP_WEB = true;
   window.KP_VERSION = KP_VERSION;
 
@@ -32,6 +32,7 @@
     } catch (e) {}
     return null;
   }
+  var DEV = localStorage.getItem('kp_dev') || (function () { var d = Math.random().toString(36).slice(2, 10); try { localStorage.setItem('kp_dev', d); } catch (e) {} return d; })();
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 10); }
   function netErr(msg) { var e = new Error(msg || 'Χωρίς σύνδεση'); e.network = true; return e; }
 
@@ -53,7 +54,7 @@
     return fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ fn: fn, args: args, token: ls(LS_TOKEN) || '', opId: opId || '' }),
+      body: JSON.stringify({ fn: fn, args: args, token: ls(LS_TOKEN) || '', opId: opId || '', dev: DEV }),
       redirect: 'follow',
       cache: 'no-store',
       signal: ctrl ? ctrl.signal : undefined
@@ -226,6 +227,11 @@
       return call(op.fn, op.args, op.opId).then(function (result) {
         done(op, result); return next();
       }, function (err) {
+        if (err && err.server) {
+          // Αν η ίδια αλλαγή αποτυγχάνει ξανά και ξανά, μην μπλοκάρει για πάντα τις υπόλοιπες
+          var qq = queue(); if (qq[0] && qq[0].opId === op.opId) { qq[0].tries = (qq[0].tries || 0) + 1; setQueue(qq);
+            if (qq[0].tries >= 4) { kpLog('✗ πετάχτηκε μετά από 4 προσπάθειες: ' + op.fn); rejected(op, err); return next(); } }
+        }
         if (err && (err.network || err.server)) throw err;
         rejected(op, err); return next();
       });
@@ -316,14 +322,20 @@
         if (mine) {
           // Δείξε το αντίγραφο αμέσως, φέρε τα νέα στο παρασκήνιο
           ok(mine.data, user);
-          flush().then(function () {
+          _refreshing = true; _showSync = true; badge();
+          var stamp0 = 0;
+          post1('kpStamp', []).then(function (r) { if (r && r.ok) stamp0 = otherMax(r.result || {}); }, function () {})
+          .then(function () { return flush(); }).then(function () {
             var t1 = Date.now();
             return call('loadAll', args).then(function (raw) { kpLog('loadAll ' + (Date.now() - t1) + 'ms'); return raw; });
           }).then(function (raw) {
+            _refreshing = false; _showSync = false; _lastFull = Date.now(); _lastLoad.at = Date.now(); badge();
+            if (stamp0) setSeen(Math.max(_seenOther, stamp0));
             setOffline(false);
             storeLoadAll(email, raw);
-            if (!queue().length) ok(raw, user);
+            applyWhenFree(raw, { ok: ok, user: user }, false);
           }, function (e) {
+            _refreshing = false; _showSync = false; badge();
             if (e.network) suspectOffline();
             else if (e.server) kpNote('⚠ Η Google δεν απάντησε — δείχνω τα αποθηκευμένα', true);
           });
@@ -333,6 +345,7 @@
           var t1 = Date.now();
           return call('loadAll', args).then(function (raw) { kpLog('loadAll ' + (Date.now() - t1) + 'ms'); return raw; });
         }).then(function (raw) {
+          _lastFull = Date.now();
           setOffline(false);
           storeLoadAll(email, raw);
           ok(raw, user);
@@ -393,49 +406,81 @@
   Object.defineProperty(window.google.script, 'run', { get: function () { return runner(); }, configurable: true });
 
   /* ---------- αυτόματη ανανέωση ---------- */
-  // Όταν γυρνάς στην εφαρμογή (ή κάθε 3 λεπτά όσο είναι ανοιχτή) φέρνει τα νέα δεδομένα
-  var _lastLoad = null, _refreshing = false;
-  function refresh(why, force) {
+  // Κάθε 30" ρωτάει τη Google (γρήγορα) αν άλλαξε κάτι από ΑΛΛΗ συσκευή.
+  // Μόνο τότε φέρνει όλα τα δεδομένα. Επίσης αμέσως όταν γυρνάς στην εφαρμογή.
+  var _lastLoad = null, _refreshing = false, _seenOther = Number(localStorage.getItem('kp_seen_other') || 0);
+  var _noStamp = false, _stampBusy = false, _lastFull = 0, _deferT = null, _showSync = false;
+
+  function otherMax(map) {
+    var mx = 0; for (var k in map) if (k !== DEV && Number(map[k]) > mx) mx = Number(map[k]); return mx;
+  }
+  function setSeen(v) { _seenOther = v; try { localStorage.setItem('kp_seen_other', String(v)); } catch (e) {} }
+
+  function applyWhenFree(raw, L, note) {
+    clearTimeout(_deferT);
+    if (SD_busy()) { _deferT = setTimeout(function () { applyWhenFree(raw, L, note); }, 1500); return; }
+    if (queue().length) return;           // τοπικές αλλαγές περιμένουν — θα έρθουν στην επόμενη ανανέωση
+    L.ok(raw, L.user);
+    if (note) kpNote('✓ Ενημερώθηκε από άλλη συσκευή');
+  }
+
+  function refresh(why, force, fromOther) {
     if (!_lastLoad || _refreshing) return Promise.resolve(false);
     if (_offline && !force) return Promise.resolve(false);
     if (document.visibilityState === 'hidden') return Promise.resolve(false);
-    if (!force && Date.now() - _lastLoad.at < 45000) return Promise.resolve(false);
+    if (!force && Date.now() - _lastLoad.at < 20000) return Promise.resolve(false);
     _refreshing = true;
-    var L = _lastLoad;
+    var L = _lastLoad, stampBefore = fromOther || 0;
+    if (fromOther) { _showSync = true; badge(); }
+    var t1 = Date.now();
     return flush().then(function () {
       if (queue().length) throw new Error('queue');
       return call('loadAll', L.args);
     }).then(function (raw) {
-      _refreshing = false;
-      L.at = Date.now();
-      var prev = _mem && _mem.data ? JSON.stringify(_mem.data) : '';
+      _refreshing = false; _showSync = false; badge();
+      L.at = Date.now(); _lastFull = Date.now();
+      if (stampBefore) setSeen(Math.max(_seenOther, stampBefore));
       storeLoadAll(L.args[0], raw);
-      var fresh = typeof raw === 'string' ? raw : JSON.stringify(raw);
-      kpLog('ανανέωση (' + why + ')' + (fresh !== prev ? ' · νέα δεδομένα' : ''));
+      kpLog('ανανέωση (' + why + ') ' + (Date.now() - t1) + 'ms');
       setOffline(false);
-      if ((force || fresh !== prev) && !queue().length && !SD_busy()) L.ok(raw, L.user);
+      applyWhenFree(raw, L, !!fromOther);
       return true;
     }, function (e) {
-      _refreshing = false;
+      _refreshing = false; _showSync = false; badge();
       if (e && e.network) suspectOffline();
       return false;
     });
   }
   window.kpRefresh = function () { return refresh('χειροκίνητα', true); };
-  // μην ξαναζωγραφίζεις την οθόνη ενώ ο χρήστης σέρνει κάρτα ή γράφει σε φόρμα
+
+  function checkStamp(why) {
+    if (!_lastLoad || _refreshing || _stampBusy || _offline) return;
+    if (document.visibilityState === 'hidden') return;
+    if (_noStamp) { if (Date.now() - _lastFull > 180000) refresh(why); return; }
+    _stampBusy = true;
+    post1('kpStamp', []).then(function (res) {
+      _stampBusy = false;
+      if (res && res.ok === false && !res.auth) { _noStamp = true; kpLog('kpStamp μη διαθέσιμο — ανανέωση κάθε 3 λεπτά'); return; }
+      if (!res || !res.ok) return;
+      var other = otherMax(res.result || {});
+      if (other > _seenOther) { kpLog('αλλαγή από άλλη συσκευή (' + why + ')'); refresh('άλλη συσκευή', true, other); }
+      else if (Date.now() - _lastFull > 900000) refresh('15 λεπτά');      // ασφάλεια: πλήρης ανανέωση κάθε 15'
+    }, function () { _stampBusy = false; });
+  }
+
+  // μην ξαναζωγραφίζεις την οθόνη ενώ ο χρήστης σέρνει κάρτα, γράφει ή έχει ανοιχτό παράθυρο
   function SD_busy() {
     try {
-      if (window.SD && window.SD.on) return true;
+      if (window.SD && (window.SD.on || window.SD.t)) return true;
       var a = document.activeElement;
-      if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT')) return true;
-      var m = document.querySelector('#modal-bg.open');
-      if (m) return true;
+      if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT') && a.type !== 'search' && a.id !== 'pelat-s') return true;
+      if (document.querySelector('#modal-bg.open')) return true;
     } catch (e) {}
     return false;
   }
-  setInterval(function () { refresh('χρόνος'); }, 180000);
-  window.addEventListener('focus', function () { refresh('επιστροφή'); });
-
+  setInterval(function () { checkStamp('χρόνος'); }, 30000);
+  window.addEventListener('focus', function () { checkStamp('επιστροφή'); });
+  window.addEventListener('pageshow', function () { checkStamp('επιστροφή'); });
 
   /* ---------- τράβηγμα προς τα κάτω για ανανέωση ---------- */
   (function () {
@@ -542,7 +587,7 @@
   window.addEventListener('online', function () { setOffline(false); flush(); });
   window.addEventListener('offline', function () { suspectOffline(); });
   document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'visible') { setTimeout(function () { refresh('επιστροφή'); }, 300); if (_offline) post1('ping', []).then(function () { setOffline(false); }, function () {}); else if (queue().length) flush(); }
+    if (document.visibilityState === 'visible') { setTimeout(function () { checkStamp('επιστροφή'); }, 300); if (_offline) post1('ping', []).then(function () { setOffline(false); }, function () {}); else if (queue().length) flush(); }
     if (document.visibilityState === 'hidden') snapshot();
   });
   window.addEventListener('pagehide', snapshot);
@@ -584,6 +629,11 @@
       } else if (p.style.display === 'flex') {
         p.textContent = '↻ ' + n + ' σε αναμονή';
       }
+    } else if (_showSync) {
+      clearTimeout(_slowT); _slowT = null;
+      p.style.background = '#EEF3F0'; p.style.color = '#17624A';
+      p.textContent = '↻ Ενημέρωση δεδομένων…';
+      p.style.display = 'flex';
     } else {
       clearTimeout(_slowT); _slowT = null;
       p.style.display = 'none';
