@@ -2823,13 +2823,15 @@ function debtListBody(rows, which, heading){
   var n=groups.length;
   var body='<div style="font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--tx2);margin-bottom:10px">'+n+(n===1?' κήπος':' κήποι')+' · '+heading+'</div>'
     +'<div style="background:var(--al);border-radius:var(--r);padding:.75rem 1rem;margin-bottom:.6rem;display:flex;justify-content:space-between;align-items:center"><div style="font-size:13px;font-weight:700;color:var(--ad)">Σύνολο</div><div style="font-size:24px;font-weight:800;color:var(--ad)">'+fmt(tot)+'</div></div>'
-    +'<div style="font-size:12px;color:var(--tx2);margin-bottom:1rem">Πάτα σε έναν μήνα όταν πληρωθεί.</div>';
+    +(n>3?'<input type="search" id="debt-q" placeholder="Αναζήτηση ονόματος ή διεύθυνσης…" oninput="debtFilter(this.value)" value="'+String(_debtQ).replace(/"/g,'&quot;')+'" style="width:100%;min-height:44px;padding:0 12px;border:1.5px solid var(--brd);border-radius:var(--r);font:inherit;font-size:15px;margin-bottom:.6rem;background:#fff">':'')
+    +'<div style="font-size:12px;color:var(--tx2);margin-bottom:1rem">Πάτα σε έναν μήνα όταν πληρωθεί.</div>'
+    +'<div id="debt-none" class="empty" style="display:none">Δεν βρέθηκε πελάτης.</div>';
   groups.forEach(function(g){
     var ct=g.months.reduce(function(s,r){return s+r.amt;},0);
     var tel=String(g.client.tel||'').replace(/\s+/g,'');
-    body+='<div style="border:1.5px solid var(--brd);border-radius:var(--r);padding:.8rem;margin-bottom:.75rem;border-left:4px solid var(--ad)">'
+    body+='<div class="debt-g" data-q="'+String(debtNorm([g.client.name,g.client.address,g.client.tel,g.client.area].join(' '))).replace(/"/g,'')+'" style="border:1.5px solid var(--brd);border-radius:var(--r);padding:.8rem;margin-bottom:.75rem;border-left:4px solid var(--ad)">'
       +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:.6rem">'
-        +'<div style="display:flex;align-items:center;gap:8px;min-width:0;cursor:pointer" onclick="closeM();showDet(\''+g.client.id+'\',\'clients\')"><div class="av" style="width:32px;height:32px;font-size:11px;flex-shrink:0">'+ini(g.client.name)+'</div><div style="font-size:15px;font-weight:700;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+g.client.name+'</div></div>'
+        +'<div style="display:flex;align-items:center;gap:8px;min-width:0;cursor:pointer" onclick="closeM();showDet(\''+g.client.id+'\',\'clients\')"><div class="av" style="width:32px;height:32px;font-size:11px;flex-shrink:0">'+ini(g.client.name)+'</div><div style="min-width:0"><div style="font-size:15px;font-weight:700;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+g.client.name+'</div>'+(g.client.address?'<div style="font-size:12px;color:var(--tx2);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📍 '+g.client.address+'</div>':'')+'</div></div>'
         +'<div style="font-size:16px;font-weight:800;color:var(--ad);flex-shrink:0">'+fmt(ct)+'</div>'
       +'</div>'
       +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:'+(g.months.length>1||tel?'.6rem':'0')+'">'
@@ -2846,6 +2848,27 @@ function debtListBody(rows, which, heading){
   });
   return body;
 }
+var _debtQ='';
+function debtNorm(s){
+  s=String(s||'').toLowerCase();
+  try{ s=s.normalize('NFD').replace(/[\u0300-\u036f]/g,''); }catch(e){}
+  return s.replace(/ς/g,'σ').replace(/[^a-zα-ω0-9 ]+/g,' ').replace(/\s+/g,' ').trim();
+}
+function debtFilter(v){
+  _debtQ=v||'';
+  var q=debtNorm(_debtQ).split(' ').filter(Boolean), shown=0;
+  [].forEach.call(document.querySelectorAll('#modal-bg .debt-g'),function(el){
+    var t=el.getAttribute('data-q')||'';
+    var ok=q.every(function(w){ return t.indexOf(w)>=0; });
+    el.style.display=ok?'':'none'; if(ok) shown++;
+  });
+  var none=document.getElementById('debt-none'); if(none) none.style.display=shown?'none':'';
+}
+function debtAfterOpen(){
+  if(_debtQ) debtFilter(_debtQ);
+  var i=document.getElementById('debt-q');
+  if(i && _debtQ){ try{ i.focus(); i.setSelectionRange(i.value.length,i.value.length); }catch(e){} }
+}
 function debtFoot(){
   return '<button class="btn btn-out btn-sm" id="pay-undo" onclick="undoPay()" style="'+(_payUndo?'':'display:none')+'">↶ Αναίρεση</button>'
     +'<button class="btn btn-out btn-sm" onclick="closeM()">Κλείσιμο</button>';
@@ -2854,6 +2877,7 @@ function showPendingList(){
   var rows=pendingRows();
   if(!rows.length){ openM('Εκκρεμούν — '+MNF[kpiM], '<div class="empty">Όλοι πλήρωσαν για '+MNF[kpiM]+' ✓</div>', debtFoot()); return; }
   openM('Εκκρεμούν — '+MNF[kpiM], debtListBody(rows,'cur',MNF[kpiM]+' '+kpiY), debtFoot());
+  debtAfterOpen();
 }
 
 function showPastPending() {
@@ -2864,6 +2888,7 @@ function showPastPending() {
   }
   rows.sort(function(a,b){ return (a.year-b.year)||(a.month-b.month); });
   openM('Εκκρεμότητες Παρελθόντων', debtListBody(rows,'past','μήνες πριν από '+MNF[CM]+' '+CY), debtFoot());
+  debtAfterOpen();
 }
 
 function renderKpi(){
@@ -2874,13 +2899,13 @@ function renderKpi(){
   document.getElementById('kr-c').innerHTML=
     '<div class="kc kc-dark"><div class="kl">'+MNF[kpiM]+' — Σύνολο</div><div class="kv">'+fmt(k.tot)+'</div><div class="ks">'+k.actC+' ενεργοί κήποι</div></div>'+
     '<div class="kc kg"><div class="kl">Εισπράξεις</div><div class="kv">'+fmt(k.pd)+'</div><div class="ks">'+k.paC+'/'+k.actC+' κήποι</div></div>'+
-    '<div class="kc kred'+(k.peC?' kc-tap':'')+'"'+(k.peC?' onclick="showPendingList()"':'')+'><div class="kl">Εκκρεμούν'+(k.peC?' →':'')+'</div><div class="kv">'+fmt(k.pen)+'</div><div class="ks">'+k.peC+' κήποι</div></div>'+
+    '<div class="kc kred'+(k.peC?' kc-tap':'')+'"'+(k.peC?' onclick="_debtQ=\'\';showPendingList()"':'')+'><div class="kl">Εκκρεμούν'+(k.peC?' →':'')+'</div><div class="kv">'+fmt(k.pen)+'</div><div class="ks">'+k.peC+' κήποι</div></div>'+
     (past>0
       ? (function(){
           var pr=pastDueRows(), ids={};
           pr.forEach(function(r){ids[r.client.id]=1;});
           var nc=Object.keys(ids).length;
-          return '<div class="kc kpast kc-tap" onclick="showPastPending()"><div class="kl">Παρελθόντων →</div><div class="kv">'+fmt(past)+'</div><div class="ks">'+nc+(nc===1?' κήπος':' κήποι')+' · '+pr.length+(pr.length===1?' μήνας':' μήνες')+'</div></div>';
+          return '<div class="kc kpast kc-tap" onclick="_debtQ=\'\';showPastPending()"><div class="kl">Παρελθόντων →</div><div class="kv">'+fmt(past)+'</div><div class="ks">'+nc+(nc===1?' κήπος':' κήποι')+' · '+pr.length+(pr.length===1?' μήνας':' μήνες')+'</div></div>';
         })()
       : '<div class="kc"><div class="kl">Παρελθόντων</div><div class="kv" style="color:var(--tx2)">'+fmt(0)+'</div><div class="ks">όλα τακτοποιημένα</div></div>');
 }
