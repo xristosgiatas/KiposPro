@@ -1744,6 +1744,77 @@ function fillDistances(){
   });
 }
 
+/* ===== ΕΙΔΟΠΟΙΗΣΗ ΠΕΛΑΤΗ ΓΙΑ ΤΗΝ ΕΠΙΣΚΕΨΗ ===== */
+var NTF_DAYS=['Κυριακή','Δευτέρα','Τρίτη','Τετάρτη','Πέμπτη','Παρασκευή','Σάββατο'];
+function ntfText(date){
+  var d=new Date(date+'T12:00:00');
+  return 'Γεια σας, έχουμε προγραμματίσει την επίσκεψη για τη συντήρηση του κήπου σας για '
+    +NTF_DAYS[d.getDay()]+' '+d.getDate()+'/'+(d.getMonth()+1)+'.\nΕυχαριστούμε πολύ!';
+}
+function ntfSmsUrl(tel,text){
+  tel=String(tel||'').replace(/[^\d+]/g,'');
+  var ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  return 'sms:'+tel+(ios?'&':'?')+'body='+encodeURIComponent(text);
+}
+function ntfClient(e){ return e&&(e.type||'client')==='client' ? clients.find(function(x){return String(x.id)===String(e.clientId);}) : null; }
+function ntfWeekRows(dates){
+  var out=[];
+  dates.forEach(function(date){
+    schedule.filter(function(s){return s.date===date && (s.type||'client')==='client';})
+      .sort(function(a,b){return (a.order||0)-(b.order||0);})
+      .forEach(function(e){
+        var c=ntfClient(e); if(!c) return;
+        out.push({e:e,c:c,date:date,state:!c.tel?'notel':(e.notified===e.date?'ok':(e.notified?'moved':'new'))});
+      });
+  });
+  return out;
+}
+function ntfMark(e,val){
+  e.notified=val||'';
+  google.script.run.withSuccessHandler(function(){}).withFailureHandler(function(){})
+    .setScheduleNotified(window._kpEmail||localStorage.getItem('kipospro_email')||'', e.id, e.notified);
+}
+function ntfSend(sid){
+  var e=schedule.find(function(s){return String(s.id)===String(sid);}); if(!e) return;
+  var c=ntfClient(e); if(!c||!c.tel){ toast('Δεν υπάρχει τηλέφωνο'); return; }
+  ntfMark(e,e.date);
+  renderSchedule();
+  if(document.querySelector('#modal-bg.open')) ntfOpenWeek();
+  location.href=ntfSmsUrl(c.tel, ntfText(e.date));
+}
+function ntfUnmark(sid){
+  var e=schedule.find(function(s){return String(s.id)===String(sid);}); if(!e) return;
+  ntfMark(e,''); renderSchedule(); ntfOpenWeek();
+}
+function ntfOpenWeek(){
+  var dates=getWeekDates(_schedWeekOffset);
+  var rows=ntfWeekRows(dates);
+  var pend=rows.filter(function(r){return r.state==='new'||r.state==='moved';});
+  var body='<div style="font-size:12.5px;color:var(--tx2);margin-bottom:10px">Πάτα «Αποστολή» — ανοίγει το μήνυμα έτοιμο. Το στέλνεις και γυρνάς εδώ για τον επόμενο.</div>';
+  if(!rows.length){
+    body+='<div class="empty">Δεν υπάρχουν συντηρήσεις στο πλάνο αυτής της εβδομάδας.</div>';
+  } else {
+    body+='<div style="background:#F3F7FA;border:1px solid #DCE6EE;border-radius:8px;padding:9px 11px;font-size:12.5px;line-height:1.5;color:#2C5570;margin-bottom:12px;white-space:pre-line">'+ntfText(rows[0].date).replace(/</g,'&lt;')+'</div>';
+    var lastDate='';
+    rows.forEach(function(r){
+      if(r.date!==lastDate){
+        lastDate=r.date;
+        var d=new Date(r.date+'T12:00:00');
+        body+='<div style="font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--tx2);margin:12px 0 6px">'+NTF_DAYS[d.getDay()]+' '+d.getDate()+'/'+(d.getMonth()+1)+'</div>';
+      }
+      var right;
+      if(r.state==='notel') right='<span style="font-size:12px;color:var(--mut)">χωρίς τηλέφωνο</span>';
+      else if(r.state==='ok') right='<button class="btn btn-out btn-sm" onclick="ntfUnmark(\''+r.e.id+'\')" title="Σήμανση ως μη ενημερωμένος" style="color:#2C5570;border-color:#C9D8E3">✓ Στάλθηκε</button>';
+      else right='<button class="btn btn-sm" onclick="ntfSend(\''+r.e.id+'\')" style="background:#2C5570;color:#fff;min-height:40px">'+(r.state==='moved'?'⚠ Ξανά':'Αποστολή')+'</button>';
+      body+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--brd)">'
+        +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.c.name+'</div>'
+        +'<div style="font-size:11.5px;color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(r.state==='moved'?'<b style="color:#b45309">άλλαξε μέρα</b> · ':'')+(r.c.address||r.c.tel||'')+'</div></div>'
+        +right+'</div>';
+    });
+  }
+  openM('💬 Ειδοποίηση εβδομάδας'+(pend.length?' · '+pend.length+' μένουν':''), body, '<button class="btn btn-out btn-sm" onclick="closeM()">Κλείσιμο</button>');
+}
+
 function renderSchedule(){
   var root=document.getElementById('schedule-root');
   if(!root) return;
@@ -1756,6 +1827,8 @@ function renderSchedule(){
     +'<button onclick="_schedWeekOffset++;renderSchedule()" class="btn btn-out btn-sm">▶</button>'
     +'</div>'
     +'<div style="font-size:11px;color:var(--mut);margin:-8px 0 12px">Κρατά μια κάρτα πατημένη και σύρε την σε άλλη μέρα ή πιο πάνω/κάτω.</div>';
+  var _nfPend=ntfWeekRows(dates).filter(function(r){return r.state!=='ok';}).length;
+  html+='<button onclick="ntfOpenWeek()" class="btn btn-sm" style="width:100%;margin:0 0 12px;min-height:42px;background:'+(_nfPend?'#2C5570':'#E8F0F4')+';color:'+(_nfPend?'#fff':'#2C5570')+';font-weight:700">💬 Ειδοποίηση πελατών εβδομάδας'+(_nfPend?' ('+_nfPend+')':' ✓')+'</button>';
 
   var isMobile=window.innerWidth<700;
   html+='<div style="display:grid;grid-template-columns:'+(isMobile?'1fr':'repeat(7,1fr)')+';gap:8px">';
@@ -1797,6 +1870,11 @@ function renderSchedule(){
       if(apTime) html+='<div style="font-family:var(--mono);font-size:10px;color:'+(isOffer?'#3C6A88':'#6366f1')+';margin-top:1px">'+apTime+'</div>';
       if(displayAddr) html+='<div style="font-size:10px;color:#94a3b8;margin-top:1px">'+displayAddr+'</div>';
       if(addrForMap) html+='<div data-km="'+esc+'" style="font-family:var(--mono);font-size:10px;color:var(--gd);margin-top:2px">…</div>';
+      if(!isEkta && e.notified){
+        html+=(e.notified===e.date)
+          ?'<div style="font-size:10px;font-weight:700;color:#2C5570;margin-top:2px">✓ ενημερώθηκε</div>'
+          :'<div style="font-size:10px;font-weight:700;color:#b45309;margin-top:2px">⚠ άλλαξε μέρα — ξαναστείλε</div>';
+      }
       html+='</div>';
       html+='<div style="display:flex;gap:4px;margin-top:5px">';
       if(e.type==='appt'){
@@ -1805,6 +1883,7 @@ function renderSchedule(){
         html+='<button onclick="go(\'appts\');" style="flex:1;background:#E8F0F4;color:#2C5570;border:none;border-radius:5px;padding:3px 0;font-size:11px;font-weight:700;cursor:pointer">Προσφορά</button>';
       } else {
         html+='<button data-sid="'+e.id+'" data-cid="'+(c?c.id:e.clientId)+'" onclick="schedVisit(this.dataset.sid,this.dataset.cid)" style="flex:1;background:var(--gl);color:var(--gd);border:none;border-radius:5px;padding:3px 0;font-size:11px;font-weight:700;cursor:pointer">✓ Επίσκεψη</button>';
+        if(c&&c.tel) html+='<button data-sid="'+e.id+'" onclick="ntfSend(this.dataset.sid)" title="Μήνυμα στον πελάτη" style="background:#E8F0F4;color:#2C5570;border:none;border-radius:5px;padding:3px 8px;font-size:12px;cursor:pointer">💬</button>';
       }
       html+='<button data-sid="'+e.id+'" onclick="schedRemove(this.dataset.sid)" style="background:#fee2e2;color:#991b1b;border:none;border-radius:5px;padding:3px 7px;font-size:11px;cursor:pointer">🗑</button>';
       html+='</div></div>';
