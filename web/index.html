@@ -2761,27 +2761,109 @@ function closeSB(){
 function chM(d){kpiM=(kpiM+12+d)%12;renderKpi();}
 function resetM(){kpiM=CM;renderKpi();}
 
+/* Πληρωμή από τις λίστες οφειλών — οποιοσδήποτε μήνας/χρονιά */
+function payMonth(id,m,y,paid){
+  var c=gc(id); if(!c) return;
+  c.months=c.months||{};
+  var key=y+'-'+m;
+  if(!c.months[key]){
+    if(y===CY && c.months[m]){ c.months[key]=c.months[m]; delete c.months[m]; }
+    else c.months[key]={visits:gV(c,m,y),price:gPbase(c,m,y),paid:false,extras:[]};
+  }
+  c.months[key].paid=paid;
+  google.script.run.withSuccessHandler(function(r){if(r&&r.error){alert('Σφάλμα αποθήκευσης: '+r.error);}})
+    .withFailureHandler(function(e){alert('Σφάλμα αποθήκευσης: '+(e&&e.message?e.message:''));})
+    .updateClientMonths(window._kpEmail||localStorage.getItem('kipospro_email')||'',id,c.months);
+}
+var _payUndo=null;
+function payFromList(id,m,y,which){
+  payMonth(id,m,y,true);
+  var c=gc(id);
+  _payUndo={id:id,m:m,y:y,which:which};
+  renderKpi(); try{ if(typeof renderClients==='function') renderClients(); }catch(e){}
+  if(which==='past') showPastPending(); else showPendingList();
+  toast('✓ '+(c?c.name:'')+' — '+MN[m]+' πληρώθηκε');
+  var ub=document.getElementById('pay-undo'); if(ub) ub.style.display='';
+}
+function undoPay(){
+  if(!_payUndo) return;
+  var u=_payUndo; _payUndo=null;
+  payMonth(u.id,u.m,u.y,false);
+  renderKpi(); try{ if(typeof renderClients==='function') renderClients(); }catch(e){}
+  if(u.which==='past') showPastPending(); else showPendingList();
+  toast('Αναιρέθηκε');
+}
+function payAllClient(id,which){
+  var rows=(which==='past'?pastDueRows():pendingRows()).filter(function(r){return r.client.id==id;});
+  if(!rows.length) return;
+  var c=gc(id);
+  if(!confirm('Πληρώθηκαν όλοι οι μήνες ('+rows.length+') του '+(c?c.name:'')+';')) return;
+  rows.forEach(function(r){ payMonth(r.client.id,r.month,r.year,true); });
+  _payUndo=null;
+  renderKpi(); try{ if(typeof renderClients==='function') renderClients(); }catch(e){}
+  if(which==='past') showPastPending(); else showPendingList();
+  toast('✓ '+(c?c.name:'')+' — εξοφλήθηκε');
+}
+function pendingRows(){
+  var out=[];
+  clients.forEach(function(c){
+    if(isAct(c,kpiM) && !isPd(c,kpiM)){ var a=gP(c,kpiM); out.push({client:c,month:kpiM,year:kpiY,amt:a}); }
+  });
+  return out;
+}
+function debtListBody(rows, which, heading){
+  var byClient={}, order=[];
+  rows.forEach(function(r){
+    if(!byClient[r.client.id]){ byClient[r.client.id]={client:r.client,months:[]}; order.push(r.client.id); }
+    byClient[r.client.id].months.push(r);
+  });
+  var tot=rows.reduce(function(s,r){return s+r.amt;},0);
+  var groups=order.map(function(k){return byClient[k];});
+  groups.sort(function(a,b){ return String(a.client.name||'').localeCompare(String(b.client.name||''),'el'); });
+  var n=groups.length;
+  var body='<div style="font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--tx2);margin-bottom:10px">'+n+(n===1?' κήπος':' κήποι')+' · '+heading+'</div>'
+    +'<div style="background:var(--al);border-radius:var(--r);padding:.75rem 1rem;margin-bottom:.6rem;display:flex;justify-content:space-between;align-items:center"><div style="font-size:13px;font-weight:700;color:var(--ad)">Σύνολο</div><div style="font-size:24px;font-weight:800;color:var(--ad)">'+fmt(tot)+'</div></div>'
+    +'<div style="font-size:12px;color:var(--tx2);margin-bottom:1rem">Πάτα σε έναν μήνα όταν πληρωθεί.</div>';
+  groups.forEach(function(g){
+    var ct=g.months.reduce(function(s,r){return s+r.amt;},0);
+    var tel=String(g.client.tel||'').replace(/\s+/g,'');
+    body+='<div style="border:1.5px solid var(--brd);border-radius:var(--r);padding:.8rem;margin-bottom:.75rem;border-left:4px solid var(--ad)">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:.6rem">'
+        +'<div style="display:flex;align-items:center;gap:8px;min-width:0;cursor:pointer" onclick="closeM();showDet(\''+g.client.id+'\',\'clients\')"><div class="av" style="width:32px;height:32px;font-size:11px;flex-shrink:0">'+ini(g.client.name)+'</div><div style="font-size:15px;font-weight:700;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+g.client.name+'</div></div>'
+        +'<div style="font-size:16px;font-weight:800;color:var(--ad);flex-shrink:0">'+fmt(ct)+'</div>'
+      +'</div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:'+(g.months.length>1||tel?'.6rem':'0')+'">'
+      +g.months.map(function(r){
+        return '<button onclick="payFromList(\''+r.client.id+'\','+r.month+','+r.year+',\''+which+'\')" style="display:flex;align-items:center;gap:6px;min-height:40px;background:#fff;border:1.5px solid #f5c07a;border-radius:8px;padding:0 12px;font:inherit;font-size:13px;font-weight:600;color:var(--ad);cursor:pointer">'
+          +'<span style="width:16px;height:16px;border:1.5px solid var(--ad);border-radius:4px;flex-shrink:0"></span>'
+          +MN[r.month]+(r.year!==CY?" '"+String(r.year).slice(2):'')+' · '+fmt(r.amt)+'</button>';
+      }).join('')+'</div>'
+      +((g.months.length>1||tel)?'<div style="display:flex;gap:6px;flex-wrap:wrap">'
+        +(g.months.length>1?'<button class="btn btn-sm" style="background:var(--g);color:#fff" onclick="payAllClient(\''+g.client.id+'\',\''+which+'\')">✓ Όλα πληρώθηκαν</button>':'')
+        +(tel?'<a class="btn btn-out btn-sm" href="tel:'+tel+'" style="text-decoration:none">📞 Κλήση</a>':'')
+      +'</div>':'')
+    +'</div>';
+  });
+  return body;
+}
+function debtFoot(){
+  return '<button class="btn btn-out btn-sm" id="pay-undo" onclick="undoPay()" style="'+(_payUndo?'':'display:none')+'">↶ Αναίρεση</button>'
+    +'<button class="btn btn-out btn-sm" onclick="closeM()">Κλείσιμο</button>';
+}
+function showPendingList(){
+  var rows=pendingRows();
+  if(!rows.length){ openM('Εκκρεμούν — '+MNF[kpiM], '<div class="empty">Όλοι πλήρωσαν για '+MNF[kpiM]+' ✓</div>', debtFoot()); return; }
+  openM('Εκκρεμούν — '+MNF[kpiM], debtListBody(rows,'cur',MNF[kpiM]+' '+kpiY), debtFoot());
+}
+
 function showPastPending() {
   var rows = pastDueRows();
   if(!rows.length) {
-    openM('Εκκρεμότητες Παρελθόντων', '<div class="empty">Δεν υπάρχουν εκκρεμότητες.</div>', '<button class="btn btn-out btn-sm" onclick="closeM()">Κλείσιμο</button>');
+    openM('Εκκρεμότητες Παρελθόντων', '<div class="empty">Δεν υπάρχουν εκκρεμότητες ✓</div>', debtFoot());
     return;
   }
-  rows.sort(function(a,b){ return (b.year-a.year)||(b.month-a.month); });
-  var byClient = {};
-  rows.forEach(function(r){
-    if(!byClient[r.client.id]) byClient[r.client.id] = {client: r.client, months: []};
-    byClient[r.client.id].months.push(r);
-  });
-  var tot = rows.reduce(function(s,r){return s+r.amt;},0);
-  var _cn=Object.keys(byClient).length;
-  var body = '<div style="font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--tx2);margin-bottom:10px">'+_cn+(_cn===1?' κήπος':' κήποι')+' · μήνες πριν από '+MNF[CM]+' '+CY+'</div>'
-    +'<div style="background:var(--al);border-radius:var(--r);padding:.75rem 1rem;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center"><div style="font-size:13px;font-weight:700;color:var(--ad)">Σύνολο εκκρεμοτήτων</div><div style="font-size:24px;font-weight:800;color:var(--ad)">'+fmt(tot)+'</div></div>';
-  Object.values(byClient).forEach(function(g){
-    var clientTot = g.months.reduce(function(s,r){return s+r.amt;},0);
-    body += '<div style="border:1.5px solid var(--brd);border-radius:var(--r);padding:.8rem;margin-bottom:.75rem;border-left:4px solid var(--ad)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem"><div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:32px;height:32px;font-size:11px">'+ini(g.client.name)+'</div><div style="font-size:15px;font-weight:700;color:var(--tx)">'+g.client.name+'</div></div><div style="font-size:16px;font-weight:800;color:var(--ad)">'+fmt(clientTot)+'</div></div><div style="display:flex;flex-wrap:wrap;gap:6px">'+g.months.map(function(r){return '<span style="background:var(--al);border:1px solid #f5c07a;border-radius:6px;padding:3px 10px;font-size:12px;font-weight:600;color:var(--ad)">'+MN[r.month]+(r.year!==kpiY?" '"+String(r.year).slice(2):'')+' '+fmt(r.amt)+'</span>';}).join('')+'</div></div>';
-  });
-  openM('Εκκρεμότητες Παρελθόντων', body, '<button class="btn btn-out btn-sm" onclick="closeM()">Κλείσιμο</button>');
+  rows.sort(function(a,b){ return (a.year-b.year)||(a.month-b.month); });
+  openM('Εκκρεμότητες Παρελθόντων', debtListBody(rows,'past','μήνες πριν από '+MNF[CM]+' '+CY), debtFoot());
 }
 
 function renderKpi(){
@@ -2792,7 +2874,7 @@ function renderKpi(){
   document.getElementById('kr-c').innerHTML=
     '<div class="kc kc-dark"><div class="kl">'+MNF[kpiM]+' — Σύνολο</div><div class="kv">'+fmt(k.tot)+'</div><div class="ks">'+k.actC+' ενεργοί κήποι</div></div>'+
     '<div class="kc kg"><div class="kl">Εισπράξεις</div><div class="kv">'+fmt(k.pd)+'</div><div class="ks">'+k.paC+'/'+k.actC+' κήποι</div></div>'+
-    '<div class="kc kred"><div class="kl">Εκκρεμούν</div><div class="kv">'+fmt(k.pen)+'</div><div class="ks">'+k.peC+' κήποι</div></div>'+
+    '<div class="kc kred'+(k.peC?' kc-tap':'')+'"'+(k.peC?' onclick="showPendingList()"':'')+'><div class="kl">Εκκρεμούν'+(k.peC?' →':'')+'</div><div class="kv">'+fmt(k.pen)+'</div><div class="ks">'+k.peC+' κήποι</div></div>'+
     (past>0
       ? (function(){
           var pr=pastDueRows(), ids={};
