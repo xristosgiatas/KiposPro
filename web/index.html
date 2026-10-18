@@ -1870,6 +1870,13 @@ function renderSchedule(){
       if(apTime) html+='<div style="font-family:var(--mono);font-size:10px;color:'+(isOffer?'#3C6A88':'#6366f1')+';margin-top:1px">'+apTime+'</div>';
       if(displayAddr) html+='<div style="font-size:10px;color:#94a3b8;margin-top:1px">'+displayAddr+'</div>';
       if(addrForMap) html+='<div data-km="'+esc+'" style="font-family:var(--mono);font-size:10px;color:var(--gd);margin-top:2px">…</div>';
+      if(!isEkta && c){
+        var _openRep=(window.reports||[]).filter(function(r){return String(r.clientId)===String(c.id)&&r.status!=='done';});
+        if(_openRep.length){
+          var _urg=_openRep.some(function(r){return String(r.urgent)==='true';});
+          html+='<button onclick="openReportsFor(\''+c.id+'\')" style="display:block;margin-top:3px;background:'+(_urg?'#9A4A1E':'#FBF0D6')+';color:'+(_urg?'#fff':'#7A5200')+';border:none;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:800;cursor:pointer">🔔 '+_openRep.length+' αναφορ'+(_openRep.length===1?'ά':'ές')+(_urg?' · επείγον':'')+'</button>';
+        }
+      }
       if(!isEkta && e.notified){
         html+=(e.notified===e.date)
           ?'<div style="font-size:10px;font-weight:700;color:#2C5570;margin-top:2px">✓ ενημερώθηκε</div>'
@@ -9465,6 +9472,15 @@ function renderRepBanner(){
     +'<span class="rep-banner-x">→</span></button>';
 }
 
+var REP_CATS={water:'💧 Πότισμα',plant:'🥀 Φυτό',pest:'🐛 Έντομα / αρρώστια',prune:'✂️ Κλάδεμα',other:'💬 Άλλο'};
+function openReportsFor(cid){
+  go('reports');
+  setTimeout(function(){
+    var el=document.getElementById('reports-list'); if(!el) return;
+    var c=gc(cid); if(!c) return;
+    [].forEach.call(el.children,function(card){ if(card.textContent.indexOf(c.name)<0) card.style.display='none'; });
+  },60);
+}
 function renderReports(){
   var el=document.getElementById('reports-list');
   if(!el) return;
@@ -9475,6 +9491,8 @@ function renderReports(){
   }
   var sorted=[].concat(reports).sort(function(a,b){
     if((a.status!=='done')!==(b.status!=='done')) return a.status!=='done'?-1:1;
+    var ua=String(a.urgent)==='true', ub=String(b.urgent)==='true';
+    if(a.status!=='done' && ua!==ub) return ua?-1:1;
     return (b.date||'').localeCompare(a.date||'');
   });
   el.innerHTML=sorted.map(function(r){
@@ -9482,24 +9500,29 @@ function renderReports(){
     var photos=(r.photoUrls||'').split(',').map(function(u){return u.trim();}).filter(Boolean);
     return '<div style="background:#fff;border:1px solid var(--brd);border-left:4px solid '+(pending?'#B4623A':'#22c55e')+';border-radius:var(--r);padding:1rem;margin-bottom:12px'+(pending?'':';opacity:.65')+'">'
       +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">'
-      +'<div><div style="font-weight:800;font-size:15px">'+esc(r.clientName||'—')+'</div>'
+      +'<div><div style="font-weight:800;font-size:15px">'+(String(r.urgent)==='true'&&pending?'<span style="background:#9A4A1E;color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:999px;margin-right:6px;vertical-align:2px">ΕΠΕΙΓΟΝ</span>':'')+esc(r.clientName||'—')+(r.category&&REP_CATS[r.category]?' <span style="font-weight:600;color:var(--tx2);font-size:13px">· '+REP_CATS[r.category]+'</span>':'')+'</div>'
       +'<div style="font-size:12px;color:var(--tx2);margin-top:2px">'+fmtDate(r.date)+(r.address?' · '+esc(r.address):'')+'</div></div>'
       +(pending?'<button onclick="resolveReport(\''+r.id+'\')" style="background:var(--gl);color:var(--gd);border:1px solid var(--gm);border-radius:7px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">✓ Ολοκληρώθηκε</button>':'<span style="font-size:12px;color:var(--tx2);font-weight:700">✓ Έγινε</span>')
       +'</div>'
       +(r.description?'<div style="margin-top:10px;font-size:14px;color:var(--tx)">'+esc(r.description)+'</div>':'')
       +(photos.length?'<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">'+photos.map(function(u){return '<a href="'+u+'" target="_blank" style="display:inline-block;background:#f1f5f9;border-radius:8px;padding:6px 10px;font-size:12px;color:#334155;text-decoration:none">📷 Φωτογραφία</a>';}).join('')+'</div>':'')
+      +(r.reply?'<div style="margin-top:8px;font-size:13px;background:var(--gl);color:var(--gd);border-radius:8px;padding:6px 10px"><b>Απάντηση:</b> '+esc(r.reply)+'</div>':'')
       +(r.afterPhotoUrl?'<div style="margin-top:8px"><a href="'+r.afterPhotoUrl+'" target="_blank" style="display:inline-block;background:var(--gl);color:var(--gd);border-radius:8px;padding:6px 10px;font-size:12px;text-decoration:none;font-weight:700">✓ Φωτογραφία μετά</a></div>':'')
       +'</div>';
   }).join('');
 }
 
 function resolveReport(id){
+  var rp=reports.find(function(r){return r.id===id;})||{};
   openM('✓ Ολοκλήρωση Αναφοράς',
-    '<p style="font-size:13px;color:var(--tx2);margin-bottom:12px">Θες να προσθέσεις φωτογραφία «μετά» (προαιρετικό);</p>'
+    '<label style="display:block;font-size:13px;font-weight:700;margin-bottom:6px">Απάντηση στον πελάτη (τη βλέπει στη σελίδα του)</label>'
+    +'<textarea id="report-reply" rows="3" style="width:100%;padding:10px 12px;border:1.5px solid var(--brd);border-radius:var(--r);font:inherit;font-size:15px;margin-bottom:8px" placeholder="π.χ. Αλλάχτηκε ο σταλάκτης, όλα καλά.">'+esc(rp.reply||'')+'</textarea>'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">'+['Έγινε, όλα καλά.','Το φροντίσαμε στην επίσκεψη.','Αλλάχτηκε το εξάρτημα.'].map(function(t){return '<button type="button" class="btn btn-out btn-sm" onclick="document.getElementById(\'report-reply\').value=this.textContent">'+t+'</button>';}).join('')+'</div>'
+    +'<p style="font-size:13px;color:var(--tx2);margin-bottom:12px">Φωτογραφία «μετά» (προαιρετικό) — ο πελάτης τη βλέπει δίπλα στη δική του.</p>'
     +'<input type="file" id="after-photo-input" accept="image/*" style="display:none" onchange="handleAfterPhotoPick()">'
     +'<button class="btn btn-out btn-sm" style="width:100%" onclick="document.getElementById(\'after-photo-input\').click()">📷 Επιλογή φωτογραφίας</button>'
     +'<div id="after-photo-preview" style="margin-top:10px"></div>',
-    '<button class="btn btn-out btn-sm" onclick="finishResolveReport(\''+id+'\')">Χωρίς φωτογραφία</button>'
+    '<button class="btn btn-out btn-sm" onclick="closeM()">Άκυρο</button>'
     +'<button class="btn btn-g btn-sm" id="resolve-confirm-btn" onclick="finishResolveReport(\''+id+'\')">✓ Ολοκλήρωση</button>'
   );
 }
@@ -9517,7 +9540,9 @@ function handleAfterPhotoPick(){
 }
 
 function finishResolveReport(id){
-  reports=reports.map(function(r){ if(r.id===id) r.status='done'; return r; });
+  var replyEl=document.getElementById('report-reply');
+  var reply=replyEl?replyEl.value.trim():'';
+  reports=reports.map(function(r){ if(r.id===id){ r.status='done'; r.reply=reply; } return r; });
   renderReports();
   renderRepBanner();
   if(document.getElementById('pg-detail').classList.contains('on')&&_detId) renderDet(_detId);
@@ -9527,7 +9552,7 @@ function finishResolveReport(id){
   _afterPhotoData=null;
   google.script.run
     .withFailureHandler(function(e){ alert('Σφάλμα: '+(e&&e.message?e.message:'')); })
-    .resolveReport(window._kpEmail||localStorage.getItem('kipospro_email')||'', id, photo);
+    .portal_resolve(window._kpEmail||localStorage.getItem('kipospro_email')||'', id, photo, reply);
 }
 
 /* ===== ΠΥΛΙΔΙΟ ΠΕΛΑΤΗ (Link Αναφοράς) ===== */
@@ -9564,7 +9589,7 @@ function showPortalLink(cid,mode){
           +'<div style="background:#f8fafc;border:1px solid var(--brd);border-radius:8px;padding:10px;font-size:12px;word-break:break-all;margin-bottom:12px">'+r.url+'</div>'
           +'<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">'
           +'<button class="btn btn-sm" style="background:#4338CA;color:#fff" onclick="navigator.clipboard.writeText(\''+r.url+'\');toast(\'✓ Αντιγράφηκε!\')">Αντιγραφή</button>'
-          +(c.tel?'<button class="btn btn-sm" style="background:#0891B2;color:#fff" onclick="window.open(\'sms:'+c.tel+'?body=\'+encodeURIComponent(\'Γεια σου \'+\''+c.name.replace(/'/g,"\\'")+'\'+\', εδώ είναι ο σύνδεσμος για να μου στέλνεις φωτογραφίες αν έχεις πρόβλημα στον κήπο: \'+\''+r.url+'\'),\'_blank\')">💬 Αποστολή SMS</button>':'')
+          +(c.tel?'<button class="btn btn-sm" style="background:#0891B2;color:#fff" onclick="window.open(\'sms:'+c.tel+'?body=\'+encodeURIComponent(\'Γεια σας, αυτός είναι ο σύνδεσμος για τον κήπο σας. Από εκεί μπορείτε να μας στέλνετε φωτογραφίες αν δείτε κάποιο πρόβλημα και να βλέπετε την επόμενη επίσκεψη: \'+\''+r.url+'\'),\'_blank\')">💬 Αποστολή SMS</button>':'')
           +'</div>';
       }
     })
@@ -9572,7 +9597,7 @@ function showPortalLink(cid,mode){
       var body3=document.getElementById('portal-link-body');
       if(body3) body3.innerHTML='<div style="color:#991b1b">Σφάλμα: '+(e&&e.message?e.message:'')+'</div>';
     })
-    .getPortalLink(window._kpEmail||localStorage.getItem('kipospro_email')||'', c.id);
+    .portal_link(window._kpEmail||localStorage.getItem('kipospro_email')||'', c.id);
 }
 
 function openReceiptPicker(){
