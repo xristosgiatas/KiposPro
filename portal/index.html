@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F4F1EA">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Ο κήπος μου">
+<link rel="apple-touch-icon" href="../web/icon-192.png">
+<link rel="icon" href="../web/icon-192.png">
+<title>Ο κήπος μου</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F4F1EA; --card:#FFFFFF; --ink:#1E2A22; --muted:#5E6B62; --line:#E2DDD1;
+  --g:#2F6B4F; --g-ink:#FFFFFF; --g-soft:#E6EFE8; --warn:#9A4A1E; --warn-soft:#F8E9DE;
+  --amber:#7A5200; --amber-soft:#FBF0D6; --r:14px;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:"Noto Sans",system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);font-size:16px;line-height:1.45;-webkit-text-size-adjust:100%}
+a{color:var(--g)} a:hover{color:#234F3B}
+button{font:inherit;color:inherit}
+.wrap{max-width:480px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 22px) 18px calc(env(safe-area-inset-bottom,0px) + 32px)}
+.hdr{margin:4px 2px 18px}
+.biz{font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--g)}
+.hello{font-size:24px;font-weight:700;margin:4px 0 0;text-wrap:balance}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;margin-bottom:14px}
+.next{display:flex;align-items:center;gap:14px;background:var(--g-soft);border-color:#CFE0D4}
+.next .ic{width:44px;height:44px;border-radius:12px;background:var(--g);color:#fff;display:grid;place-items:center;font-size:20px;flex-shrink:0}
+.next .k{font-size:13px;color:var(--muted)}
+.next .v{font-size:18px;font-weight:700}
+h2{font-size:17px;font-weight:700;margin:0 0 12px}
+.step{font-size:13px;font-weight:600;color:var(--muted);margin:18px 0 8px}
+.step:first-of-type{margin-top:0}
+.cats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.cat{display:flex;align-items:center;gap:10px;min-height:52px;padding:0 14px;border:1.5px solid var(--line);border-radius:12px;background:#fff;cursor:pointer;text-align:left;font-size:15px;font-weight:500}
+.cat span{font-size:20px}
+.cat[aria-pressed="true"]{border-color:var(--g);background:var(--g-soft);font-weight:700;color:#1F4C37}
+.cat:last-child:nth-child(odd){grid-column:1/-1}
+.photobtns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.pbtn{min-height:52px;border:1.5px dashed #B9C9BD;border-radius:12px;background:#FAFBF8;font-size:15px;font-weight:600;color:var(--g);cursor:pointer}
+.thumbs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.thumbs:empty{display:none}
+.th{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:#EEE}
+.th img{width:100%;height:100%;object-fit:cover;display:block}
+.th button{position:absolute;top:4px;right:4px;width:30px;height:30px;border-radius:50%;border:0;background:rgba(20,28,22,.72);color:#fff;font-size:16px;line-height:1;cursor:pointer}
+textarea{width:100%;min-height:96px;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;font:inherit;font-size:16px;resize:vertical;background:#fff;color:var(--ink)}
+textarea:focus,.cat:focus-visible,.pbtn:focus-visible,.seg button:focus-visible,.send:focus-visible{outline:2px solid var(--g);outline-offset:2px}
+.seg{display:grid;gap:8px}
+.seg button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:56px;padding:10px 14px;border:1.5px solid var(--line);border-radius:12px;background:#fff;cursor:pointer;text-align:left}
+.seg b{font-size:15px}
+.seg small{font-size:13px;color:var(--muted)}
+.seg button[aria-pressed="true"]{border-color:var(--g);background:var(--g-soft)}
+.seg button.urg[aria-pressed="true"]{border-color:var(--warn);background:var(--warn-soft)}
+.send{width:100%;min-height:56px;margin-top:18px;border:0;border-radius:14px;background:var(--g);color:var(--g-ink);font-size:17px;font-weight:700;cursor:pointer}
+.send:disabled{background:#9DB0A4}
+.hint{font-size:13px;color:var(--muted);margin-top:8px}
+.done{text-align:center;padding:28px 18px}
+.done .big{width:64px;height:64px;border-radius:50%;background:var(--g);color:#fff;display:grid;place-items:center;font-size:30px;margin:0 auto 12px}
+.done h2{font-size:21px;margin-bottom:6px}
+.done p{color:var(--muted);margin:0 0 18px}
+.ghost{min-height:48px;padding:0 20px;border:1.5px solid var(--line);border-radius:12px;background:#fff;font-weight:600;cursor:pointer}
+.hist .it{border-top:1px solid var(--line);padding:12px 0}
+.hist .it:first-of-type{border-top:0;padding-top:0}
+.it-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;cursor:pointer;background:none;border:0;padding:0;width:100%;text-align:left}
+.it-t{font-weight:600;font-size:15px}
+.it-d{font-size:13px;color:var(--muted);margin-top:2px}
+.pill{font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap;flex-shrink:0}
+.pill.p{background:var(--amber-soft);color:var(--amber)}
+.pill.d{background:var(--g-soft);color:#1F4C37}
+.it-body{margin-top:10px}
+.reply{background:var(--g-soft);border-radius:10px;padding:10px 12px;font-size:14.5px;margin-top:10px}
+.reply b{display:block;font-size:12px;color:var(--g);margin-bottom:2px}
+.ba{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+.ba figure{margin:0}
+.ba img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;display:block;background:#EEE}
+.ba figcaption{font-size:12px;color:var(--muted);margin-top:4px;text-align:center}
+.call{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border-radius:14px;border:1.5px solid var(--line);background:#fff;font-weight:700;text-decoration:none;color:var(--ink)}
+.tip{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;background:#fff;border:1px dashed #C9BFAA;border-radius:12px;padding:10px 12px;margin-bottom:14px;color:var(--muted)}
+.tip button{margin-left:auto;border:0;background:none;font-size:18px;line-height:1;color:var(--muted);cursor:pointer;padding:0 2px}
+.center{text-align:center;color:var(--muted);padding:40px 0}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="loading" class="center">Φόρτωση…</div>
+  <div id="invalid" class="card center" hidden>
+    <h2>Ο σύνδεσμος δεν είναι έγκυρος</h2>
+    <p style="margin:0">Επικοινωνήστε με τον κηπουρό σας για νέο σύνδεσμο.</p>
+  </div>
+
+  <div id="app" hidden>
+    <div class="hdr">
+      <div class="biz" id="biz"></div>
+      <h1 class="hello" id="hello"></h1>
+    </div>
+
+    <div class="tip" id="tip" hidden>
+      <span>Για να το έχετε πάντα πρόχειρο: πατήστε <b>⬆ Κοινή χρήση</b> και <b>«Προσθήκη στην οικ. οθόνη»</b>.</span>
+      <button type="button" aria-label="Κλείσιμο" onclick="hideTip()">×</button>
+    </div>
+
+    <div class="card next" id="next" hidden>
+      <div class="ic" aria-hidden="true">🌿</div>
+      <div><div class="k">Επόμενη επίσκεψη</div><div class="v" id="nextv"></div></div>
+    </div>
+
+    <div class="card" id="form">
+      <h2>Αναφέρετε κάτι στον κήπο</h2>
+
+      <div class="step">1 · Τι αφορά;</div>
+      <div class="cats" id="cats" role="group" aria-label="Θέμα">
+        <button type="button" class="cat" data-c="water" aria-pressed="false"><span>💧</span>Πότισμα</button>
+        <button type="button" class="cat" data-c="plant" aria-pressed="false"><span>🥀</span>Φυτό ξεράθηκε</button>
+        <button type="button" class="cat" data-c="pest" aria-pressed="false"><span>🐛</span>Έντομα / αρρώστια</button>
+        <button type="button" class="cat" data-c="prune" aria-pressed="false"><span>✂️</span>Κλάδεμα</button>
+        <button type="button" class="cat" data-c="other" aria-pressed="false"><span>💬</span>Κάτι άλλο</button>
+      </div>
+
+      <div class="step">2 · Φωτογραφίες (προαιρετικά)</div>
+      <div class="photobtns">
+        <button type="button" class="pbtn" onclick="pick('cam')">📷 Κάμερα</button>
+        <button type="button" class="pbtn" onclick="pick('lib')">🖼 Από το άλμπουμ</button>
+      </div>
+      <input type="file" id="in-cam" accept="image/*" capture="environment" hidden>
+      <input type="file" id="in-lib" accept="image/*" multiple hidden>
+      <div class="thumbs" id="thumbs"></div>
+
+      <div class="step">3 · Περιγραφή (προαιρετικά)</div>
+      <textarea id="desc" placeholder="π.χ. Δεν ποτίζει η ζώνη δίπλα στην πόρτα"></textarea>
+
+      <div class="step">4 · Πόσο επείγει;</div>
+      <div class="seg" id="seg" role="group" aria-label="Προτεραιότητα">
+        <button type="button" data-u="0" aria-pressed="true"><b>Μπορεί να περιμένει</b><small id="waitsub">Θα το δούμε στην επόμενη επίσκεψη</small></button>
+        <button type="button" class="urg" data-u="1" aria-pressed="false"><b>Επείγον</b><small>Θα σας καλέσουμε το συντομότερο</small></button>
+      </div>
+
+      <button type="button" class="send" id="send">Αποστολή</button>
+      <div class="hint" id="err" hidden></div>
+    </div>
+
+    <div class="card done" id="done" hidden>
+      <div class="big" aria-hidden="true">✓</div>
+      <h2>Η αναφορά στάλθηκε</h2>
+      <p id="donetxt">Θα τη δούμε και θα σας ενημερώσουμε.</p>
+      <button type="button" class="ghost" onclick="resetForm()">Νέα αναφορά</button>
+    </div>
+
+    <div class="card hist" id="hist" hidden>
+      <h2>Οι αναφορές σας</h2>
+      <div id="histlist"></div>
+    </div>
+
+    <a class="call" id="call" hidden>📞 Επικοινωνία</a>
+  </div>
+</div>
+
+<script>
+(function(){
+var API = "https://script.google.com/macros/s/AKfycbxAM8SSO5C7OL7dbaGApmaRKLSoBXduLZ1ejZK-h6T53Wj7qgPf8FN1RLjr5aa4l6OSmg/exec";
+var TOKEN = (location.search.match(/[?&]p=([^&]+)/)||[])[1] || "";
+try { TOKEN = decodeURIComponent(TOKEN); } catch(e) {}
+var CK = "kp_portal_" + TOKEN.slice(0,40);
+var CATS = {water:"Πότισμα", plant:"Φυτό", pest:"Έντομα / αρρώστια", prune:"Κλάδεμα", other:"Άλλο"};
+var DAYS = ["Κυριακή","Δευτέρα","Τρίτη","Τετάρτη","Πέμπτη","Παρασκευή","Σάββατο"];
+var S = {cat:"", urgent:false, photos:[], info:null, open:{}};
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;"); }
+function day(iso){ if(!iso) return ""; var d=new Date(iso+"T12:00:00"); return DAYS[d.getDay()]+" "+d.getDate()+"/"+(d.getMonth()+1); }
+function shortDate(iso){ if(!iso) return ""; var p=String(iso).slice(0,10).split("-"); return p.length===3 ? (+p[2])+"/"+(+p[1])+"/"+p[0] : iso; }
+
+function api(fn, args){
+  return fetch(API, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body:JSON.stringify({fn:fn, args:args, opId: fn==="portal_submit" ? Date.now().toString(36)+Math.random().toString(36).slice(2,8) : ""}), redirect:"follow"})
+    .then(function(r){ return r.json(); })
+    .then(function(res){ if(!res || !res.ok) throw new Error((res&&res.error)||"Σφάλμα"); return res.result; });
+}
+
+/* ---------- εμφάνιση ---------- */
+function render(info){
+  S.info = info;
+  $("loading").hidden = true;
+  if(!info || !info.valid){ $("invalid").hidden = false; return; }
+  $("app").hidden = false;
+  $("biz").textContent = info.business || "KiposPro";
+  var first = String(info.name||"").trim();
+  $("hello").textContent = first ? "Καλώς ήρθατε, " + first : "Καλώς ήρθατε";
+  document.title = (info.business || "Ο κήπος μου");
+  if(info.nextVisit){ $("next").hidden=false; $("nextv").textContent = day(info.nextVisit); $("waitsub").textContent = "Θα το δούμε στην επίσκεψη της " + day(info.nextVisit); }
+  else { $("next").hidden=true; $("waitsub").textContent = "Θα το δούμε στην επόμενη επίσκεψη"; }
+  if(info.phone){ var c=$("call"); c.hidden=false; c.href="tel:"+String(info.phone).replace(/[^\d+]/g,""); c.textContent="📞 Επικοινωνία · "+info.phone; }
+  renderHist();
+}
+function renderHist(){
+  var reps = (S.info && S.info.reports) || [];
+  $("hist").hidden = !reps.length;
+  $("histlist").innerHTML = reps.map(function(r){
+    var done = r.status==="done", open = !!S.open[r.id];
+    var title = r.category && CATS[r.category] ? CATS[r.category] : (r.description ? r.description.slice(0,48) : "Αναφορά");
+    var body = "";
+    if(open){
+      if(r.description) body += '<div style="font-size:14.5px">'+esc(r.description)+'</div>';
+      var before = (r.photos||[])[0], after = r.after;
+      if(before && before.thumb || after && after.thumb){
+        body += '<div class="ba">'
+          + (before&&before.thumb ? '<figure><a href="'+esc(before.full)+'" target="_blank" rel="noopener"><img src="'+esc(before.thumb)+'" alt="Πριν" loading="lazy"></a><figcaption>Πριν</figcaption></figure>' : '<div></div>')
+          + (after&&after.thumb ? '<figure><a href="'+esc(after.full)+'" target="_blank" rel="noopener"><img src="'+esc(after.thumb)+'" alt="Μετά" loading="lazy"></a><figcaption>Μετά</figcaption></figure>' : '')
+          + '</div>';
+      }
+      if((r.photos||[]).length>1) body += '<div class="hint">+'+(r.photos.length-1)+' ακόμα φωτογραφί'+(r.photos.length===2?'α':'ες')+'</div>';
+      if(r.reply) body += '<div class="reply"><b>Απάντηση</b>'+esc(r.reply)+'</div>';
+      if(!done && !r.reply) body += '<div class="hint">Η αναφορά παραλήφθηκε. Θα σας ενημερώσουμε εδώ.</div>';
+    }
+    return '<div class="it"><button type="button" class="it-top" data-id="'+esc(r.id)+'" aria-expanded="'+open+'">'
+      + '<div><div class="it-t">'+(r.urgent?'⚠️ ':'')+esc(title)+'</div><div class="it-d">'+shortDate(r.date)+(open?'':' · δείτε περισσότερα')+'</div></div>'
+      + '<span class="pill '+(done?'d':'p')+'">'+(done?'✓ Έγινε':'Σε εξέλιξη')+'</span></button>'
+      + (open?'<div class="it-body">'+body+'</div>':'')
+      + '</div>';
+  }).join("");
+}
+$("histlist").addEventListener("click", function(e){
+  var b = e.target.closest(".it-top"); if(!b) return;
+  S.open[b.dataset.id] = !S.open[b.dataset.id]; renderHist();
+});
+
+/* ---------- φόρμα ---------- */
+$("cats").addEventListener("click", function(e){
+  var b = e.target.closest(".cat"); if(!b) return;
+  S.cat = S.cat===b.dataset.c ? "" : b.dataset.c;
+  [].forEach.call($("cats").children, function(x){ x.setAttribute("aria-pressed", x.dataset.c===S.cat); });
+});
+$("seg").addEventListener("click", function(e){
+  var b = e.target.closest("button"); if(!b) return;
+  S.urgent = b.dataset.u==="1";
+  [].forEach.call($("seg").children, function(x){ x.setAttribute("aria-pressed", (x.dataset.u==="1")===S.urgent); });
+});
+window.pick = function(k){ $(k==="cam"?"in-cam":"in-lib").click(); };
+["in-cam","in-lib"].forEach(function(id){
+  $(id).addEventListener("change", function(e){
+    var files = [].slice.call(e.target.files||[]); e.target.value = "";
+    files.slice(0, Math.max(0, 6 - S.photos.length)).forEach(function(f){
+      resize(f).then(function(p){ S.photos.push(p); drawThumbs(); });
+    });
+    if(S.photos.length + files.length > 6) showErr("Έως 6 φωτογραφίες ανά αναφορά.");
+  });
+});
+function resize(file){
+  return new Promise(function(ok, no){
+    var fr = new FileReader();
+    fr.onload = function(){
+      var img = new Image();
+      img.onload = function(){
+        var m=1600, w=img.width, h=img.height;
+        if(w>m||h>m){ if(w>=h){ h=Math.round(h*m/w); w=m; } else { w=Math.round(w*m/h); h=m; } }
+        var c=document.createElement("canvas"); c.width=w; c.height=h; c.getContext("2d").drawImage(img,0,0,w,h);
+        var url=c.toDataURL("image/jpeg",0.82);
+        ok({url:url, base64:url.split(",")[1], mimeType:"image/jpeg"});
+      };
+      img.onerror = no; img.src = fr.result;
+    };
+    fr.onerror = no; fr.readAsDataURL(file);
+  });
+}
+function drawThumbs(){
+  $("thumbs").innerHTML = S.photos.map(function(p,i){
+    return '<div class="th"><img src="'+p.url+'" alt=""><button type="button" aria-label="Αφαίρεση φωτογραφίας" data-i="'+i+'">×</button></div>';
+  }).join("");
+}
+$("thumbs").addEventListener("click", function(e){
+  var b = e.target.closest("button[data-i]"); if(!b) return;
+  S.photos.splice(+b.dataset.i, 1); drawThumbs();
+});
+function showErr(t){ var el=$("err"); el.textContent=t; el.hidden=!t; }
+
+$("send").addEventListener("click", function(){
+  var desc = $("desc").value.trim();
+  if(!S.cat && !desc && !S.photos.length){ showErr("Διαλέξτε θέμα, βγάλτε μια φωτογραφία ή γράψτε λίγα λόγια."); return; }
+  showErr("");
+  var btn = this; btn.disabled = true; btn.textContent = S.photos.length ? "Αποστολή φωτογραφιών…" : "Αποστολή…";
+  api("portal_submit", [TOKEN, {category:S.cat, urgent:S.urgent, description:desc, photos:S.photos.map(function(p){ return {base64:p.base64, mimeType:p.mimeType}; })}])
+    .then(function(r){
+      if(!r || !r.success) throw new Error((r&&r.error)||"Σφάλμα");
+      $("form").hidden = true; $("done").hidden = false;
+      $("donetxt").textContent = S.urgent ? "Τη σημειώσατε ως επείγουσα — θα σας καλέσουμε το συντομότερο."
+        : (r.nextVisit ? "Θα τη δούμε στην επίσκεψη της " + day(r.nextVisit) + "." : "Θα τη δούμε και θα σας ενημερώσουμε.");
+      window.scrollTo(0,0);
+      load(true);
+    })
+    .catch(function(e){
+      showErr(navigator.onLine===false ? "Δεν υπάρχει σύνδεση. Δοκιμάστε ξανά όταν έχετε σήμα." : "Η αποστολή δεν ολοκληρώθηκε. Δοκιμάστε ξανά.");
+    })
+    .then(function(){ btn.disabled = false; btn.textContent = "Αποστολή"; });
+});
+window.resetForm = function(){
+  S.cat=""; S.urgent=false; S.photos=[]; $("desc").value=""; drawThumbs();
+  [].forEach.call($("cats").children, function(x){ x.setAttribute("aria-pressed","false"); });
+  [].forEach.call($("seg").children, function(x){ x.setAttribute("aria-pressed", x.dataset.u==="0"); });
+  $("done").hidden = true; $("form").hidden = false; window.scrollTo(0,0);
+};
+
+/* ---------- προσθήκη στην αρχική οθόνη (iPhone) ---------- */
+var ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+var standalone = window.navigator.standalone || matchMedia("(display-mode: standalone)").matches;
+if(ios && !standalone && !localStorage.getItem("kp_portal_tip")) $("tip").hidden = false;
+window.hideTip = function(){ $("tip").hidden = true; try{ localStorage.setItem("kp_portal_tip","1"); }catch(e){} };
+
+/* ---------- φόρτωση ---------- */
+function load(quiet){
+  if(!TOKEN){ render({valid:false}); return; }
+  api("portal_info", [TOKEN]).then(function(info){
+    try{ localStorage.setItem(CK, JSON.stringify(info)); }catch(e){}
+    render(info);
+  }).catch(function(){
+    if(!quiet && !S.info){ $("loading").textContent = "Δεν ήταν δυνατή η φόρτωση. Ελέγξτε τη σύνδεση και ανανεώστε τη σελίδα."; }
+  });
+}
+if(/[?&]demo\b/.test(location.search)){
+  render({valid:true, name:"Μαρία Παπαδοπούλου", business:"KiposPro", phone:"690 000 0000", nextVisit:new Date(Date.now()+3*864e5).toISOString().slice(0,10),
+    reports:[{id:"a",date:"2026-10-12",category:"water",urgent:false,status:"done",description:"Δεν ποτίζει η ζώνη δίπλα στην πόρτα.",photos:[],after:"",reply:"Αλλάχτηκε ο σταλάκτης, όλα καλά."},
+             {id:"b",date:"2026-10-16",category:"pest",urgent:true,status:"pending",description:"Άσπρα στίγματα στα φύλλα της λεμονιάς.",photos:[],after:"",reply:""}]});
+  return;
+}
+try{ var c = JSON.parse(localStorage.getItem(CK)||"null"); if(c && c.valid) render(c); }catch(e){}
+load();
+})();
+</script>
+</body>
+</html>
