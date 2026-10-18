@@ -97,6 +97,7 @@ textarea:focus,.cat:focus-visible,.pbtn:focus-visible,.seg button:focus-visible,
     <div class="hdr">
       <div class="biz" id="biz"></div>
       <h1 class="hello" id="hello"></h1>
+      <button type="button" id="upd" onclick="manualRefresh()" style="margin-top:6px;background:none;border:0;padding:4px 0;font:inherit;font-size:12px;color:#5b6b62;cursor:pointer;display:flex;align-items:center;gap:5px">↻ <span id="updt">Ενημέρωση…</span></button>
     </div>
 
     <div class="tip" id="tip" hidden>
@@ -175,7 +176,7 @@ function day(iso){ if(!iso) return ""; var d=new Date(iso+"T12:00:00"); return D
 function shortDate(iso){ if(!iso) return ""; var p=String(iso).slice(0,10).split("-"); return p.length===3 ? (+p[2])+"/"+(+p[1])+"/"+p[0] : iso; }
 
 function api(fn, args){
-  return fetch(API, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body:JSON.stringify({fn:fn, args:args, opId: fn==="portal_submit" ? Date.now().toString(36)+Math.random().toString(36).slice(2,8) : ""}), redirect:"follow"})
+  return fetch(API, {cache:"no-store", method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body:JSON.stringify({fn:fn, args:args, opId: fn==="portal_submit" ? Date.now().toString(36)+Math.random().toString(36).slice(2,8) : ""}), redirect:"follow"})
     .then(function(r){ return r.json(); })
     .then(function(res){ if(!res || !res.ok) throw new Error((res&&res.error)||"Σφάλμα"); return res.result; });
 }
@@ -309,7 +310,22 @@ if(ios && !standalone && !localStorage.getItem("kp_portal_tip")) $("tip").hidden
 window.hideTip = function(){ $("tip").hidden = true; try{ localStorage.setItem("kp_portal_tip","1"); }catch(e){} };
 
 /* ---------- φόρτωση ---------- */
+var PORTAL_VERSION="2026-10-18b";
 var _loading=false, _lastLoad=0, _lastJson="";
+function hhmm(t){ var d=new Date(t); return ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2); }
+function setUpd(t){ var el=$("updt"); if(el) el.textContent=t; }
+function stampUpd(){ setUpd("Ενημερώθηκε "+hhmm(_lastLoad)); }
+window.manualRefresh=function(){ _lastLoad=0; setUpd("Ενημέρωση…"); load(true, true); };
+// Αν ανέβηκε νέα έκδοση της σελίδας στο GitHub, φόρτωσέ την (το iPhone κρατάει την παλιά στη μνήμη)
+var _verChecked=0;
+function checkVersion(){
+  if(Date.now()-_verChecked<300000) return;
+  _verChecked=Date.now();
+  fetch(location.pathname+"?v="+Date.now(),{cache:"no-store"}).then(function(r){ return r.text(); }).then(function(t){
+    var m=t.match(/PORTAL_VERSION="([^"]+)"/);
+    if(m && m[1]!==PORTAL_VERSION && !busy()){ location.reload(); }
+  }).catch(function(){});
+}
 function busy(){
   var a=document.activeElement;
   if(a && (a.tagName==="TEXTAREA" || a.tagName==="INPUT")) return true;
@@ -319,12 +335,13 @@ function busy(){
   if(S.photos && S.photos.length) return true;
   return false;
 }
-function load(quiet){
+function load(quiet, force){
   if(!TOKEN){ render({valid:false}); return; }
   if(_loading) return;
   _loading=true;
+  if(S.info) setUpd("Ενημέρωση…");
   api("portal_info", [TOKEN]).then(function(info){
-    _loading=false; _lastLoad=Date.now();
+    _loading=false; _lastLoad=Date.now(); setTimeout(stampUpd,0);
     var j=""; try{ j=JSON.stringify(info); localStorage.setItem(CK, j); }catch(e){}
     if(quiet && j===_lastJson) return;
     _lastJson=j;
@@ -332,6 +349,7 @@ function load(quiet){
     render(info);
   }).catch(function(){
     _loading=false;
+    setUpd(_lastLoad ? "Χωρίς σύνδεση · τελευταία "+hhmm(_lastLoad) : "Χωρίς σύνδεση");
     if(!quiet && !S.info){ $("loading").textContent = "Δεν ήταν δυνατή η φόρτωση. Ελέγξτε τη σύνδεση και ανανεώστε τη σελίδα."; }
   });
 }
@@ -348,9 +366,19 @@ load();
 function renderHistOnly(info){ S.info=info; renderHist(); }
 function wake(){
   if(document.visibilityState!=="visible") return;
-  if(Date.now()-_lastLoad < 8000) return;
+  checkVersion();
+  if(Date.now()-_lastLoad < 5000) return;
   load(true);
 }
+// Το iPhone μερικές φορές δεν στέλνει «visibilitychange» στις εφαρμογές της αρχικής οθόνης.
+// Ανιχνεύουμε την επιστροφή από το ότι «πάγωσε» το χρονόμετρο.
+var _tick=Date.now();
+setInterval(function(){
+  var now=Date.now();
+  if(now-_tick>10000) wake();
+  _tick=now;
+}, 2000);
+document.addEventListener("touchstart", function(){ if(Date.now()-_lastLoad>60000) wake(); }, {passive:true});
 document.addEventListener("visibilitychange", wake);
 window.addEventListener("focus", wake);
 window.addEventListener("pageshow", function(e){ if(e.persisted) load(true); else wake(); });
