@@ -309,12 +309,29 @@ if(ios && !standalone && !localStorage.getItem("kp_portal_tip")) $("tip").hidden
 window.hideTip = function(){ $("tip").hidden = true; try{ localStorage.setItem("kp_portal_tip","1"); }catch(e){} };
 
 /* ---------- φόρτωση ---------- */
+var _loading=false, _lastLoad=0, _lastJson="";
+function busy(){
+  var a=document.activeElement;
+  if(a && (a.tagName==="TEXTAREA" || a.tagName==="INPUT")) return true;
+  if($("send") && $("send").disabled) return true;
+  if(S.cat) return true;
+  var d=$("desc"); if(d && d.value && d.value.trim()) return true;
+  if(S.photos && S.photos.length) return true;
+  return false;
+}
 function load(quiet){
   if(!TOKEN){ render({valid:false}); return; }
+  if(_loading) return;
+  _loading=true;
   api("portal_info", [TOKEN]).then(function(info){
-    try{ localStorage.setItem(CK, JSON.stringify(info)); }catch(e){}
+    _loading=false; _lastLoad=Date.now();
+    var j=""; try{ j=JSON.stringify(info); localStorage.setItem(CK, j); }catch(e){}
+    if(quiet && j===_lastJson) return;
+    _lastJson=j;
+    if(quiet && busy()){ renderHistOnly(info); return; }
     render(info);
   }).catch(function(){
+    _loading=false;
     if(!quiet && !S.info){ $("loading").textContent = "Δεν ήταν δυνατή η φόρτωση. Ελέγξτε τη σύνδεση και ανανεώστε τη σελίδα."; }
   });
 }
@@ -324,8 +341,21 @@ if(/[?&]demo\b/.test(location.search)){
              {id:"b",date:"2026-10-16",category:"pest",urgent:true,status:"pending",description:"Άσπρα στίγματα στα φύλλα της λεμονιάς.",photos:[],after:"",reply:""}]});
   return;
 }
-try{ var c = JSON.parse(localStorage.getItem(CK)||"null"); if(c && c.valid) render(c); }catch(e){}
+try{ var c = JSON.parse(localStorage.getItem(CK)||"null"); if(c && c.valid){ _lastJson=JSON.stringify(c); render(c); } }catch(e){}
 load();
+
+/* Αυτόματη ανανέωση: όταν ο πελάτης γυρνάει στη σελίδα (από παρασκήνιο) και κάθε 60" όσο είναι ανοιχτή */
+function renderHistOnly(info){ S.info=info; renderHist(); }
+function wake(){
+  if(document.visibilityState!=="visible") return;
+  if(Date.now()-_lastLoad < 8000) return;
+  load(true);
+}
+document.addEventListener("visibilitychange", wake);
+window.addEventListener("focus", wake);
+window.addEventListener("pageshow", function(e){ if(e.persisted) load(true); else wake(); });
+window.addEventListener("online", function(){ load(true); });
+setInterval(function(){ if(document.visibilityState==="visible") load(true); }, 60000);
 })();
 </script>
 </body>
