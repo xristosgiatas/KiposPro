@@ -3694,21 +3694,29 @@ function swPlan(cid,name){
       if(Math.abs(dy)>10&&Math.abs(dy)>Math.abs(dx)){ S.lock=true; return; }
       if(Math.abs(dx)>14&&Math.abs(dx)>Math.abs(dy)*1.4){
         S.on=true; window._swOn=true; clearTimeout(DG.timer);
-        S.r.style.transition='none'; S.r.style.position='relative';
-        S.bg=S.r.style.background;
+        S.r.style.transition='none'; S.r.style.position='relative'; S.r.style.zIndex='2';
+        if(!S.r.style.background&&!S.r.style.backgroundColor) S.r.style.background=getComputedStyle(S.r).backgroundColor==='rgba(0, 0, 0, 0)'?'var(--paper)':'';
+        var p=S.r.parentNode; if(getComputedStyle(p).position==='static') p.style.position='relative';
+        var u=document.createElement('div'); S.u=u;
+        u.style.cssText='position:absolute;z-index:1;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-weight:800;font-size:16px;color:#fff;pointer-events:none;'
+          +'top:'+S.r.offsetTop+'px;left:'+S.r.offsetLeft+'px;width:'+S.r.offsetWidth+'px;height:'+S.r.offsetHeight+'px;border-radius:'+getComputedStyle(S.r).borderRadius;
+        u.innerHTML='<span>€ Πληρωμή</span><span>📅 Πλάνο</span>';
+        p.insertBefore(u,S.r);
       }
     }
     if(!S.on) return;
     e.preventDefault(); S.dx=dx;
     S.r.style.transform='translateX('+dx+'px)';
     var go=Math.abs(dx)>90;
-    S.r.style.boxShadow=dx>0?'inset 6px 0 0 '+(go?'#2D6B4C':'#A9CBB6'):'inset -6px 0 0 '+(go?'#3C74A8':'#B9CDE0');
+    S.u.style.background=dx>0?(go?'#2D6B4C':'#6FA286'):(go?'#3C74A8':'#7FA6C8');
+    S.u.firstChild.style.opacity=dx>0?1:0; S.u.lastChild.style.opacity=dx<0?1:0;
   },{passive:false});
   ['touchend','touchcancel'].forEach(function(ev){
     document.addEventListener(ev,function(){
       if(!S) return; var s=S; S=null;
       if(!s.on) return;
-      s.r.style.transition='transform .18s'; s.r.style.transform=''; s.r.style.boxShadow='';
+      s.r.style.transition='transform .18s'; s.r.style.transform='';
+      var u=s.u; setTimeout(function(){ if(u) u.remove(); s.r.style.zIndex=''; },200);
       var stop=function(e){ e.stopPropagation(); e.preventDefault(); document.removeEventListener('click',stop,true); };
       document.addEventListener('click',stop,true); setTimeout(function(){document.removeEventListener('click',stop,true);},400);
       var cid=s.r.getAttribute('data-swc')||s.r.getAttribute('data-cid'), nm=s.r.getAttribute('data-cname')||'';
