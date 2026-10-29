@@ -1872,9 +1872,9 @@ function mclRowsC(){
     if(!isAct(c,CM,CY)) dot='#C9C3B6';
     var grp=od?(od.overdue>3?'red':od.overdue>=0||od.soon?'soon':'ok'):(lv?'ok':'novisit');
     var tint={red:'#F5DEDE',soon:'#FCEFD2',novisit:'#F3F1EC',ok:'#E3F0E7'}[grp];
-    if(pi) tint=pi.missed?'#F5DEDE':'#E4EDF6';
+    if(pi&&grp!=='red') tint=pi.missed?'#F5DEDE':'#E4EDF6';
     var s2c={red:'#8E2A2A',soon:'#95681A',novisit:'#4E5A50',ok:'#2D6B4C'}[grp];
-    if(pi) s2c=pi.missed?'#8E2A2A':'#28506F';
+    if(pi&&grp!=='red') s2c=pi.missed?'#8E2A2A':'#28506F';
     var urg={red:0,soon:1,ok:2,novisit:3}[grp]*100000-(od?od.overdue:-99999);
     return { kind:'c', id:c.id, tint:tint, urg:urg, s2c:s2c, n:c.name, a:c.address||'', area:getArea(c.address||''),
       s:(function(){
