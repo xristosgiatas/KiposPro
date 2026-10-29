@@ -956,6 +956,26 @@ body.d-fs #d-row-zones .zone-btn{padding:4px 9px;font-size:11.5px}
 .mr-list button{display:flex;width:100%;align-items:center;justify-content:space-between;padding:14px;border:0;border-top:1px solid #EEEAE0;background:none;font-family:inherit;font-size:14px;font-weight:600;color:var(--tx);cursor:pointer}
 .mr-list button:first-child{border-top:0}
 .ms-tpl{display:flex;flex-direction:column;gap:3px;width:100%;text-align:left;border:1px solid var(--brd);background:#fff;border-radius:14px;padding:11px 13px;margin-bottom:8px;cursor:pointer;font-family:inherit}
+.mob-mode #pg-clients > *:not(#mcl-root){display:none!important}
+#mcl-root{display:none}
+.mob-mode #mcl-root{display:block}
+.mcl-srch{display:flex;align-items:center;gap:10px;height:48px;border-radius:14px;background:var(--paper);border:1px solid var(--brd);padding:0 12px}
+.mcl-srch input{flex:1;border:0;outline:0;background:transparent;font-family:inherit;font-size:16px;font-weight:500;color:var(--tx);min-width:0}
+.mcl-seg{display:grid;grid-template-columns:repeat(4,1fr);background:#E9E5DA;border-radius:12px;padding:3px;gap:2px}
+.mcl-seg button{height:36px;border:0;border-radius:10px;background:transparent;font-family:inherit;font-size:12px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;color:#4E5A50;cursor:pointer;padding:0 2px}
+.mcl-seg button.on{background:#fff;color:#12281F;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.mcl-chips{display:flex;gap:6px;overflow-x:auto;margin:0 -14px;padding:0 14px 2px;scrollbar-width:none}
+.mcl-chips button{flex:none;height:34px;padding:0 13px;border-radius:999px;border:1px solid var(--brd);background:var(--paper);color:#4E5A50;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.mcl-chips button.on{background:#1D4632;border-color:#1D4632;color:#fff}
+.mcl-g{background:var(--paper);border:1px solid var(--brd);border-radius:16px;overflow:hidden}
+.mcl-gh{display:flex;align-items:center;gap:8px;width:100%;padding:12px 14px;border:0;background:none;font-family:inherit;cursor:pointer}
+.mcl-gh b{font-size:12px;letter-spacing:.1em;color:#4E5A50;font-family:var(--mono)}
+.mcl-r{display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:1px solid #EEEAE0;cursor:pointer;min-height:56px}
+.mcl-r .d{width:9px;height:9px;border-radius:50%;flex:none}
+.mcl-r .n{font-size:15px;font-weight:700;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mcl-r .a{font-size:12.5px;color:#4E5A50;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mcl-r .s{font-size:11.5px;color:var(--tx2);margin-top:1px}
+.mcl-r .t{font-size:11.5px;font-weight:700;border-radius:8px;padding:4px 8px;white-space:nowrap;flex:none}
 </style>
 </head>
 <body>
@@ -1008,6 +1028,7 @@ body.d-fs #d-row-zones .zone-btn{padding:4px 9px;font-size:11.5px}
 
   <!-- ΣΥΝΤΗΡΗΣΕΙΣ -->
   <div class="page on" id="pg-clients">
+    <div id="mcl-root"></div>
     <div class="tb">
       <div class="pt" style="margin:0">Συντηρήσεις</div>
       <button class="btn btn-g" onclick="openAddC()">+ Νέος Πελάτης</button>
@@ -1817,6 +1838,130 @@ function renderMore(){
     +'<button onclick="logoutKP()" style="color:var(--red)"><span>Αποσύνδεση</span></button>'
     +'</div></div></div>';
   root.innerHTML=h;
+}
+
+
+/* ===== ΚΙΝΗΤΟ: Πελάτες ===== */
+var _mcl={seg:'c',f:'all',q:'',closed:{}};
+function mclTag(t,fg,bg){ return {t:t,fg:fg,bg:bg}; }
+function mclRowsC(){
+  return clients.map(function(c){
+    var owe=tdOwe(c), od=getDaysOverdue(c), rep=clientReports(c).some(function(r){return r.status!=='done';});
+    var pi=planInfoFor(c.id), lv=lastVisit(c.id);
+    var tag, dot;
+    if(rep){ tag=mclTag('αναφορά','#fff','#B4623A'); dot='#B4623A'; }
+    else if(owe){ tag=mclTag('οφειλή '+fmt(owe),'#95681A','#FCEFD2'); dot='#B58A2B'; }
+    else if(od&&od.overdue>3){ tag=mclTag('καθυστ. '+od.overdue+' μ.','#B03636','#F6E0DC'); dot='#B03636'; }
+    else if(pi){ tag=mclTag('πλάνο '+planShort(pi.date),'#2C5570','#E8F0F4'); dot='#2D6B4C'; }
+    else { tag=mclTag((c.defVisits||2)+'×/μήνα','#4E5A50','#EEEAE0'); dot='#2D6B4C'; }
+    if(!isAct(c,CM,CY)) dot='#C9C3B6';
+    return { kind:'c', id:c.id, n:c.name, a:c.address||'', area:getArea(c.address||''),
+      s:lv?('τελ. επίσκεψη '+planShort(lv.date||lv)):'', tag:tag, dot:dot,
+      owe:!!owe, late:!!(od&&od.overdue>3), rep:rep, vis:parseInt(c.defVisits||2),
+      txt:[c.name,c.address,c.tel,c.notes,c.afm].join(' ') };
+  });
+}
+function mclRowsK(){
+  var g={}; (ektas||[]).forEach(function(e){ var k=(e.name||'')+'|'+(e.tel||''); if(!g[k]) g[k]={name:e.name,tel:e.tel||'',address:e.address||'',items:[]}; g[k].items.push(e); });
+  window._mclEkta=Object.values(g);
+  return window._mclEkta.map(function(x,i){
+    x.items.sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+    var tot=x.items.reduce(function(s,e){return s+(+e.amt||0);},0), last=x.items[0];
+    return { kind:'k', id:i, n:x.name||'—', a:x.address||'', area:getArea(x.address||''),
+      s:(last.desc||'')+(last.date?' · '+planShort(last.date):'')+(x.items.length>1?' · '+x.items.length+' εργασίες':''),
+      tag:mclTag(fmt(tot),'#2D6B4C','#E3F0E7'), dot:'#95681A',
+      txt:[x.name,x.address,x.tel].concat(x.items.map(function(e){return (e.desc||'')+' '+(e.notes||'');})).join(' ') };
+  });
+}
+function mclRowsA(){
+  return (appointments||[]).filter(function(a){return !a.done;}).sort(function(a,b){return ((a.date||'')+(a.time||'')).localeCompare((b.date||'')+(b.time||''));}).map(function(a){
+    return { kind:'a', id:a.id, n:a.name||'—', a:a.address||'', area:getArea(a.address||''),
+      s:a.desc||'', tag:mclTag((a.date?planShort(a.date):'χωρίς ημ.')+(a.time?' '+a.time:''),'#2C5570','#E8F0F4'), dot:'#2C5570',
+      txt:[a.name,a.address,a.tel,a.desc,a.notes].join(' ') };
+  });
+}
+function mclRowsP(){
+  return (offers||[]).filter(function(o){return !o.archived;}).map(function(o){
+    var am=parseFloat(o.amount||0);
+    return { kind:'p', id:o.id, n:o.name||'—', a:o.address||'', area:getArea(o.address||''),
+      s:(o.desc||'')+(o.date?' · '+planShort(o.date)+(o.time?' '+o.time:''):''),
+      tag:am?mclTag(fmt(am),'#95681A','#FCEFD2'):mclTag('προσφορά','#3C6A88','#EEF3F7'), dot:'#3C6A88',
+      txt:[o.name,o.address,o.tel,o.desc,o.notes].join(' ') };
+  });
+}
+var MCL_SEG=[['c','Συντηρήσεις',mclRowsC],['k','Κατασκευές',mclRowsK],['a','Ραντεβού',mclRowsA],['p','Προσφορές',mclRowsP]];
+function mclOpen(kind,id){
+  if(kind==='c') showDet(id,'clients');
+  else if(kind==='k'){ var g=(window._mclEkta||[])[id]; if(g) showEktaClientDetail(g); }
+  else if(kind==='a') openEditAppt(id);
+  else if(kind==='p'){ var el=document.createElement('span'); el.setAttribute('data-oid',id); editOffer(el); }
+  else if(kind==='r') go('reports');
+}
+function mclRowHtml(r){
+  return '<div class="mcl-r" onclick="mclOpen(\''+r.kind+'\',\''+tdEsc(r.id)+'\')">'
+    +'<span class="d" style="background:'+r.dot+'"></span>'
+    +'<div style="flex:1;min-width:0"><div class="n">'+tdEsc(r.n)+'</div>'
+    +(r.a?'<div class="a">'+tdEsc(r.a)+'</div>':'')+(r.s?'<div class="s">'+tdEsc(r.s)+'</div>':'')+'</div>'
+    +'<span class="t" style="color:'+r.tag.fg+';background:'+r.tag.bg+'">'+tdEsc(r.tag.t)+'</span></div>';
+}
+function mclGroup(key,label,rows){
+  var open=!_mcl.closed[key];
+  return '<div class="mcl-g"><button class="mcl-gh" onclick="mclTog(\''+tdEsc(key)+'\')">'
+    +'<span style="display:inline-block;transition:transform .15s;transform:rotate('+(open?'0':'-90')+'deg);color:#9C8F73;font-size:12px">▼</span>'
+    +'<b>'+tdEsc(label.toUpperCase())+'</b><span style="font-family:var(--mono);font-size:12px;color:#9C8F73">'+rows.length+'</span></button>'
+    +(open?rows.map(mclRowHtml).join(''):'')+'</div>';
+}
+function mclTog(k){ _mcl.closed[k]=!_mcl.closed[k]; renderMobClients(); }
+function mclSeg(s){ _mcl.seg=s; _mcl.f='all'; renderMobClients(); }
+function mclF(f){ _mcl.f=f; renderMobClients(); }
+function mclQ(v){ _mcl.q=v; mclBody(); }
+function mclClear(){ _mcl.q=''; var i=document.getElementById('mcl-q'); if(i) i.value=''; mclBody(); }
+function renderMobClients(){
+  var root=document.getElementById('mcl-root'); if(!root) return;
+  if(document.getElementById('mcl-q')){ mclBody(); return; }
+  var h='<div class="td-wrap" style="gap:12px">'
+    +'<div class="td-h"><b>Πελάτες</b><button class="btn btn-g btn-sm" style="min-height:40px" onclick="mclAdd()">+ Νέος</button></div>'
+    +'<div class="mcl-srch"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9C8F73" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>'
+    +'<input id="mcl-q" type="search" placeholder="Αναζήτηση σε όλα…" autocomplete="off" value="'+tdEsc(_mcl.q)+'" oninput="mclQ(this.value)">'
+    +'<button id="mcl-x" onclick="mclClear()" style="width:28px;height:28px;border-radius:50%;border:0;background:#EEEAE0;color:#4E5A50;font-weight:700;cursor:pointer;flex:none;display:none">×</button></div>'
+    +'<div id="mcl-body"></div></div>';
+  root.innerHTML=h;
+  mclBody();
+}
+function mclBody(){
+  var el=document.getElementById('mcl-body'); if(!el) return;
+  var x=document.getElementById('mcl-x'); if(x) x.style.display=_mcl.q.trim()?'block':'none';
+  var words=grNorm(_mcl.q).split(/\s+/).filter(Boolean);
+  var hit=function(r){ var t=grNorm(r.txt||''); return words.every(function(w){return t.indexOf(w)>=0;}); };
+  var h='';
+  if(words.length){
+    var groups=MCL_SEG.map(function(s){ return [s[1],s[2]().filter(hit)]; });
+    groups.push(['Αναφορές',(reports||[]).map(function(r){ return {kind:'r',id:r.id,n:r.clientName||'—',a:r.desc||r.text||'',s:(r.category||'')+(r.status==='done'?' · λύθηκε':''),tag:mclTag('αναφορά','#B4623A','#F9E8DD'),dot:'#B4623A',txt:[r.clientName,r.desc,r.text,r.category,r.address].join(' ')}; }).filter(hit)]);
+    groups=groups.filter(function(g){return g[1].length;});
+    var tot=groups.reduce(function(s,g){return s+g[1].length;},0);
+    h+='<div style="font-size:12px;color:#4E5A50;padding:0 2px 10px">'+(tot?tot+' αποτελέσματα σε όλα':'Δεν βρέθηκε τίποτα')+' · δεν μετράνε τόνοι, κεφαλαία και ορθογραφία</div>';
+    h+='<div style="display:flex;flex-direction:column;gap:10px">'+groups.map(function(g){ return mclGroup('s:'+g[0],g[0],g[1]); }).join('')+'</div>';
+    el.innerHTML=h; return;
+  }
+  var seg=MCL_SEG.find(function(s){return s[0]===_mcl.seg;})||MCL_SEG[0];
+  var counts={c:clients.length,k:null,a:(appointments||[]).filter(function(a){return !a.done;}).length,p:(offers||[]).filter(function(o){return !o.archived;}).length};
+  h+='<div class="mcl-seg">'+MCL_SEG.map(function(s){ return '<button class="'+(s[0]===_mcl.seg?'on':'')+'" onclick="mclSeg(\''+s[0]+'\')">'+s[1]+'</button>'; }).join('')+'</div>';
+  var rows=seg[2]();
+  if(_mcl.seg==='c'){
+    var F=[['all','Όλοι',null],['owe','Χρωστάνε',function(r){return r.owe;}],['late','Καθυστερούν',function(r){return r.late;}],['rep','Αναφορές',function(r){return r.rep;}],['v1','1×',function(r){return r.vis===1;}],['v2','2×',function(r){return r.vis===2;}],['v3','3×',function(r){return r.vis===3;}],['v4','4×',function(r){return r.vis===4;}]];
+    h+='<div class="mcl-chips" style="margin-top:10px">'+F.map(function(f){ var n=f[2]?rows.filter(f[2]).length:rows.length; if(f[2]&&!n&&_mcl.f!==f[0]) return ''; return '<button class="'+(_mcl.f===f[0]?'on':'')+'" onclick="mclF(\''+f[0]+'\')">'+f[1]+' <span style="font-family:var(--mono);font-size:11px;opacity:.7">'+n+'</span></button>'; }).join('')
+      +'<button onclick="openTaxList()" style="background:#EEF3F7;color:#3C6A88;border-color:#C9D8E3">🧾 Παραστατικά</button></div>';
+    var ff=F.find(function(f){return f[0]===_mcl.f;}); if(ff&&ff[2]) rows=rows.filter(ff[2]);
+  }
+  if(!rows.length){ h+='<div class="empty" style="margin-top:14px">Δεν υπάρχουν καταχωρίσεις</div>'; el.innerHTML=h; return; }
+  var by={}; rows.forEach(function(r){ (by[r.area]=by[r.area]||[]).push(r); });
+  var keys=Object.keys(by).sort(function(a,b){ if(a==='Άλλο') return 1; if(b==='Άλλο') return -1; return by[b].length-by[a].length; });
+  keys.forEach(function(k){ by[k].sort(function(a,b){return (a.n||'').localeCompare(b.n||'','el');}); });
+  h+='<div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">'+keys.map(function(k){ return mclGroup(_mcl.seg+':'+k,k,by[k]); }).join('')+'</div>';
+  el.innerHTML=h;
+}
+function mclAdd(){
+  if(_mcl.seg==='a') openAddAppt(); else if(_mcl.seg==='p') openAddOffer(); else if(_mcl.seg==='k') go('ekta'); else openAddC();
 }
 
 /* ===== MOBILE DETECTION ===== */
@@ -3411,6 +3556,7 @@ document.addEventListener('click',function(e){
 
 /* ===== CLIENTS ===== */
 function renderClients(){
+  if(document.body.classList.contains('mob-mode')){ renderMobClients(); return; }
   renderRepBanner();
   renderKpi();
   var g=document.getElementById('cgrid');
