@@ -1889,9 +1889,10 @@ function mclRowsA(){
 function mclRowsP(){
   return (offers||[]).filter(function(o){return !o.archived;}).map(function(o){
     var am=parseFloat(o.amount||0);
-    return { kind:'p', id:o.id, n:o.name||'—', a:o.address||'', area:getArea(o.address||''),
+    var past=!!(o.date&&o.date<toLocalISO());
+    return { kind:'p', id:o.id, past:past, n:o.name||'—', a:o.address||'', area:getArea(o.address||''),
       s:(o.desc||'')+(o.date?' · '+planShort(o.date)+(o.time?' '+o.time:''):''),
-      tag:am?mclTag(fmt(am),'#95681A','#FCEFD2'):mclTag('προσφορά','#3C6A88','#EEF3F7'), dot:'#3C6A88',
+      tag:am?mclTag(fmt(am),'#95681A','#FCEFD2'):past?mclTag('έγινε επίσκεψη','#4E5A50','#E6E2D8'):mclTag('προσφορά','#3C6A88','#EEF3F7'), dot:past?'#A9B4AC':'#3C6A88',
       txt:[o.name,o.address,o.tel,o.desc,o.notes].join(' ') };
   });
 }
@@ -1920,7 +1921,7 @@ function mclApptSheet(id){
 }
 function mclIni(n){ var p=String(n||'').trim().split(/\s+/); return ((p[0]||'')[0]||'')+((p[1]||'')[0]||''); }
 function mclRowHtml(r){
-  return '<div class="td-row" onclick="mclOpen(\''+r.kind+'\',\''+tdEsc(r.id)+'\')">'
+  return '<div class="td-row"'+(r.past?' style="background:#F1EEE6"':'')+' onclick="mclOpen(\''+r.kind+'\',\''+tdEsc(r.id)+'\')">'
     +'<div class="td-no" style="background:'+r.dot+';color:#fff;font-family:inherit;font-size:12px;font-weight:800">'+tdEsc(mclIni(r.n).toUpperCase())+'</div>'
     +'<div style="flex:1;min-width:0"><div class="n">'+tdEsc(r.n)+'</div>'
     +(r.a?'<div class="s">'+tdEsc(r.a)+'</div>':'')+(r.s?'<div class="s" style="color:var(--tx2);font-size:11.5px">'+tdEsc(r.s)+'</div>':'')+'</div>'
@@ -3941,6 +3942,7 @@ function pickCS(i){
 
 /* ===== APPOINTMENTS ===== */
 function renderAppts(){
+  if(document.body.classList.contains('mob-mode')) setTimeout(function(){ if(typeof renderMobClients==='function') renderMobClients(); },0);
   renderCalendar();
   var el=document.getElementById('appt-list');
   if(!el) return;
@@ -4020,6 +4022,7 @@ function completeAppt(id){
   if(!a) return;
   var amt=parseFloat(document.getElementById('appt-amt').value)||0;
   var notes=document.getElementById('appt-notes').value;
+  closeM();
   var wage=parseFloat(document.getElementById('appt-wage').value)||0;
   var mat=parseFloat(document.getElementById('appt-mat')?document.getElementById('appt-mat').value:0)||0;
   var net=amt-wage-mat;
@@ -9425,14 +9428,15 @@ function pqMoveToClient(name, offerId){
 
 /* ===== OFFERS ===== */
 function renderOffers(){
+  if(document.body.classList.contains('mob-mode')) setTimeout(function(){ if(typeof renderMobClients==='function') renderMobClients(); },0);
   var el=document.getElementById('offers-list');
   if(!el) return;
   var activeOffers=offers.filter(function(o){return !o.archived;});
   if(!activeOffers.length){el.innerHTML='';return;}
   var html='<div class="appt-section-title" style="color:#3C6A88">🤝 Ραντεβού Προσφοράς ('+activeOffers.length+')</div>';
   html+=activeOffers.map(function(o){
-    var hasAmt=parseFloat(o.amount||0)>0;
-    return '<div style="background:'+(hasAmt?'#FFFBEB':'#fff')+';border:1.5px solid '+(hasAmt?'#F59E0B':'#C4C0F0')+';border-radius:var(--rl2);padding:1rem;margin-bottom:10px;border-left:4px solid '+(hasAmt?'#F59E0B':'#3C6A88')+'">'
+    var hasAmt=parseFloat(o.amount||0)>0, past=!!(o.date&&o.date<toLocalISO());
+    return '<div style="'+(past?'opacity:.6;':'')+'background:'+(past?'#F1EEE6':hasAmt?'#FFFBEB':'#fff')+';border:1.5px solid '+(hasAmt?'#F59E0B':'#C4C0F0')+';border-radius:var(--rl2);padding:1rem;margin-bottom:10px;border-left:4px solid '+(hasAmt?'#F59E0B':'#3C6A88')+'">'
       +'<div style="display:flex;justify-content:space-between;align-items:flex-start">'
       +'<div style="flex:1">'
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'
