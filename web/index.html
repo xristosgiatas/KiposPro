@@ -913,6 +913,50 @@ body.d-fs #d-row-zones .zone-btn{padding:4px 9px;font-size:11.5px}
 #pg-quote .pq-vat button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:600}
 #pg-quote .pq-vat button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 </style>
+<style id="mob2-style">
+#mtab{display:none}
+.mob-mode #mtab{display:grid;position:fixed;left:0;right:0;bottom:0;z-index:90;grid-template-columns:repeat(5,1fr);background:var(--paper);border-top:1px solid var(--brd);padding:6px 4px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -2px 12px rgba(36,58,43,.05)}
+.mob-mode .main{padding-bottom:calc(78px + env(safe-area-inset-bottom))}
+.mob-mode .hbg{display:none}
+#mtab button{background:none;border:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--tx2);font-family:inherit;font-size:10.5px;font-weight:600;min-height:52px;position:relative;cursor:pointer;padding:0}
+#mtab button.on{color:var(--gd);font-weight:800}
+#mtab .mt-b{position:absolute;top:2px;left:calc(50% + 6px);min-width:17px;height:17px;border-radius:9px;background:var(--red);color:#fff;font-size:10px;font-weight:700;line-height:17px;padding:0 4px;display:none}
+.td-wrap{display:flex;flex-direction:column;gap:14px;max-width:560px;margin:0 auto}
+.td-date{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--tx2)}
+.td-h{display:flex;align-items:baseline;justify-content:space-between}
+.td-h b{font-size:28px;font-weight:800;letter-spacing:-.02em;color:#12281F}
+.td-prog{height:6px;border-radius:3px;background:var(--brd);overflow:hidden;margin-top:6px}
+.td-prog i{display:block;height:100%;background:var(--g);border-radius:3px;transition:width .3s}
+.td-strip{display:flex;align-items:center;gap:12px;border-radius:16px;padding:12px 14px;cursor:pointer;border:1px solid transparent;text-align:left;width:100%;font-family:inherit}
+.td-card{background:#1D4632;color:#F4F1EA;border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.td-card .t1{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:#A9CBB6}
+.td-card .nm{font-size:23px;font-weight:800;line-height:1.15}
+.td-card .ad{font-size:14px;color:#CFE1D5;margin-top:3px}
+.td-chip{display:inline-block;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:700}
+.td-acts{display:grid;grid-template-columns:52px 52px 52px 1fr;gap:8px}
+.td-acts button,.td-acts a{height:52px;border-radius:14px;border:0;background:rgba(244,241,234,.13);color:#F4F1EA;display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;font-family:inherit}
+.td-acts .dn{background:#F4F1EA;color:#1D4632;font-size:16px;font-weight:800;gap:8px}
+.td-list{background:var(--paper);border:1px solid var(--brd);border-radius:18px;overflow:hidden}
+.td-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:1px solid #EEEAE0;cursor:pointer;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.td-row:first-child{border-top:0}
+.td-row.sel{background:var(--gl)}
+.td-no{width:30px;height:30px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:13px;font-weight:700;background:#EEEAE0;color:#4E5A50}
+.td-row.sel .td-no{background:#1D4632;color:#fff}
+.td-row.dn .td-no{background:var(--g);color:#fff}
+.td-row .n{font-size:15px;font-weight:700;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.td-row.dn .n{color:var(--tx2);text-decoration:line-through}
+.td-row .s{font-size:12px;color:var(--tx2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.td-sec{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--tx2);padding:0 4px 6px}
+.mr-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mr-t{background:var(--paper);border:1px solid var(--brd);border-radius:16px;min-height:92px;display:flex;flex-direction:column;justify-content:space-between;padding:12px;cursor:pointer;position:relative;text-align:left;font-family:inherit}
+.mr-t .c{font-family:var(--mono);font-size:11px;font-weight:700;border-radius:7px;padding:3px 6px;align-self:flex-start}
+.mr-t .l{font-size:13px;font-weight:700;line-height:1.2;color:var(--tx)}
+.mr-t .bd{position:absolute;top:10px;right:10px;min-width:18px;height:18px;border-radius:9px;background:var(--red);color:#fff;font-size:10px;font-weight:700;line-height:18px;text-align:center;padding:0 5px}
+.mr-list{background:var(--paper);border:1px solid var(--brd);border-radius:16px;overflow:hidden}
+.mr-list button{display:flex;width:100%;align-items:center;justify-content:space-between;padding:14px;border:0;border-top:1px solid #EEEAE0;background:none;font-family:inherit;font-size:14px;font-weight:600;color:var(--tx);cursor:pointer}
+.mr-list button:first-child{border-top:0}
+.ms-tpl{display:flex;flex-direction:column;gap:3px;width:100%;text-align:left;border:1px solid var(--brd);background:#fff;border-radius:14px;padding:11px 13px;margin-bottom:8px;cursor:pointer;font-family:inherit}
+</style>
 </head>
 <body>
 
@@ -949,7 +993,11 @@ body.d-fs #d-row-zones .zone-btn{padding:4px 9px;font-size:11.5px}
 
 <!-- Main content -->
 <div class="main" id="main">
+<div class="page" id="pg-today"><div id="today-root"></div></div>
+<div class="page" id="pg-owed"><div id="owed-root"></div></div>
+<div class="page" id="pg-more"><div id="more-root"></div></div>
 
+<nav id="mtab"><button id="mt-today" onclick="go('today')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span>Σήμερα</span><span class="mt-b" id="mtb-today"></span></button><button id="mt-schedule" onclick="go('schedule')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg><span>Πλάνο</span><span class="mt-b" id="mtb-schedule"></span></button><button id="mt-clients" onclick="go('clients')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M17 4a4 4 0 0 1 0 8M22 21a7 7 0 0 0-4-6.3"/></svg><span>Πελάτες</span><span class="mt-b" id="mtb-clients"></span></button><button id="mt-owed" onclick="go('owed')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/></svg><span>Οφειλές</span><span class="mt-b" id="mtb-owed"></span></button><button id="mt-more" onclick="go('more')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg><span>Περισσότερα</span><span class="mt-b" id="mtb-more"></span></button></nav>
 <!-- Mobile bar -->
 <div class="mob-bar" id="mob-bar">
   <button class="hbg" onclick="toggleSB()"><span></span><span></span><span></span></button>
@@ -1577,6 +1625,198 @@ function calcAutoInc(mF,yF,from,to){
     t+=e.amt;
   });
   return t;
+}
+
+
+/* ===== ΚΙΝΗΤΟ: κάτω μπάρα, Σήμερα, Οφειλές, Περισσότερα ===== */
+function mtabSet(page){
+  var map={today:'today',schedule:'schedule',clients:'clients',detail:'clients',owed:'owed'};
+  var t=map[page]||'more';
+  ['today','schedule','clients','owed','more'].forEach(function(k){ var b=document.getElementById('mt-'+k); if(b) b.classList.toggle('on',k===t); });
+  try{ mtabBadges(); }catch(e){}
+}
+function mtBadge(k,n){ var b=document.getElementById('mtb-'+k); if(!b) return; b.textContent=n; b.style.display=n?'block':'none'; }
+function mtabBadges(){
+  var owe={}; owedRows().forEach(function(r){ owe[r.client.id]=1; });
+  mtBadge('owed',Object.keys(pastDueRows().reduce(function(o,r){o[r.client.id]=1;return o;},{})).length);
+  mtBadge('more',(reports||[]).filter(function(r){return r.status!=='done';}).length);
+}
+function owedRows(){
+  var cur=[];
+  clients.forEach(function(c){ if(isAct(c,CM,CY)&&!isPd(c,CM,CY)){ var a=gP(c,CM,CY); if(a) cur.push({client:c,month:CM,year:CY,amt:a}); } });
+  return pastDueRows().concat(cur);
+}
+function debtRefresh(which){
+  if(which==='owed'){ renderOwed(); return; }
+  if(which==='past') showPastPending(); else showPendingList();
+}
+function tdEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+function tdItem(e){
+  var pool=e.type==='appt'?appointments:(e.type==='offer'?offers:(e.type==='ekta'?ektas:clients));
+  var c=pool.find(function(x){return String(x.id)===String(e.clientId);});
+  return { e:e, c:c, client:(e.type||'client')==='client'?c:null,
+    name:c?c.name:(e.name||e.clientName||'—'), addr:c?(c.address||''):'', tel:c?String(c.tel||'').replace(/\s+/g,''):'' };
+}
+function tdOwe(c){
+  if(!c) return 0;
+  return owedRows().filter(function(r){return r.client.id==c.id;}).reduce(function(s,r){return s+r.amt;},0);
+}
+var _tdSel=null;
+function renderToday(){
+  var root=document.getElementById('today-root'); if(!root) return;
+  var T=toLocalISO(), d=new Date();
+  var DN=['ΚΥΡΙΑΚΗ','ΔΕΥΤΕΡΑ','ΤΡΙΤΗ','ΤΕΤΑΡΤΗ','ΠΕΜΠΤΗ','ΠΑΡΑΣΚΕΥΗ','ΣΑΒΒΑΤΟ'];
+  var MNG=['ΙΑΝΟΥΑΡΙΟΥ','ΦΕΒΡΟΥΑΡΙΟΥ','ΜΑΡΤΙΟΥ','ΑΠΡΙΛΙΟΥ','ΜΑΪΟΥ','ΙΟΥΝΙΟΥ','ΙΟΥΛΙΟΥ','ΑΥΓΟΥΣΤΟΥ','ΣΕΠΤΕΜΒΡΙΟΥ','ΟΚΤΩΒΡΙΟΥ','ΝΟΕΜΒΡΙΟΥ','ΔΕΚΕΜΒΡΙΟΥ'];
+  var left=schedule.filter(function(s){return s.date===T;}).sort(function(a,b){return (a.order||0)-(b.order||0);}).map(tdItem);
+  var done=(visits||[]).filter(function(v){return v.date===T;});
+  var total=left.length+done.length;
+  if(_tdSel && !left.some(function(x){return String(x.e.id)===String(_tdSel);})) _tdSel=null;
+  var cur=_tdSel?left.find(function(x){return String(x.e.id)===String(_tdSel);}):left[0];
+  var openReps=(reports||[]).filter(function(r){return r.status!=='done';});
+  var h='<div class="td-wrap">';
+  h+='<div><div class="td-date">'+DN[d.getDay()]+' '+d.getDate()+' '+MNG[d.getMonth()]+'</div>'
+    +'<div class="td-h"><b>Σήμερα</b><span style="font-family:var(--mono);font-size:13px;color:#4E5A50">'+done.length+' από '+total+'</span></div>'
+    +'<div class="td-prog"><i style="width:'+(total?Math.round(done.length/total*100):0)+'%"></i></div></div>';
+  if(openReps.length){
+    h+='<button class="td-strip" onclick="go(\'reports\')" style="background:#F9E8DD;border-color:#EFCDB8">'
+      +'<span style="width:34px;height:34px;border-radius:11px;background:var(--red);color:#fff;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;flex:none">'+openReps.length+'</span>'
+      +'<span style="flex:1;min-width:0"><span style="display:block;font-weight:800;font-size:14px;color:#7A3A1E">'+(openReps.length===1?'1 ανοιχτή αναφορά πελάτη':openReps.length+' ανοιχτές αναφορές πελατών')+'</span>'
+      +'<span style="display:block;font-size:12px;color:#9A5A3A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+tdEsc(openReps.map(function(r){return (r.clientName||'')+(r.desc||r.text?': '+(r.desc||r.text):'');}).join(' · '))+'</span></span>'
+      +'<span style="font-weight:700;font-size:18px;color:var(--red)">›</span></button>';
+  }
+  if(cur){
+    var pos=left.indexOf(cur)+1, owe=tdOwe(cur.client);
+    var myReps=cur.client?clientReports(cur.client).filter(function(r){return r.status!=='done';}):[];
+    h+='<div class="td-card">'
+      +'<div class="t1"><span>'+(_tdSel&&pos>1?'ΕΠΙΛΕΓΜΕΝΟΣ':'ΕΠΟΜΕΝΟΣ')+' · '+(done.length+pos)+'/'+total+'</span><span id="td-km"></span></div>'
+      +'<div><div class="nm">'+tdEsc(cur.name)+'</div>'+(cur.addr?'<div class="ad">'+tdEsc(cur.addr)+'</div>':'')+'</div>';
+    var chips='';
+    if(owe) chips+='<span class="td-chip" style="background:#FCEFD2;color:#6E4C12">Οφειλή '+fmt(owe)+'</span>';
+    if(cur.e.type&&cur.e.type!=='client') chips+='<span class="td-chip" style="background:rgba(244,241,234,.13);color:#F4F1EA">'+(cur.e.type==='offer'?'Ραντεβού προσφοράς':cur.e.type==='ekta'?'Κατασκευή':'Ραντεβού')+'</span>';
+    if(chips) h+='<div style="display:flex;flex-wrap:wrap;gap:6px">'+chips+'</div>';
+    myReps.forEach(function(r){
+      h+='<div onclick="go(\'reports\')" style="background:#F9E8DD;border-radius:14px;padding:10px 12px;cursor:pointer">'
+        +'<div style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.08em;color:var(--red)">ΑΝΑΦΟΡΑ ΠΕΛΑΤΗ</div>'
+        +'<div style="font-size:13.5px;font-weight:700;color:#5E2A14;margin-top:2px">'+tdEsc(r.desc||r.text||r.category||'')+'</div></div>';
+    });
+    var sid=tdEsc(cur.e.id);
+    h+='<div class="td-acts">'
+      +(cur.tel?'<a href="tel:'+tdEsc(cur.tel)+'" aria-label="Κλήση">':'<button disabled style="opacity:.35">')
+      +'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>'
+      +(cur.tel?'</a>':'</button>')
+      +'<button onclick="tdMsg(\''+sid+'\')" aria-label="Μήνυμα"'+(cur.tel?'':' disabled style="opacity:.35"')+'><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.7A8 8 0 1 1 21 12z"/></svg></button>'
+      +'<button data-addr="'+tdEsc(cur.addr)+'" onclick="openMapFor(this.dataset.addr,event)" aria-label="Χάρτης"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></button>'
+      +'<button class="dn" onclick="tdDone(\''+sid+'\')">✓ Έγινε</button>'
+      +'</div></div>';
+  } else if(total){
+    h+='<div style="background:var(--gl);border-radius:22px;padding:22px;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--gd)">Τελείωσε η μέρα</div><div style="font-size:13px;color:#4E5A50;margin-top:4px">'+done.length+' κήποι</div></div>';
+  } else {
+    h+='<div style="background:var(--paper);border:1px dashed #CFC9BC;border-radius:22px;padding:28px 20px;text-align:center"><div style="font-size:17px;font-weight:800;color:var(--tx)">Δεν υπάρχει πλάνο για σήμερα</div>'
+      +'<button class="btn btn-g btn-sm" style="margin-top:12px" onclick="go(\'schedule\')">Άνοιγμα πλάνου</button></div>';
+  }
+  if(total){
+    h+='<div><div class="td-sec">ΔΙΑΔΡΟΜΗ ΗΜΕΡΑΣ</div><div class="td-list">';
+    done.forEach(function(v){
+      h+='<div class="td-row dn"><div class="td-no">✓</div><div style="flex:1;min-width:0"><div class="n">'+tdEsc(v.clientName||'')+'</div></div></div>';
+    });
+    left.forEach(function(x,i){
+      var owe=tdOwe(x.client), rep=x.client&&clientReports(x.client).some(function(r){return r.status!=='done';});
+      h+='<div class="td-row'+(x===cur?' sel':'')+'" onclick="tdPick(\''+tdEsc(x.e.id)+'\')">'
+        +'<div class="td-no">'+(done.length+i+1)+'</div>'
+        +'<div style="flex:1;min-width:0"><div class="n">'+tdEsc(x.name)+'</div><div class="s">'+tdEsc(x.addr||'')+'</div></div>'
+        +(rep?'<span style="font-size:11px;font-weight:800;color:#fff;background:var(--red);border-radius:8px;padding:4px 7px">!</span>':'')
+        +(owe?'<span style="font-family:var(--mono);font-size:12px;font-weight:700;color:#95681A;background:#FCEFD2;border-radius:8px;padding:4px 7px">'+fmt(owe)+'</span>':'')
+        +'</div>';
+    });
+    h+='</div></div>';
+  }
+  // αύριο
+  var tm=new Date(); tm.setDate(tm.getDate()+1); var TM=toLocalISO(tm);
+  var tml=schedule.filter(function(s){return s.date===TM;});
+  if(tml.length){
+    var nn=tml.filter(function(s){return (s.type||'client')==='client' && s.notified!==s.date;}).length;
+    var DNs=['Κυριακή','Δευτέρα','Τρίτη','Τετάρτη','Πέμπτη','Παρασκευή','Σάββατο'];
+    h+='<div style="background:#E8F0F4;border-radius:18px;padding:14px;display:flex;align-items:center;gap:12px">'
+      +'<div style="flex:1"><div style="font-weight:700;font-size:14px;color:#2C5570">Αύριο · '+DNs[tm.getDay()]+' '+tm.getDate()+'/'+(tm.getMonth()+1)+'</div>'
+      +'<div style="font-size:12px;color:#4A7A96;margin-top:2px">'+tml.length+(tml.length===1?' κήπος':' κήποι')+(nn?' · '+nn+' δεν έχουν ειδοποιηθεί':' · όλοι ειδοποιήθηκαν ✓')+'</div></div>'
+      +(nn?'<button class="btn btn-sm" style="background:#2C5570;color:#fff;min-height:40px" onclick="tdNotifyTomorrow()">Ειδοποίηση</button>':'')
+      +'</div>';
+  }
+  h+='</div>';
+  root.innerHTML=h;
+  if(cur && cur.addr) tdFillKm(cur.addr);
+}
+function tdFillKm(addr){
+  try{
+    myPos(function(p){ if(!p) return; geocode(addr,function(g){ if(!g) return; var el=document.getElementById('td-km'); if(el) el.textContent=kmBetween(p,g).toFixed(1).replace('.',',')+' km'; }); });
+  }catch(e){}
+}
+function tdPick(id){ _tdSel=(String(_tdSel)===String(id))?null:id; renderToday(); var r=document.getElementById('today-root'); if(r&&r.scrollTo) window.scrollTo({top:0,behavior:'smooth'}); }
+function tdDone(id){
+  var e=schedule.find(function(s){return String(s.id)===String(id);}); if(!e) return;
+  _tdSel=null;
+  if((e.type||'client')==='client' && e.clientId) schedVisit(e.id, e.clientId);
+  else schedRemove(e.id);
+  try{ navigator.vibrate&&navigator.vibrate(12); }catch(x){}
+  renderToday();
+}
+var TD_TPL=[
+  ['Φτάνω σε λίγο','Γεια σας, φτάνουμε σε περίπου 10 λεπτά για τη συντήρηση του κήπου σας.'],
+  ['Είμαι στην πόρτα','Γεια σας, είμαστε στην είσοδο. Μπορείτε να μας ανοίξετε;'],
+  ['Τελειώσαμε','Γεια σας, ολοκληρώθηκε η συντήρηση του κήπου σας για σήμερα. Ευχαριστούμε πολύ!'],
+  ['Καθυστέρηση','Γεια σας, έχουμε μια μικρή καθυστέρηση. Θα είμαστε εκεί σε περίπου 30 λεπτά.']
+];
+function tdMsg(id){
+  var e=schedule.find(function(s){return String(s.id)===String(id);}); if(!e) return;
+  var x=tdItem(e); if(!x.tel){ toast('Δεν υπάρχει τηλέφωνο'); return; }
+  var b=TD_TPL.map(function(t,i){ return '<button class="ms-tpl" onclick="tdSendTpl(\''+tdEsc(x.tel)+'\','+i+')"><span style="font-weight:700;font-size:13.5px;color:var(--tx)">'+t[0]+'</span><span style="font-size:12.5px;line-height:1.45;color:#4E5A50">'+t[1]+'</span></button>'; }).join('')
+    +'<div style="font-size:11.5px;color:var(--tx2);text-align:center">Ανοίγει το SMS έτοιμο — εσύ πατάς «Αποστολή»</div>';
+  openM('💬 Μήνυμα προς '+x.name, b, '<button class="btn btn-out btn-sm" onclick="closeM()">Κλείσιμο</button>');
+}
+function tdSendTpl(tel,i){ closeM(); location.href=ntfSmsUrl(tel, TD_TPL[i][1]); }
+function tdNotifyTomorrow(){
+  _schedWeekOffset=(new Date().getDay()===0)?1:0;
+  go('schedule'); setTimeout(ntfOpenWeek,50);
+}
+
+function renderOwed(){
+  var root=document.getElementById('owed-root'); if(!root) return;
+  var rows=owedRows();
+  var taxN=clients.filter(function(c){ try{ return isTaxRcpt(c); }catch(e){ return false; } }).length;
+  var h='<div class="td-wrap">'
+    +'<div class="td-h"><b>Οφειλές</b>'+(taxN?'<button class="btn btn-sm" style="background:#EEF3F7;color:#3C6A88;font-weight:700" onclick="openTaxList()">🧾 Παραστατικά ('+taxN+')</button>':'')+'</div>';
+  if(!rows.length) h+='<div class="empty">Κανείς δεν χρωστάει ✓</div>';
+  else h+='<div>'+debtListBody(rows,'owed','όλες οι οφειλές μέχρι '+MNF[CM])+'</div>';
+  h+='<div style="display:flex;justify-content:center"><button class="btn btn-out btn-sm" id="pay-undo" onclick="undoPay()" style="'+(_payUndo?'':'display:none')+'">↶ Αναίρεση</button></div>';
+  h+='</div>';
+  root.innerHTML=h;
+  if(_debtQ) debtFilter(_debtQ);
+  mtabBadges();
+}
+
+var MORE_TILES=[
+  ['ΔΟΥΛΕΙΑ',[['appts','Ραντεβού','RV'],['ekta','Κατασκευές','KA'],['quote','Προσφορά','PR'],['reports','Αναφορές πελατών','AN'],['design','Σχέδιο κήπου','SX'],['plants','Οδηγός φυτών','FY'],['map','Χάρτης','XA'],['archive','Αρχείο','AR']]],
+  ['ΟΙΚΟΝΟΜΙΚΑ',[['fin','Οικονομικά','OI'],['docs','Τιμολόγια','TI'],['supply','Αναλώσιμα','AL']]]
+];
+function renderMore(){
+  var root=document.getElementById('more-root'); if(!root) return;
+  var nRep=(reports||[]).filter(function(r){return r.status!=='done';}).length;
+  var h='<div class="td-wrap"><div class="td-h"><b>Περισσότερα</b></div>';
+  MORE_TILES.forEach(function(g,gi){
+    h+='<div><div class="td-sec">'+g[0]+'</div><div class="mr-grid">';
+    g[1].forEach(function(t){
+      var col=gi?'color:#95681A;background:#FCEFD2':'color:var(--g);background:var(--gl)';
+      h+='<button class="mr-t" onclick="go(\''+t[0]+'\')"><span class="c" style="'+col+'">'+t[2]+'</span><span class="l">'+t[1]+'</span>'
+        +(t[0]==='reports'&&nRep?'<span class="bd">'+nRep+'</span>':'')+'</button>';
+    });
+    h+='</div></div>';
+  });
+  h+='<div><div class="td-sec">ΛΟΓΑΡΙΑΣΜΟΣ</div><div class="mr-list">'
+    +'<button onclick="go(\'pelat\')"><span>Πελατολόγιο &amp; επαφές κινητού</span><span style="color:var(--tx2)">›</span></button>'
+    +'<button onclick="toggleSB()"><span>Πλήρες μενού</span><span style="color:var(--tx2)">›</span></button>'
+    +'<button onclick="logoutKP()" style="color:var(--red)"><span>Αποσύνδεση</span></button>'
+    +'</div></div></div>';
+  root.innerHTML=h;
 }
 
 /* ===== MOBILE DETECTION ===== */
@@ -2765,7 +3005,7 @@ function loadData(){
 }
 
 /* ===== NAV ===== */
-var PAGE_TITLES={clients:'Συντηρήσεις',ekta:'Κατασκευές/Καθαρισμοί',pelat:'Πελατολόγιο',fin:'Οικονομικά',docs:'Τιμολόγια',quote:'Προσφορά',reports:'Αναφορές',supply:'Αναλώσιμα',map:'Χάρτης',plants:'Φυτά',design:'Σχέδιο Κήπου',appts:'Ραντεβού',archive:'Αρχείο',detail:'Πελάτης',edet:'Έκτακτη'};
+var PAGE_TITLES={today:'Σήμερα',owed:'Οφειλές',more:'Περισσότερα',clients:'Συντηρήσεις',ekta:'Κατασκευές/Καθαρισμοί',pelat:'Πελατολόγιο',fin:'Οικονομικά',docs:'Τιμολόγια',quote:'Προσφορά',reports:'Αναφορές',supply:'Αναλώσιμα',map:'Χάρτης',plants:'Φυτά',design:'Σχέδιο Κήπου',appts:'Ραντεβού',archive:'Αρχείο',detail:'Πελάτης',edet:'Έκτακτη'};
 
 function go(page){
   if(_userPlan==='basic' && PRO_FEATURES.indexOf(page)>=0){
@@ -2781,6 +3021,10 @@ function go(page){
   if(nb) nb.classList.add('on');
   document.getElementById('mob-title').textContent=PAGE_TITLES[page]||BRAND_NAME;
   closeM(); closeSB();
+  window._kpNav=true; mtabSet(page);
+  if(page==='today') renderToday();
+  if(page==='owed')  renderOwed();
+  if(page==='more')  renderMore();
   if(page==='clients') renderClients();
   if(page==='ekta')    renderEkta();
   if(page==='pelat'){  renderPelat(''); vcfInfo(); }
@@ -2800,9 +3044,14 @@ function go(page){
 }
 
 function renderActivePage(){
+  if(document.body.classList.contains('mob-mode') && !window._kpNav){ go('today'); return; }
   var active=document.querySelector('.page.on');
   var page=active?active.id.replace('pg-',''):'clients';
-  if(page==='clients') renderClients();
+  try{ mtabBadges(); }catch(e){}
+  if(page==='today') renderToday();
+  else if(page==='owed') renderOwed();
+  else if(page==='more') renderMore();
+  else if(page==='clients') renderClients();
   else if(page==='ekta')    renderEkta();
   else if(page==='pelat')   renderPelat('');
   else if(page==='fin')     renderFin();
@@ -2867,7 +3116,7 @@ function payFromList(id,m,y,which){
   var c=gc(id);
   _payUndo={id:id,m:m,y:y,which:which};
   renderKpi(); try{ if(typeof renderClients==='function') renderClients(); }catch(e){}
-  if(which==='past') showPastPending(); else showPendingList();
+  debtRefresh(which);
   toast('✓ '+(c?c.name:'')+' — '+MN[m]+' πληρώθηκε');
   var ub=document.getElementById('pay-undo'); if(ub) ub.style.display='';
 }
@@ -2876,18 +3125,18 @@ function undoPay(){
   var u=_payUndo; _payUndo=null;
   payMonth(u.id,u.m,u.y,false);
   renderKpi(); try{ if(typeof renderClients==='function') renderClients(); }catch(e){}
-  if(u.which==='past') showPastPending(); else showPendingList();
+  debtRefresh(u.which);
   toast('Αναιρέθηκε');
 }
 function payAllClient(id,which){
-  var rows=(which==='past'?pastDueRows():pendingRows()).filter(function(r){return r.client.id==id;});
+  var rows=(which==='owed'?owedRows():which==='past'?pastDueRows():pendingRows()).filter(function(r){return r.client.id==id;});
   if(!rows.length) return;
   var c=gc(id);
   if(!confirm('Πληρώθηκαν όλοι οι μήνες ('+rows.length+') του '+(c?c.name:'')+';')) return;
   rows.forEach(function(r){ payMonth(r.client.id,r.month,r.year,true); });
   _payUndo=null;
   renderKpi(); try{ if(typeof renderClients==='function') renderClients(); }catch(e){}
-  if(which==='past') showPastPending(); else showPendingList();
+  debtRefresh(which);
   toast('✓ '+(c?c.name:'')+' — εξοφλήθηκε');
 }
 function pendingRows(){
@@ -2943,7 +3192,7 @@ function debtNorm(s){
 function debtFilter(v){
   _debtQ=v||'';
   var q=debtNorm(_debtQ).split(' ').filter(Boolean), shown=0;
-  [].forEach.call(document.querySelectorAll('#modal-bg .debt-g'),function(el){
+  [].forEach.call(document.querySelectorAll((document.querySelector('#modal-bg.open')?'#modal-bg ':'#pg-owed ')+'.debt-g'),function(el){
     var t=el.getAttribute('data-q')||'';
     var ok=q.every(function(w){ return t.indexOf(w)>=0; });
     el.style.display=ok?'':'none'; if(ok) shown++;
