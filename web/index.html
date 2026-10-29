@@ -1683,9 +1683,11 @@ function tdOwe(c){
   return owedRows().filter(function(r){return r.client.id==c.id;}).reduce(function(s,r){return s+r.amt;},0);
 }
 var _tdSel=null;
+var _tdOff=0;
+function tdShift(n){ _tdOff=n===0?0:_tdOff+n; _tdSel=null; renderToday(); window.scrollTo(0,0); }
 function renderToday(){
   var root=document.getElementById('today-root'); if(!root) return;
-  var T=toLocalISO(), d=new Date();
+  var d=new Date(); d.setDate(d.getDate()+_tdOff); var T=toLocalISO(d);
   var DN=['ΚΥΡΙΑΚΗ','ΔΕΥΤΕΡΑ','ΤΡΙΤΗ','ΤΕΤΑΡΤΗ','ΠΕΜΠΤΗ','ΠΑΡΑΣΚΕΥΗ','ΣΑΒΒΑΤΟ'];
   var MNG=['ΙΑΝΟΥΑΡΙΟΥ','ΦΕΒΡΟΥΑΡΙΟΥ','ΜΑΡΤΙΟΥ','ΑΠΡΙΛΙΟΥ','ΜΑΪΟΥ','ΙΟΥΝΙΟΥ','ΙΟΥΛΙΟΥ','ΑΥΓΟΥΣΤΟΥ','ΣΕΠΤΕΜΒΡΙΟΥ','ΟΚΤΩΒΡΙΟΥ','ΝΟΕΜΒΡΙΟΥ','ΔΕΚΕΜΒΡΙΟΥ'];
   var left=schedule.filter(function(s){return s.date===T;}).sort(function(a,b){return (a.order||0)-(b.order||0);}).map(tdItem);
@@ -1696,7 +1698,11 @@ function renderToday(){
   var openReps=(reports||[]).filter(function(r){return r.status!=='done';});
   var h='<div class="td-wrap">';
   h+='<div><div class="td-date">'+DN[d.getDay()]+' '+d.getDate()+' '+MNG[d.getMonth()]+'</div>'
-    +'<div class="td-h"><b>Σήμερα</b><span style="font-family:var(--mono);font-size:13px;color:#4E5A50">'+done.length+' από '+total+'</span></div>'
+    +'<div class="td-h" style="align-items:center;gap:8px"><b style="flex:1">'+(_tdOff===0?'Σήμερα':_tdOff===1?'Αύριο':_tdOff===-1?'Χθες':['Κυριακή','Δευτέρα','Τρίτη','Τετάρτη','Πέμπτη','Παρασκευή','Σάββατο'][d.getDay()])+'</b>'
+    +'<span style="font-family:var(--mono);font-size:13px;color:#4E5A50">'+done.length+'/'+total+'</span>'
+    +(_tdOff!==0?'<button onclick="tdShift(0)" style="height:40px;padding:0 12px;border-radius:12px;border:1px solid var(--brd);background:var(--paper);font-family:inherit;font-size:13px;font-weight:700;color:var(--gd);cursor:pointer">Σήμερα</button>':'')
+    +'<button onclick="tdShift(-1)" aria-label="Προηγούμενη" style="width:44px;height:40px;border-radius:12px;border:1px solid var(--brd);background:var(--paper);font-size:20px;font-weight:700;color:var(--tx);cursor:pointer">‹</button>'
+    +'<button onclick="tdShift(1)" aria-label="Επόμενη" style="width:44px;height:40px;border-radius:12px;border:1px solid var(--brd);background:var(--paper);font-size:20px;font-weight:700;color:var(--tx);cursor:pointer">›</button></div>'
     +'<div class="td-prog"><i style="width:'+(total?Math.round(done.length/total*100):0)+'%"></i></div></div>';
   if(openReps.length){
     h+='<button class="td-strip" onclick="go(\'reports\')" style="background:#F9E8DD;border-color:#EFCDB8">'
@@ -1709,7 +1715,7 @@ function renderToday(){
     var pos=left.indexOf(cur)+1, owe=tdOwe(cur.client);
     var myReps=cur.client?clientReports(cur.client).filter(function(r){return r.status!=='done';}):[];
     h+='<div class="td-card">'
-      +'<div class="t1"><span>'+(_tdSel&&pos>1?'ΕΠΙΛΕΓΜΕΝΟΣ':'ΕΠΟΜΕΝΟΣ')+' · '+(done.length+pos)+'/'+total+'</span><span id="td-km"></span></div>'
+      +'<div class="t1"><span>'+(_tdOff!==0?'ΠΡΟΓΡΑΜΜΑ':_tdSel&&pos>1?'ΕΠΙΛΕΓΜΕΝΟΣ':'ΕΠΟΜΕΝΟΣ')+' · '+(done.length+pos)+'/'+total+'</span><span id="td-km"></span></div>'
       +'<div><div class="nm">'+tdEsc(cur.name)+'</div>'+(cur.addr?'<div class="ad">'+tdEsc(cur.addr)+'</div>':'')+'</div>';
     var chips='';
     if(owe) chips+='<span class="td-chip" style="background:#FCEFD2;color:#6E4C12">Οφειλή '+fmt(owe)+'</span>';
@@ -1753,7 +1759,7 @@ function renderToday(){
   }
   // αύριο
   var tm=new Date(); tm.setDate(tm.getDate()+1); var TM=toLocalISO(tm);
-  var tml=schedule.filter(function(s){return s.date===TM;});
+  var tml=_tdOff===0?schedule.filter(function(s){return s.date===TM;}):[];
   if(tml.length){
     var nn=tml.filter(function(s){return (s.type||'client')==='client' && s.notified!==s.date;}).length;
     var DNs=['Κυριακή','Δευτέρα','Τρίτη','Τετάρτη','Πέμπτη','Παρασκευή','Σάββατο'];
@@ -1889,27 +1895,43 @@ function mclRowsP(){
       txt:[o.name,o.address,o.tel,o.desc,o.notes].join(' ') };
   });
 }
-var MCL_SEG=[['c','Συντηρήσεις',mclRowsC],['k','Κατασκευές',mclRowsK],['a','Ραντεβού',mclRowsA],['p','Προσφορές',mclRowsP]];
+var MCL_SEG=[['c','Συντηρήσεις',mclRowsC],['a','Ραντεβού',mclRowsA],['p','Προσφορές',mclRowsP],['k','Κατασκευές',mclRowsK]];
 function mclOpen(kind,id){
   if(kind==='c') showDet(id,'clients');
   else if(kind==='k'){ var g=(window._mclEkta||[])[id]; if(g) showEktaClientDetail(g); }
-  else if(kind==='a') openEditAppt(id);
+  else if(kind==='a') mclApptSheet(id);
   else if(kind==='p'){ var el=document.createElement('span'); el.setAttribute('data-oid',id); editOffer(el); }
   else if(kind==='r') go('reports');
 }
+function mclApptSheet(id){
+  var a=(appointments||[]).find(function(x){return x.id==id;}); if(!a) return;
+  var tel=(a.tel||'').replace(/[^0-9+]/g,'');
+  var b=function(ic,l,fn,col){ return '<button onclick="'+fn+'" style="display:flex;align-items:center;gap:12px;width:100%;min-height:54px;padding:0 14px;border:1px solid var(--brd);border-radius:14px;background:var(--paper);font-family:inherit;font-size:15px;font-weight:700;color:'+(col||'var(--tx)')+';cursor:pointer;text-align:left"><span style="font-size:18px;width:24px;text-align:center">'+ic+'</span>'+l+'</button>'; };
+  openM(tdEsc(a.name||'Ραντεβού'),
+    '<div style="font-size:13.5px;color:var(--tx2);margin:-4px 0 14px">'+tdEsc((a.date?planShort(a.date):'χωρίς ημερομηνία')+(a.time?' · '+a.time:'')+(a.address?' · '+a.address:''))+(a.desc?'<br>'+tdEsc(a.desc):'')+'</div>'
+    +'<div style="display:flex;flex-direction:column;gap:8px">'
+    +b('✓','Ολοκληρώθηκε',"closeM();openCompleteAppt('"+a.id+"')",'#2D6B4C')
+    +(tel?b('📞','Κλήση',"location.href='tel:"+tel+"'"):'')
+    +(tel?b('💬','Μήνυμα',"location.href='sms:"+tel+"'"):'')
+    +(a.address?b('🧭','Πλοήγηση',"window.open('https://maps.google.com/?q="+encodeURIComponent(a.address)+"')"):'')
+    +b('✎','Επεξεργασία',"closeM();openEditAppt('"+a.id+"')")
+    +b('🗑','Διαγραφή',"closeM();delAppt('"+a.id+"')",'#B03636')
+    +'</div>');
+}
+function mclIni(n){ var p=String(n||'').trim().split(/\s+/); return ((p[0]||'')[0]||'')+((p[1]||'')[0]||''); }
 function mclRowHtml(r){
-  return '<div class="mcl-r" onclick="mclOpen(\''+r.kind+'\',\''+tdEsc(r.id)+'\')">'
-    +'<span class="d" style="background:'+r.dot+'"></span>'
+  return '<div class="td-row" onclick="mclOpen(\''+r.kind+'\',\''+tdEsc(r.id)+'\')">'
+    +'<div class="td-no" style="background:'+r.dot+';color:#fff;font-family:inherit;font-size:12px;font-weight:800">'+tdEsc(mclIni(r.n).toUpperCase())+'</div>'
     +'<div style="flex:1;min-width:0"><div class="n">'+tdEsc(r.n)+'</div>'
-    +(r.a?'<div class="a">'+tdEsc(r.a)+'</div>':'')+(r.s?'<div class="s">'+tdEsc(r.s)+'</div>':'')+'</div>'
-    +'<span class="t" style="color:'+r.tag.fg+';background:'+r.tag.bg+'">'+tdEsc(r.tag.t)+'</span></div>';
+    +(r.a?'<div class="s">'+tdEsc(r.a)+'</div>':'')+(r.s?'<div class="s" style="color:var(--tx2);font-size:11.5px">'+tdEsc(r.s)+'</div>':'')+'</div>'
+    +'<span style="font-family:var(--mono);font-size:11.5px;font-weight:700;border-radius:8px;padding:4px 7px;white-space:nowrap;flex:none;color:'+r.tag.fg+';background:'+r.tag.bg+'">'+tdEsc(r.tag.t)+'</span></div>';
 }
 function mclGroup(key,label,rows){
   var open=!_mcl.closed[key];
-  return '<div class="mcl-g"><button class="mcl-gh" onclick="mclTog(\''+tdEsc(key)+'\')">'
-    +'<span style="display:inline-block;transition:transform .15s;transform:rotate('+(open?'0':'-90')+'deg);color:#9C8F73;font-size:12px">▼</span>'
-    +'<b>'+tdEsc(label.toUpperCase())+'</b><span style="font-family:var(--mono);font-size:12px;color:#9C8F73">'+rows.length+'</span></button>'
-    +(open?rows.map(mclRowHtml).join(''):'')+'</div>';
+  return '<div><div class="td-sec" onclick="mclTog(\''+tdEsc(key)+'\')" style="display:flex;align-items:center;gap:6px;cursor:pointer">'
+    +'<span style="display:inline-block;transition:transform .15s;transform:rotate('+(open?'0':'-90')+'deg)">▾</span>'
+    +tdEsc(label.toUpperCase())+' · '+rows.length+'</div>'
+    +(open?'<div class="td-list">'+rows.map(mclRowHtml).join('')+'</div>':'')+'</div>';
 }
 function mclTog(k){ _mcl.closed[k]=!_mcl.closed[k]; renderMobClients(); }
 function mclSeg(s){ _mcl.seg=s; _mcl.f='all'; renderMobClients(); }
@@ -1940,7 +1962,7 @@ function mclBody(){
     groups=groups.filter(function(g){return g[1].length;});
     var tot=groups.reduce(function(s,g){return s+g[1].length;},0);
     h+='<div style="font-size:12px;color:#4E5A50;padding:0 2px 10px">'+(tot?tot+' αποτελέσματα σε όλα':'Δεν βρέθηκε τίποτα')+' · δεν μετράνε τόνοι, κεφαλαία και ορθογραφία</div>';
-    h+='<div style="display:flex;flex-direction:column;gap:10px">'+groups.map(function(g){ return mclGroup('s:'+g[0],g[0],g[1]); }).join('')+'</div>';
+    h+='<div style="display:flex;flex-direction:column;gap:14px">'+groups.map(function(g){ return mclGroup('s:'+g[0],g[0],g[1]); }).join('')+'</div>';
     el.innerHTML=h; return;
   }
   var seg=MCL_SEG.find(function(s){return s[0]===_mcl.seg;})||MCL_SEG[0];
@@ -1957,7 +1979,7 @@ function mclBody(){
   var by={}; rows.forEach(function(r){ (by[r.area]=by[r.area]||[]).push(r); });
   var keys=Object.keys(by).sort(function(a,b){ if(a==='Άλλο') return 1; if(b==='Άλλο') return -1; return by[b].length-by[a].length; });
   keys.forEach(function(k){ by[k].sort(function(a,b){return (a.n||'').localeCompare(b.n||'','el');}); });
-  h+='<div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">'+keys.map(function(k){ return mclGroup(_mcl.seg+':'+k,k,by[k]); }).join('')+'</div>';
+  h+='<div style="display:flex;flex-direction:column;gap:14px;margin-top:14px">'+keys.map(function(k){ return mclGroup(_mcl.seg+':'+k,k,by[k]); }).join('')+'</div>';
   el.innerHTML=h;
 }
 function mclAdd(){
