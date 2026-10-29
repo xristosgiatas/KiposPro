@@ -1905,7 +1905,7 @@ function mclRowsA(){
   window._mclA=(appointments||[]).filter(function(a){return !a.done;}).sort(function(a,b){return ((a.date||'')+(a.time||'')).localeCompare((b.date||'')+(b.time||''));});
   return window._mclA.map(function(a,ix){
     return { kind:'a', id:ix, n:a.name||'—', a:a.address||'', area:getArea(a.address||''),
-      s:a.desc||'', tag:mclTag((a.date?planShort(a.date):'χωρίς ημ.')+(a.time?' '+a.time:''),'#2C5570','#E8F0F4'), dot:'#2C5570',
+      s:a.desc||'', s2:(parseFloat(a.agreedAmt)>0?'Συμφωνία: '+fmt(parseFloat(a.agreedAmt)):''), s2c:'#2D6B4C', tag:mclTag((a.date?planShort(a.date):'χωρίς ημ.')+(a.time?' '+a.time:''),'#2C5570','#E8F0F4'), dot:'#2C5570',
       txt:[a.name,a.address,a.tel,a.desc,a.notes].join(' ') };
   });
 }
