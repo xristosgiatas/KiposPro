@@ -1893,7 +1893,10 @@ function mclRowsC(){
     var s2c={red:'#8E2A2A',soon:'#95681A',novisit:'#4E5A50',ok:'#2D6B4C'}[grp];
     if(pi&&grp!=='red') s2c=pi.missed?'#8E2A2A':'#28506F';
     var urg={red:0,soon:1,ok:2,novisit:3}[grp]*100000-(od?od.overdue:-99999);
-    return { kind:'c', id:c.id, tint:tint, urg:urg, s2c:s2c, n:c.name, a:c.address||'', area:getArea(c.address||''),
+    var stk=pi&&grp!=='red'?(pi.missed?'red':'plan'):grp;
+    var ST={red:['#F5DEDE','#8E2A2A','rgba(142,42,42,.3)','#B03636'],soon:['#FCEFD2','#95681A','rgba(138,74,34,.35)','#B58A2B'],plan:['#E4EDF6','#28506F','rgba(40,80,111,.28)','#3C74A8'],ok:['#E3F0E7','#2D6B4C','rgba(0,0,0,0)','#2D6B4C'],novisit:['#EEEAE0','#4E5A50','rgba(0,0,0,0)','#A9A398']}[stk];
+    var card1a=true;
+    return { kind:'c', id:c.id, tint:tint, urg:urg, s2c:s2c, st:ST, card:card1a, n:c.name, a:c.address||'', area:getArea(c.address||''),
       s:(function(){
         var d2=function(iso){ var p=String(iso||'').slice(0,10).split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:''; };
         var nx='';
@@ -2004,6 +2007,16 @@ function mclApptSheet(ix){
 }
 function mclIni(n){ var p=String(n||'').trim().split(/\s+/); return ((p[0]||'')[0]||'')+((p[1]||'')[0]||''); }
 function mclRowHtml(r){
+  if(r.card){
+    var S=r.st, st2=r.s2||(r.kind==='c'&&!r.s?'Χωρίς ιστορικό επισκέψεων':'');
+    return '<div class="td-row mcl-drag" data-cid="'+tdEsc(r.id)+'" data-cname="'+tdEsc(r.n)+'" onclick="mclOpen(\'c\',\''+tdEsc(r.id)+'\')" style="display:block;background:var(--paper);border:1px solid var(--brd);border-left:3px solid '+S[3]+';border-radius:18px;padding:13px 14px">'
+      +'<div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span class="n" style="font-size:15.5px;font-weight:800">'+tdEsc(r.n)+'</span>'
+      +'<span style="font-family:var(--mono);font-size:11.5px;font-weight:700;border-radius:8px;padding:3px 8px;white-space:nowrap;flex:none;color:'+r.tag.fg+';background:'+r.tag.bg+'">'+tdEsc(r.tag.t)+'</span></div>'
+      +(r.a?'<div style="font-family:var(--mono);font-size:11.5px;color:var(--tx2);margin-top:3px">'+tdEsc(r.a)+'</div>':'')
+      +'<div style="font-size:12px;font-weight:700;color:#243A2B;margin-top:5px">'+tdEsc(r.s||'Τελ. επίσκεψη —')+'</div>'
+      +(st2?'<div style="display:flex;align-items:center;gap:7px;margin-top:8px;border-radius:8px;padding:7px 10px;background:'+S[0]+';color:'+S[1]+';box-shadow:inset 0 0 0 1.5px '+S[2]+';font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase"><span style="width:6px;height:6px;border-radius:50%;flex:none;background:'+S[3]+'"></span>'+tdEsc(st2)+'</div>':'')
+      +'</div>';
+  }
   var bg=r.tint||(r.past?'#F1EEE6':'');
   var lp=r.kind==='p'?' mcl-lp" data-oid="'+tdEsc(r.id):'';
   var dg=r.kind==='c'?' mcl-drag" data-cid="'+tdEsc(r.id)+'" data-cname="'+tdEsc(r.n):'';
@@ -2018,7 +2031,7 @@ function mclGroup(key,label,rows){
   return '<div><div class="td-sec" onclick="mclTog(\''+tdEsc(key)+'\')" style="display:flex;align-items:center;gap:6px;cursor:pointer">'
     +'<span style="display:inline-block;transition:transform .15s;transform:rotate('+(open?'0':'-90')+'deg)">▾</span>'
     +tdEsc(label.toUpperCase())+' · '+rows.length+'</div>'
-    +(open?'<div class="td-list">'+rows.map(mclRowHtml).join('')+'</div>':'')+'</div>';
+    +(open?(rows.length&&rows[0].card?'<div style="display:flex;flex-direction:column;gap:8px">'+rows.map(mclRowHtml).join('')+'</div>':'<div class="td-list">'+rows.map(mclRowHtml).join('')+'</div>'):'')+'</div>';
 }
 function mclKm(d){
   if(d===0){ _mcl.km=null; _mcl.ky=null; }
