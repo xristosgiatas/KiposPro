@@ -1,6 +1,6 @@
 /* KiposPro — αποθηκεύει την εφαρμογή στο κινητό ώστε να ανοίγει χωρίς σήμα.
    Άλλαξε το VERSION σε κάθε νέο ανέβασμα για να παίρνουν όλοι την ενημέρωση. */
-var VERSION = 'kp-2026-10-29w';
+var VERSION = 'kp-2026-10-29x';
 var CORE = ['./', './index.html', './kp-api.js', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable.png'];
 
 self.addEventListener('install', function (e) {
@@ -31,17 +31,20 @@ self.addEventListener('fetch', function (e) {
   if (url.origin !== self.location.origin) return;
 
   // Η σελίδα: ανοίγει ακαριαία από την αποθήκη (το SW την ανανεώνει όταν αλλάζει VERSION)
-  if (req.mode === 'navigate') {
-    e.respondWith(caches.open(VERSION).then(function (c) {
-      return c.match('./index.html').then(function (hit) {
-        return hit || fetch(req);
-      });
-    }).catch(function () { return fetch(req); }));
-    return;
-  }
-  // Αρχεία της εφαρμογής: μόνο από την αποθήκη της τρέχουσας έκδοσης
+  // Σελίδα & αρχεία εφαρμογής: πρώτα από το ίντερνετ (με όριο 4"), αλλιώς από την αποθήκη
+  var key = req.mode === 'navigate' ? './index.html' : req;
   e.respondWith(caches.open(VERSION).then(function (c) {
-    return c.match(req, { ignoreSearch: true }).then(function (hit) { return hit || fetch(req); });
+    var net = fetch(new Request(req.url, { cache: 'no-store' })).then(function (r) {
+      if (r && r.ok) c.put(key, r.clone());
+      return r;
+    });
+    var timer = new Promise(function (res) { setTimeout(res, 4000); });
+    return Promise.race([net, timer]).then(function (r) {
+      if (r && r.ok) return r;
+      return c.match(key, { ignoreSearch: true }).then(function (hit) { return hit || net; });
+    }).catch(function () {
+      return c.match(key, { ignoreSearch: true });
+    });
   }));
 });
 
