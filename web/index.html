@@ -1965,6 +1965,7 @@ function mclOfferSheet(id){
   openM(tdEsc(o.name||'Προσφορά'),
     '<div style="font-size:13.5px;color:var(--tx2);margin:-4px 0 14px">'+tdEsc([o.date?planShort(o.date):'',o.address||'',o.desc||''].filter(Boolean).join(' · '))+'</div>'
     +'<div style="display:flex;flex-direction:column;gap:8px">'
+    +b('🤝','Συμφωνία ΟΚ',"closeM();setTimeout(function(){offerOk("+el+")},120)",'#28506F')
     +b('🌿','Προσθήκη στις Συντηρήσεις',"closeM();offerToClient("+el+")",'#2D6B4C')
     +b('✎','Επεξεργασία / τιμή',"closeM();setTimeout(function(){editOffer("+el+")},120)")
     +b('📄','Δημιουργία προσφοράς PDF',"closeM();go('quote');pqFromOffer("+q+")",'#2D6B4C')
@@ -9757,7 +9758,8 @@ function confirmOffer(el){
     renderApptsList();
     renderCalendar2();
     renderAppts();
-    toast('✅ Ραντεβού δημιουργήθηκε!');
+    try{ if(document.getElementById('mcl-body')){ _mcl.seg='a'; renderMobClients(); } }catch(x){}
+    toast('✅ Πέρασε στα Ραντεβού');
   }).deleteOffer(window._kpEmail||localStorage.getItem('kipospro_email')||'',id);
 }
 
