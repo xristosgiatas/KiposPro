@@ -1869,7 +1869,12 @@ function mclRowsC(){
     else { tag=mclTag((c.defVisits||2)+'×/μήνα','#4E5A50','#EEEAE0'); dot='#2D6B4C'; }
     if(!isAct(c,CM,CY)) dot='#C9C3B6';
     return { kind:'c', id:c.id, n:c.name, a:c.address||'', area:getArea(c.address||''),
-      s:lv?('τελ. επίσκεψη '+planShort(lv.date||lv)):'', tag:tag, dot:dot,
+      s:(function(){
+        var d2=function(iso){ var p=String(iso||'').slice(0,10).split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:''; };
+        var nx='';
+        if(od){ nx=od.overdue>3?'Καθυστερημένος '+od.overdue+' μέρες':od.overdue>=0?'Πρέπει να πάει σήμερα':'Επόμενη επίσκεψη σε '+(od.interval-od.daysSince)+' μέρες'; }
+        return [lv?'Τελ. επίσκεψη '+d2(lv.date||lv):'',nx].filter(Boolean).join(' · ');
+      })(), tag:tag, dot:dot,
       owe:!!owe, late:!!(od&&od.overdue>3), rep:rep, vis:parseInt(c.defVisits||2),
       txt:[c.name,c.address,c.tel,c.notes,c.afm].join(' ') };
   });
