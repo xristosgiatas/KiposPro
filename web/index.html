@@ -2042,6 +2042,20 @@ function mclBody(){
   h+='<div class="mcl-seg">'+MCL_SEG.map(function(s){ return '<button class="'+(s[0]===_mcl.seg?'on':'')+'" onclick="mclSeg(\''+s[0]+'\')">'+s[1]+'</button>'; }).join('')+'</div>';
   var rows=seg[2]();
   if(_mcl.seg==='c'){
+    try{
+      var k=calcKpi(CM), past=calcPast(), pr=past>0?pastDueRows():[], pids={};
+      pr.forEach(function(r){pids[r.client.id]=1;}); var pn=Object.keys(pids).length;
+      var box=function(bg,fg,l,v,s,tap){ return '<div'+(tap?' onclick="'+tap+'"':'')+' style="background:'+bg+';border-radius:16px;padding:12px 13px;'+(tap?'cursor:pointer;':'')+'min-width:0">'
+        +'<div style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.08em;color:'+fg+';opacity:.85">'+l+(tap?' ›':'')+'</div>'
+        +'<div style="font-size:22px;font-weight:800;color:'+fg+';margin-top:3px;letter-spacing:-.01em">'+v+'</div>'
+        +'<div style="font-size:12px;font-weight:600;color:'+fg+';opacity:.8;margin-top:1px">'+s+'</div></div>'; };
+      h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">'
+        +box('#1D4632','#F4F1EA',MNF[CM].toUpperCase()+' · ΣΥΝΟΛΟ',fmt(k.tot),k.actC+' ενεργοί κήποι')
+        +box('#E3F0E7','#2D6B4C','ΠΛΗΡΩΘΗΚΑΝ',fmt(k.pd),k.paC+'/'+k.actC+' κήποι')
+        +box('#FCEFD2','#95681A','ΕΚΚΡΕΜΟΥΝ ΜΗΝΑ',fmt(k.pen),k.peC+' κήποι',k.peC?"_debtQ='';showPendingList()":'')
+        +box(past>0?'#F5DEDE':'#F3F1EC',past>0?'#8E2A2A':'#4E5A50','ΠΑΡΕΛΘΟΝΤΩΝ',fmt(past||0),past>0?pn+(pn===1?' κήπος':' κήποι')+' · '+pr.length+(pr.length===1?' μήνας':' μήνες'):'όλα τακτοποιημένα',past>0?"_debtQ='';showPastPending()":'')
+        +'</div>';
+    }catch(e){ console.warn(e); }
     var F=[['all','Όλοι',null],['owe','Χρωστάνε',function(r){return r.owe;}],['late','Καθυστερούν',function(r){return r.late;}],['rep','Αναφορές',function(r){return r.rep;}],['v1','1×',function(r){return r.vis===1;}],['v2','2×',function(r){return r.vis===2;}],['v3','3×',function(r){return r.vis===3;}],['v4','4×',function(r){return r.vis===4;}]];
     h+='<div class="mcl-chips" style="margin-top:10px">'+F.map(function(f){ var n=f[2]?rows.filter(f[2]).length:rows.length; if(f[2]&&!n&&_mcl.f!==f[0]) return ''; return '<button class="'+(_mcl.f===f[0]?'on':'')+'" onclick="mclF(\''+f[0]+'\')">'+f[1]+' <span style="font-family:var(--mono);font-size:11px;opacity:.7">'+n+'</span></button>'; }).join('')
       +'<button onclick="openTaxList()" style="background:#EEF3F7;color:#3C6A88;border-color:#C9D8E3">🧾 Παραστατικά</button></div>';
