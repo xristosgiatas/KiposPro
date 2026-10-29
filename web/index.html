@@ -1896,7 +1896,7 @@ function mclRowsC(){
     var stk=pi&&grp!=='red'?(pi.missed?'red':'plan'):grp;
     var ST={red:['#F5DEDE','#8E2A2A','rgba(142,42,42,.3)','#B03636'],soon:['#FCEFD2','#95681A','rgba(138,74,34,.35)','#B58A2B'],plan:['#E4EDF6','#28506F','rgba(40,80,111,.28)','#3C74A8'],ok:['#E3F0E7','#2D6B4C','rgba(0,0,0,0)','#2D6B4C'],novisit:['#EEEAE0','#4E5A50','rgba(0,0,0,0)','#A9A398']}[stk];
     var card1a=true;
-    return { kind:'c', id:c.id, tint:tint, urg:urg, s2c:s2c, st:ST, card:card1a, n:c.name, a:c.address||'', area:getArea(c.address||''),
+    return { kind:'c', id:c.id, tint:tint, urg:urg, s2c:s2c, st:ST, card:card1a, pi:pi, grp:grp, n:c.name, a:c.address||'', area:getArea(c.address||''),
       s:(function(){
         var d2=function(iso){ var p=String(iso||'').slice(0,10).split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:''; };
         var nx='';
@@ -2009,6 +2009,7 @@ function mclIni(n){ var p=String(n||'').trim().split(/\s+/); return ((p[0]||'')[
 function mclRowHtml(r){
   if(r.card){
     var S=r.st, st2=r.s2||(r.kind==='c'&&!r.s?'Χωρίς ιστορικό επισκέψεων':'');
+    if(r.pi){ var pl=(r.pi.missed?'Χάθηκε από το πλάνο · ':'Στο πλάνο · ')+planShort(r.pi.date)+(r.pi.extra>0?' +'+r.pi.extra:''); st2=r.grp==='red'?st2+' · '+pl:pl; }
     return '<div class="td-row mcl-drag" data-cid="'+tdEsc(r.id)+'" data-cname="'+tdEsc(r.n)+'" onclick="mclOpen(\'c\',\''+tdEsc(r.id)+'\')" style="display:block;background:var(--paper);border:1px solid var(--brd);border-left:3px solid '+S[3]+';border-radius:18px;padding:13px 14px">'
       +'<div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span class="n" style="font-size:15.5px;font-weight:800">'+tdEsc(r.n)+'</span>'
       +'<span style="font-family:var(--mono);font-size:11.5px;font-weight:700;border-radius:8px;padding:3px 8px;white-space:nowrap;flex:none;color:'+r.tag.fg+';background:'+r.tag.bg+'">'+tdEsc(r.tag.t)+'</span></div>'
