@@ -1904,6 +1904,12 @@ function mclOpen(kind,id){
   else if(kind==='p'){ var el=document.createElement('span'); el.setAttribute('data-oid',id); editOffer(el); }
   else if(kind==='r') go('reports');
 }
+function mclDoComplete(id){
+  closeM();
+  setTimeout(function(){
+    try{ openCompleteAppt(id); }catch(e){ alert('Σφάλμα ολοκλήρωσης: '+e.message); }
+  },120);
+}
 function mclApptSheet(id){
   var a=(appointments||[]).find(function(x){return x.id==id;}); if(!a) return;
   var tel=(a.tel||'').replace(/[^0-9+]/g,'');
@@ -1911,7 +1917,7 @@ function mclApptSheet(id){
   openM(tdEsc(a.name||'Ραντεβού'),
     '<div style="font-size:13.5px;color:var(--tx2);margin:-4px 0 14px">'+tdEsc((a.date?planShort(a.date):'χωρίς ημερομηνία')+(a.time?' · '+a.time:'')+(a.address?' · '+a.address:''))+(a.desc?'<br>'+tdEsc(a.desc):'')+'</div>'
     +'<div style="display:flex;flex-direction:column;gap:8px">'
-    +b('✓','Ολοκληρώθηκε',"closeM();openCompleteAppt('"+a.id+"')",'#2D6B4C')
+    +b('✓','Ολοκληρώθηκε',"mclDoComplete('"+a.id+"')",'#2D6B4C')
     +(tel?b('📞','Κλήση',"location.href='tel:"+tel+"'"):'')
     +(tel?b('💬','Μήνυμα',"location.href='sms:"+tel+"'"):'')
     +(a.address?b('🧭','Πλοήγηση',"window.open('https://maps.google.com/?q="+encodeURIComponent(a.address)+"')"):'')
@@ -1922,7 +1928,7 @@ function mclApptSheet(id){
 function mclIni(n){ var p=String(n||'').trim().split(/\s+/); return ((p[0]||'')[0]||'')+((p[1]||'')[0]||''); }
 function mclRowHtml(r){
   return '<div class="td-row"'+(r.past?' style="background:#F1EEE6"':'')+' onclick="mclOpen(\''+r.kind+'\',\''+tdEsc(r.id)+'\')">'
-    +'<div class="td-no" style="background:'+r.dot+';color:#fff;font-family:inherit;font-size:12px;font-weight:800">'+tdEsc(mclIni(r.n).toUpperCase())+'</div>'
+    +'<span style="width:10px;height:10px;border-radius:50%;flex:none;background:'+r.dot+'"></span>'
     +'<div style="flex:1;min-width:0"><div class="n">'+tdEsc(r.n)+'</div>'
     +(r.a?'<div class="s">'+tdEsc(r.a)+'</div>':'')+(r.s?'<div class="s" style="color:var(--tx2);font-size:11.5px">'+tdEsc(r.s)+'</div>':'')+'</div>'
     +'<span style="font-family:var(--mono);font-size:11.5px;font-weight:700;border-radius:8px;padding:4px 7px;white-space:nowrap;flex:none;color:'+r.tag.fg+';background:'+r.tag.bg+'">'+tdEsc(r.tag.t)+'</span></div>';
@@ -3997,7 +4003,7 @@ function openCompleteAppt(id){
     +'<span id="appt-net" style="font-size:18px;font-weight:800;color:var(--gd)">'+(a.agreedAmt?a.agreedAmt:0)+'€</span></div>'
     +'<div class="frm"><label>Σημειώσεις (προαιρετικό)</label><textarea id="appt-notes" placeholder="...">'+(a.notes||'')+'</textarea></div>',
     '<button class="btn btn-out btn-sm" onclick="closeM()">Ακύρωση</button>'
-    +'<button class="btn btn-g btn-sm" onclick="completeAppt(this.getAttribute(\'data-id\'))" data-id="'+id+'">✓ Ολοκλήρωση &amp; Αποθήκευση</button>'
+    +'<button class="btn btn-g btn-sm" onclick="try{completeAppt(this.getAttribute(\'data-id\'))}catch(e){alert(\'Σφάλμα: \'+e.message)}" data-id="'+id+'">✓ Ολοκλήρωση &amp; Αποθήκευση</button>'
   );
   setTimeout(function(){
     var inp=document.getElementById('appt-amt');
@@ -4042,10 +4048,9 @@ function completeAppt(id){
   };
   ektas.push(ekta);
   closeM();
-  renderAppts();
-  renderEkta();
-  renderApptsList();
-  renderCalendar2();
+  [renderAppts,renderEkta,renderApptsList,renderCalendar2].forEach(function(f){ try{ f(); }catch(e){ console.warn(e); } });
+  try{ if(document.body.classList.contains('mob-mode')) renderMobClients(); }catch(e){}
+  toast('✓ Ολοκληρώθηκε');
   google.script.run.withSuccessHandler(function(){}).saveAppointment(window._kpEmail||localStorage.getItem('kipospro_email')||'',a);
   google.script.run.withSuccessHandler(function(){
     var msg = '✓ Εισπράχθηκαν '+fmt(amt);
