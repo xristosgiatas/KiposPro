@@ -1683,7 +1683,7 @@ function tdItem(e){
   var pool=e.type==='appt'?appointments:(e.type==='offer'?offers:(e.type==='ekta'?ektas:clients));
   var c=pool.find(function(x){return String(x.id)===String(e.clientId);});
   return { e:e, c:c, client:(e.type||'client')==='client'?c:null,
-    name:c?c.name:(e.name||e.clientName||'—'), addr:c?(c.address||''):'', tel:c?String(c.tel||'').replace(/\s+/g,''):'' };
+    name:c?c.name:(e.name||e.clientName||'—'), addr:c?(c.address||''):'', tel:c?StringString(c.tel||'').replace(/\s+/g,''):'' };
 }
 function tdOwe(c){
   if(!c) return 0;
@@ -1925,7 +1925,7 @@ function mclApptSheet(ix){
   var a=(window._mclA||[])[+ix];
   if(!a){ alert('Δεν βρέθηκε το ραντεβού ('+ix+')'); return; }
   if(a.id===undefined||a.id===null||a.id===''){ alert('Το ραντεβού δεν έχει κωδικό — άνοιξέ το από τον υπολογιστή'); return; }
-  var tel=(a.tel||'').replace(/[^0-9+]/g,'');
+  var tel=String(a.tel||'').replace(/[^0-9+]/g,'');
   var b=function(ic,l,fn,col){ return '<button onclick="'+fn+'" style="display:flex;align-items:center;gap:12px;width:100%;min-height:54px;padding:0 14px;border:1px solid var(--brd);border-radius:14px;background:var(--paper);font-family:inherit;font-size:15px;font-weight:700;color:'+(col||'var(--tx)')+';cursor:pointer;text-align:left"><span style="font-size:18px;width:24px;text-align:center">'+ic+'</span>'+l+'</button>'; };
   openM(tdEsc(a.name||'Ραντεβού'),
     '<div style="font-size:13.5px;color:var(--tx2);margin:-4px 0 14px">'+tdEsc((a.date?planShort(a.date):'χωρίς ημερομηνία')+(a.time?' · '+a.time:'')+(a.address?' · '+a.address:''))+(a.desc?'<br>'+tdEsc(a.desc):'')+'</div>'
@@ -2749,7 +2749,7 @@ function renderSchedAdd(){
         var on=!!_saSel[saKey('appt',e.id)];
         var sub=(e.date?fmtDate(e.date)+' ':'')+(e.agreedAmt?'💰'+fmt(e.agreedAmt):'');
         html+=saRow(on,already['appt|'+e.id],ini(e.name),'background:#818cf8;color:#fff',e.name||'Ραντεβού',sub||e.desc,
-          "saToggle('appt','"+e.id+"',this.getAttribute('data-nm'))").replace('<div onclick','<div data-nm="'+(e.name||'').replace(/"/g,'&quot;')+'" onclick');
+          "saToggle('appt','"+e.id+"',this.getAttribute('data-nm'))").replace('<div onclick','<div data-nm="'+String(e.name||'').replace(/"/g,'&quot;')+'" onclick');
       });
     }
     html+='</div>';
@@ -3663,7 +3663,7 @@ function renderClients(){
         +'<span class="al-when">'+planShort(pi.date)+(pi.extra>0?' +'+pi.extra:'')+'</span></div>';
     }
     return hdr
-      +'<div class="cc" data-cid="'+c.id+'" data-cname="'+String(c.name||'').replace(/"/g,'&quot;')+'" onclick="showDet(\''+c.id+'\',\'clients\')" style="border-left:'+bw+'px solid '+bcol+'">'
+      +'<div class="cc" data-cid="'+c.id+'" data-cname="'+StringString(c.name||'').replace(/"/g,'&quot;')+'" onclick="showDet(\''+c.id+'\',\'clients\')" style="border-left:'+bw+'px solid '+bcol+'">'
 
       /* γραμμή 1 — ταυτότητα */
       +'<div class="cc-top"><div class="av">'+ini(c.name)+'</div>'
@@ -4673,7 +4673,7 @@ function vcfEsc(s){return String(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;'
 function vcfPeople(){
   var out=[], seen={};
   function add(p,kind){
-    var tel=String(p.tel||'').replace(/\s+/g,'');
+    var tel=StringString(p.tel||'').replace(/\s+/g,'');
     if(!tel) return;
     var key=tel;
     if(seen[key]) return;
