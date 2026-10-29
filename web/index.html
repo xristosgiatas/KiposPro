@@ -2005,6 +2005,11 @@ function mclGroup(key,label,rows){
     +tdEsc(label.toUpperCase())+' · '+rows.length+'</div>'
     +(open?'<div class="td-list">'+rows.map(mclRowHtml).join('')+'</div>':'')+'</div>';
 }
+function mclKm(d){
+  if(d===0){ _mcl.km=null; _mcl.ky=null; }
+  else { var m=(_mcl.km==null?CM:_mcl.km)+d, y=_mcl.ky==null?CY:_mcl.ky; if(m<0){m=11;y--;} if(m>11){m=0;y++;} _mcl.km=m; _mcl.ky=y; }
+  mclBody();
+}
 function mclTog(k){ _mcl.closed[k]=!_mcl.closed[k]; renderMobClients(); }
 function mclSeg(s){ _mcl.seg=s; _mcl.f='all'; renderMobClients(); }
 function mclF(f){ _mcl.f=f; renderMobClients(); }
@@ -2043,16 +2048,26 @@ function mclBody(){
   var rows=seg[2]();
   if(_mcl.seg==='c'){
     try{
-      var k=calcKpi(CM), past=calcPast(), pr=past>0?pastDueRows():[], pids={};
+      var KM=_mcl.km==null?CM:_mcl.km, KY=_mcl.ky==null?CY:_mcl.ky;
+      var k={tot:0,pd:0,pen:0,paC:0,peC:0,actC:0};
+      clients.forEach(function(c){ if(isAct(c,KM,KY)){ k.actC++; var p=gP(c,KM,KY); k.tot+=p; if(isPd(c,KM,KY)){k.pd+=p;k.paC++;}else{k.pen+=p;k.peC++;} } });
+      var isCur=KM===CM&&KY===CY;
+      var past=calcPast(), pr=past>0?pastDueRows():[], pids={};
       pr.forEach(function(r){pids[r.client.id]=1;}); var pn=Object.keys(pids).length;
       var box=function(bg,fg,l,v,s,tap){ return '<div'+(tap?' onclick="'+tap+'"':'')+' style="background:'+bg+';border-radius:16px;padding:12px 13px;'+(tap?'cursor:pointer;':'')+'min-width:0">'
         +'<div style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.08em;color:'+fg+';opacity:.85">'+l+(tap?' ›':'')+'</div>'
         +'<div style="font-size:22px;font-weight:800;color:'+fg+';margin-top:3px;letter-spacing:-.01em">'+v+'</div>'
         +'<div style="font-size:12px;font-weight:600;color:'+fg+';opacity:.8;margin-top:1px">'+s+'</div></div>'; };
-      h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">'
-        +box('#1D4632','#F4F1EA',MNF[CM].toUpperCase()+' · ΣΥΝΟΛΟ',fmt(k.tot),k.actC+' ενεργοί κήποι')
+      var nb='height:38px;min-width:42px;border-radius:12px;border:1px solid var(--brd);background:var(--paper);font-family:inherit;font-size:18px;font-weight:700;color:var(--tx);cursor:pointer';
+      h+='<div style="display:flex;align-items:center;gap:8px;margin-top:12px">'
+        +'<button onclick="mclKm(-1)" style="'+nb+'">‹</button>'
+        +'<div style="flex:1;text-align:center;font-weight:800;font-size:15px;color:#12281F">'+MNF[KM]+' '+KY+(isCur?'':'')+'</div>'
+        +(isCur?'':'<button onclick="mclKm(0)" style="'+nb+';font-size:13px;padding:0 10px;color:var(--gd)">Τρέχων</button>')
+        +'<button onclick="mclKm(1)" style="'+nb+'">›</button></div>';
+      h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">'
+        +box('#1D4632','#F4F1EA','ΣΥΝΟΛΟ ΜΗΝΑ',fmt(k.tot),k.actC+' ενεργοί κήποι')
         +box('#E3F0E7','#2D6B4C','ΠΛΗΡΩΘΗΚΑΝ',fmt(k.pd),k.paC+'/'+k.actC+' κήποι')
-        +box('#FCEFD2','#95681A','ΕΚΚΡΕΜΟΥΝ ΜΗΝΑ',fmt(k.pen),k.peC+' κήποι',k.peC?"_debtQ='';showPendingList()":'')
+        +box('#FCEFD2','#95681A','ΕΚΚΡΕΜΟΥΝ ΜΗΝΑ',fmt(k.pen),k.peC+' κήποι',k.peC&&isCur?"_debtQ='';showPendingList()":'')
         +box(past>0?'#F5DEDE':'#F3F1EC',past>0?'#8E2A2A':'#4E5A50','ΠΑΡΕΛΘΟΝΤΩΝ',fmt(past||0),past>0?pn+(pn===1?' κήπος':' κήποι')+' · '+pr.length+(pr.length===1?' μήνας':' μήνες'):'όλα τακτοποιημένα',past>0?"_debtQ='';showPastPending()":'')
         +'</div>';
     }catch(e){ console.warn(e); }
