@@ -1686,7 +1686,7 @@ function tdItem(e){
   var pool=e.type==='appt'?appointments:(e.type==='offer'?offers:(e.type==='ekta'?ektas:clients));
   var c=pool.find(function(x){return String(x.id)===String(e.clientId);});
   return { e:e, c:c, client:(e.type||'client')==='client'?c:null,
-    name:c?c.name:(e.name||e.clientName||'—'), addr:c?(c.address||''):'', tel:c?StringString(c.tel||'').replace(/\s+/g,''):'' };
+    name:c?c.name:(e.name||e.clientName||'—'), addr:c?(c.address||''):'', tel:c?String(c.tel||'').replace(/\s+/g,''):'' };
 }
 function tdOwe(c){
   if(!c) return 0;
@@ -3746,7 +3746,7 @@ function renderClients(){
         +'<span class="al-when">'+planShort(pi.date)+(pi.extra>0?' +'+pi.extra:'')+'</span></div>';
     }
     return hdr
-      +'<div class="cc" data-cid="'+c.id+'" data-cname="'+StringString(c.name||'').replace(/"/g,'&quot;')+'" onclick="showDet(\''+c.id+'\',\'clients\')" style="border-left:'+bw+'px solid '+bcol+'">'
+      +'<div class="cc" data-cid="'+c.id+'" data-cname="'+String(c.name||'').replace(/"/g,'&quot;')+'" onclick="showDet(\''+c.id+'\',\'clients\')" style="border-left:'+bw+'px solid '+bcol+'">'
 
       /* γραμμή 1 — ταυτότητα */
       +'<div class="cc-top"><div class="av">'+ini(c.name)+'</div>'
@@ -4756,7 +4756,7 @@ function vcfEsc(s){return String(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;'
 function vcfPeople(){
   var out=[], seen={};
   function add(p,kind){
-    var tel=StringString(p.tel||'').replace(/\s+/g,'');
+    var tel=String(p.tel||'').replace(/\s+/g,'');
     if(!tel) return;
     var key=tel;
     if(seen[key]) return;
