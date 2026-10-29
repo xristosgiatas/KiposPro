@@ -1868,7 +1868,10 @@ function mclRowsC(){
     else if(pi){ tag=mclTag('πλάνο '+planShort(pi.date),'#2C5570','#E8F0F4'); dot='#2D6B4C'; }
     else { tag=mclTag((c.defVisits||2)+'×/μήνα','#4E5A50','#EEEAE0'); dot='#2D6B4C'; }
     if(!isAct(c,CM,CY)) dot='#C9C3B6';
-    return { kind:'c', id:c.id, n:c.name, a:c.address||'', area:getArea(c.address||''),
+    var grp=od?(od.overdue>3?'red':od.overdue>=0||od.soon?'soon':'ok'):(lv?'ok':'novisit');
+    var tint={red:'#FBEDEA',soon:'#FDF5E4',novisit:'#F3F1EC',ok:''}[grp];
+    var urg={red:0,soon:1,ok:2,novisit:3}[grp]*100000-(od?od.overdue:-99999);
+    return { kind:'c', id:c.id, tint:tint, urg:urg, n:c.name, a:c.address||'', area:getArea(c.address||''),
       s:(function(){
         var d2=function(iso){ var p=String(iso||'').slice(0,10).split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:''; };
         var nx='';
@@ -1945,7 +1948,8 @@ function mclApptSheet(ix){
 }
 function mclIni(n){ var p=String(n||'').trim().split(/\s+/); return ((p[0]||'')[0]||'')+((p[1]||'')[0]||''); }
 function mclRowHtml(r){
-  return '<div class="td-row"'+(r.past?' style="background:#F1EEE6"':'')+' onclick="mclOpen(\''+r.kind+'\',\''+tdEsc(r.id)+'\')">'
+  var bg=r.tint||(r.past?'#F1EEE6':'');
+  return '<div class="td-row"'+(bg?' style="background:'+bg+'"':'')+' onclick="mclOpen(\''+r.kind+'\',\''+tdEsc(r.id)+'\')">'
     +'<span style="width:10px;height:10px;border-radius:50%;flex:none;background:'+r.dot+'"></span>'
     +'<div style="flex:1;min-width:0"><div class="n">'+tdEsc(r.n)+'</div>'
     +(r.a?'<div class="s">'+tdEsc(r.a)+'</div>':'')+(r.s?'<div class="s" style="color:var(--tx2);font-size:11.5px">'+tdEsc(r.s)+'</div>':'')+(r.s2?'<div class="s" style="color:var(--tx2);font-size:11.5px">'+tdEsc(r.s2)+'</div>':'')+'</div>'
@@ -2002,8 +2006,10 @@ function mclBody(){
   }
   if(!rows.length){ h+='<div class="empty" style="margin-top:14px">Δεν υπάρχουν καταχωρίσεις</div>'; el.innerHTML=h; return; }
   var by={}; rows.forEach(function(r){ (by[r.area]=by[r.area]||[]).push(r); });
-  var keys=Object.keys(by).sort(function(a,b){ if(a==='Άλλο') return 1; if(b==='Άλλο') return -1; return by[b].length-by[a].length; });
-  keys.forEach(function(k){ by[k].sort(function(a,b){return (a.n||'').localeCompare(b.n||'','el');}); });
+  var useU=_mcl.seg==='c';
+  keys=null;
+  Object.keys(by).forEach(function(k){ by[k].sort(function(a,b){ if(useU&&a.urg!==b.urg) return a.urg-b.urg; return (a.n||'').localeCompare(b.n||'','el'); }); });
+  var keys=Object.keys(by).sort(function(a,b){ if(a==='Άλλο') return 1; if(b==='Άλλο') return -1; if(useU){ var d=by[a][0].urg-by[b][0].urg; if(d) return d; } return by[b].length-by[a].length; });
   h+='<div style="display:flex;flex-direction:column;gap:14px;margin-top:14px">'+keys.map(function(k){ return mclGroup(_mcl.seg+':'+k,k,by[k]); }).join('')+'</div>';
   el.innerHTML=h;
 }
