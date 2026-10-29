@@ -983,6 +983,8 @@ body.d-fs #d-row-zones .zone-btn{padding:4px 9px;font-size:11.5px}
 .mob-mode .modal .mft{flex:none;position:sticky;bottom:0;background:var(--paper);border-top:1px solid var(--brd);padding:12px 16px calc(12px + env(safe-area-inset-bottom))!important;display:flex;gap:8px}
 .mob-mode .modal .mft .btn{flex:1;min-height:50px;font-size:15px}
 .mob-mode .modal .mft:empty{display:none}
+.mcl-drag{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.mcl-drag.dg-src{opacity:.4}
 </style>
 </head>
 <body>
@@ -1949,7 +1951,8 @@ function mclApptSheet(ix){
 function mclIni(n){ var p=String(n||'').trim().split(/\s+/); return ((p[0]||'')[0]||'')+((p[1]||'')[0]||''); }
 function mclRowHtml(r){
   var bg=r.tint||(r.past?'#F1EEE6':'');
-  return '<div class="td-row"'+(bg?' style="background:'+bg+'"':'')+' onclick="mclOpen(\''+r.kind+'\',\''+tdEsc(r.id)+'\')">'
+  var dg=r.kind==='c'?' mcl-drag" data-cid="'+tdEsc(r.id)+'" data-cname="'+tdEsc(r.n):'';
+  return '<div class="td-row'+dg+'"'+(bg?' style="background:'+bg+'"':'')+' onclick="mclOpen(\''+r.kind+'\',\''+tdEsc(r.id)+'\')">'
     +'<span style="width:10px;height:10px;border-radius:50%;flex:none;background:'+r.dot+'"></span>'
     +'<div style="flex:1;min-width:0"><div class="n">'+tdEsc(r.n)+'</div>'
     +(r.a?'<div class="s">'+tdEsc(r.a)+'</div>':'')+(r.s?'<div class="s" style="color:var(--tx2);font-size:11.5px">'+tdEsc(r.s)+'</div>':'')+(r.s2?'<div class="s" style="color:var(--tx2);font-size:11.5px">'+tdEsc(r.s2)+'</div>':'')+'</div>'
@@ -3555,7 +3558,7 @@ function dgDrop(cid,name,iso){
 
 /* ── συμβάντα ── */
 document.addEventListener('touchstart',function(e){
-  var card=e.target.closest&&e.target.closest('.cc[data-cid]');
+  var card=e.target.closest&&e.target.closest('.cc[data-cid],.mcl-drag[data-cid]');
   if(!card) return;
   var t=e.touches[0]; DG.sx=t.clientX; DG.sy=t.clientY;
   clearTimeout(DG.timer);
@@ -3581,7 +3584,7 @@ document.addEventListener('touchmove',function(e){
 
 document.addEventListener('mousedown',function(e){
   if(e.button!==0) return;
-  var card=e.target.closest&&e.target.closest('.cc[data-cid]');
+  var card=e.target.closest&&e.target.closest('.cc[data-cid],.mcl-drag[data-cid]');
   if(!card) return;
   if(e.target.closest('a,button,input,select,textarea')) return;
   DG.sx=e.clientX; DG.sy=e.clientY; DG.pend=card;
