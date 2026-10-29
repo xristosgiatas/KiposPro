@@ -1871,9 +1871,12 @@ function mclRowsC(){
     else { tag=mclTag((c.defVisits||2)+'×/μήνα','#4E5A50','#EEEAE0'); dot='#2D6B4C'; }
     if(!isAct(c,CM,CY)) dot='#C9C3B6';
     var grp=od?(od.overdue>3?'red':od.overdue>=0||od.soon?'soon':'ok'):(lv?'ok':'novisit');
-    var tint={red:'#FBEDEA',soon:'#FDF5E4',novisit:'#F3F1EC',ok:''}[grp];
+    var tint={red:'#F5DEDE',soon:'#FCEFD2',novisit:'#F3F1EC',ok:'#E3F0E7'}[grp];
+    if(pi) tint=pi.missed?'#F5DEDE':'#E4EDF6';
+    var s2c={red:'#8E2A2A',soon:'#95681A',novisit:'#4E5A50',ok:'#2D6B4C'}[grp];
+    if(pi) s2c=pi.missed?'#8E2A2A':'#28506F';
     var urg={red:0,soon:1,ok:2,novisit:3}[grp]*100000-(od?od.overdue:-99999);
-    return { kind:'c', id:c.id, tint:tint, urg:urg, n:c.name, a:c.address||'', area:getArea(c.address||''),
+    return { kind:'c', id:c.id, tint:tint, urg:urg, s2c:s2c, n:c.name, a:c.address||'', area:getArea(c.address||''),
       s:(function(){
         var d2=function(iso){ var p=String(iso||'').slice(0,10).split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:''; };
         var nx='';
@@ -1955,7 +1958,7 @@ function mclRowHtml(r){
   return '<div class="td-row'+dg+'"'+(bg?' style="background:'+bg+'"':'')+' onclick="mclOpen(\''+r.kind+'\',\''+tdEsc(r.id)+'\')">'
     +'<span style="width:10px;height:10px;border-radius:50%;flex:none;background:'+r.dot+'"></span>'
     +'<div style="flex:1;min-width:0"><div class="n">'+tdEsc(r.n)+'</div>'
-    +(r.a?'<div class="s">'+tdEsc(r.a)+'</div>':'')+(r.s?'<div class="s" style="color:var(--tx2);font-size:11.5px">'+tdEsc(r.s)+'</div>':'')+(r.s2?'<div class="s" style="color:var(--tx2);font-size:11.5px">'+tdEsc(r.s2)+'</div>':'')+'</div>'
+    +(r.a?'<div class="s">'+tdEsc(r.a)+'</div>':'')+(r.s?'<div class="s" style="color:'+(r.kind==='c'?'#243A2B;font-weight:700':'var(--tx2)')+';font-size:12px">'+tdEsc(r.s)+'</div>':'')+(r.s2?'<div class="s" style="color:'+(r.s2c||'var(--tx2)')+';font-weight:700;font-size:12px">'+tdEsc(r.s2)+'</div>':'')+'</div>'
     +'<span style="font-family:var(--mono);font-size:11.5px;font-weight:700;border-radius:8px;padding:4px 7px;white-space:nowrap;flex:none;color:'+r.tag.fg+';background:'+r.tag.bg+'">'+tdEsc(r.tag.t)+'</span></div>';
 }
 function mclGroup(key,label,rows){
