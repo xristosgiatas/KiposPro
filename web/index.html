@@ -945,7 +945,7 @@ body.d-fs #d-row-zones .zone-btn{padding:4px 9px;font-size:11.5px}
 .td-row.dn .td-no{background:var(--g);color:#fff}
 .td-row .n{font-size:15px;font-weight:700;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .td-row.dn .n{color:var(--tx2);text-decoration:line-through}
-.td-row .s{font-size:12px;color:var(--tx2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.td-row .s{white-space:pre-line;font-size:12px;color:var(--tx2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .td-sec{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--tx2);padding:0 4px 6px}
 .mr-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .mr-t{background:var(--paper);border:1px solid var(--brd);border-radius:16px;min-height:92px;display:flex;flex-direction:column;justify-content:space-between;padding:12px;cursor:pointer;position:relative;text-align:left;font-family:inherit}
@@ -1932,10 +1932,10 @@ function mclRowsP(){
     var am=parseFloat(o.amount||0);
     var past=!!(o.date&&o.date<toLocalISO());
     var hasN=!!String(o.notes||'').trim();
-    var tint=am>0?'#E3F0E7':hasN?'#E4EDF6':'#FFFFFF';
+    var tint=am>0?'#E3F0E7':hasN?'#E4EDF6':'#F5DEDE';
     return { kind:'p', id:o.id, past:false, tint:tint, n:o.name||'—', a:o.address||'', area:getArea(o.address||''),
       s:(o.desc||'')+(o.date?' · '+planShort(o.date)+(o.time?' '+o.time:''):''),
-      tag:am?mclTag(fmt(am),'#95681A','#FCEFD2'):past?mclTag('έγινε επίσκεψη','#4E5A50','#E6E2D8'):mclTag('προσφορά','#3C6A88','#EEF3F7'), dot:past?'#A9B4AC':'#3C6A88',
+      tag:am?mclTag(fmt(am),'#95681A','#FCEFD2'):hasN?mclTag('σημειώσεις','#28506F','#D6E3EF'):mclTag('χωρίς τιμή','#8E2A2A','#EFCFCF'), dot:am>0?'#2D6B4C':hasN?'#3C74A8':'#B03636',
       txt:[o.name,o.address,o.tel,o.desc,o.notes].join(' ') };
   });
 }
@@ -4234,7 +4234,7 @@ function openAddAppt(){
     +'<div class="frm"><label>Ημερομηνία</label><input id="ap-d" type="date" value="'+today+'"></div>'
     +'<div class="frm"><label>Ώρα</label><input id="ap-h" type="time" placeholder="10:00"></div>'
     +'</div>'
-    +'<div class="frm"><label>Περιγραφή εργασίας</label><input id="ap-desc" placeholder="π.χ. Κλάδεμα, καθαρισμός κήπου"></div>'
+    +'<div class="frm"><label>Περιγραφή εργασίας</label><textarea id="ap-desc" rows="2" style="width:100%;min-height:64px;resize:vertical;font:inherit;line-height:1.4" oninput="this.style.height=\'auto\';this.style.height=this.scrollHeight+\'px\'" placeholder="π.χ. Κλάδεμα, καθαρισμός κήπου"></textarea></div>'
     +'<div class="frm"><label>Συμφωνημένο ποσό (€) — προαιρετικό</label><input id="ap-agreed" type="number" min="0" placeholder="0" inputmode="decimal"></div>'
     +'<div class="frm"><label>Σημειώσεις</label><textarea id="ap-notes" placeholder="..."></textarea></div>',
     '<button class="btn btn-out btn-sm" onclick="closeM()">Ακύρωση</button>'
@@ -4276,7 +4276,7 @@ function openEditAppt(id){
     +'<div class="frm"><label>Ημερομηνία</label><input id="ap-d" type="date" value="'+(a.date||'')+'"></div>'
     +'<div class="frm"><label>Ώρα</label><input id="ap-h" type="time" value="'+fmtTime(a.time)+'"></div>'
     +'</div>'
-    +'<div class="frm"><label>Περιγραφή εργασίας</label><input id="ap-desc" value="'+(a.desc||'')+'"></div>'
+    +'<div class="frm"><label>Περιγραφή εργασίας</label><textarea id="ap-desc" rows="2" style="width:100%;min-height:64px;resize:vertical;font:inherit;line-height:1.4" oninput="this.style.height=\'auto\';this.style.height=this.scrollHeight+\'px\'">'+esc(a.desc||'')+'</textarea></div>'
     +'<div class="frm"><label>Συμφωνημένο ποσό (€)</label><input id="ap-agreed" type="number" min="0" value="'+(a.agreedAmt||0)+'"></div>'
     +'<div class="frm"><label>Σημειώσεις</label><textarea id="ap-notes">'+(a.notes||'')+'</textarea></div>',
     '<button class="btn btn-out btn-sm" onclick="closeM()">Ακύρωση</button>'
@@ -9567,7 +9567,7 @@ function renderOffers(){
   html+=activeOffers.map(function(o){
     var hasAmt=parseFloat(o.amount||0)>0, past=!!(o.date&&o.date<toLocalISO());
     var hasN=!!String(o.notes||'').trim();
-    return '<div style="background:'+(hasAmt?'#E3F0E7':hasN?'#E4EDF6':'#fff')+';border:1.5px solid '+(hasAmt?'#A9CBB6':hasN?'#B9CDE0':'#E5E0D3')+';border-radius:var(--rl2);padding:1rem;margin-bottom:10px;border-left:4px solid '+(hasAmt?'#F59E0B':'#3C6A88')+'">'
+    return '<div style="background:'+(hasAmt?'#E3F0E7':hasN?'#E4EDF6':'#F5DEDE')+';border:1.5px solid '+(hasAmt?'#A9CBB6':hasN?'#B9CDE0':'#E2B4B4')+';border-radius:var(--rl2);padding:1rem;margin-bottom:10px;border-left:4px solid '+(hasAmt?'#F59E0B':'#3C6A88')+'">'
       +'<div style="display:flex;justify-content:space-between;align-items:flex-start">'
       +'<div style="flex:1">'
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'
@@ -9605,7 +9605,7 @@ function openAddOffer(){
     +'<div class="frm"><label>Ημερομηνία</label><input id="ap-d" type="date" value="'+TODAY+'"></div>'
     +'<div class="frm"><label>Ώρα</label><input id="ap-h" type="time"></div>'
     +'</div>'
-    +'<div class="frm"><label>Περιγραφή εργασίας</label><input id="ap-desc" placeholder="π.χ. Κλάδεμα κήπου"></div>'
+    +'<div class="frm"><label>Περιγραφή εργασίας</label><textarea id="ap-desc" rows="2" style="width:100%;min-height:64px;resize:vertical;font:inherit;line-height:1.4" oninput="this.style.height=\'auto\';this.style.height=this.scrollHeight+\'px\'" placeholder="π.χ. Κλάδεμα κήπου"></textarea></div>'
     +'<div class="frm"><label>Εκτιμώμενο ποσό (€) — προαιρετικό</label><input id="ap-agreed" type="number" min="0" placeholder="0" inputmode="decimal"></div>'
     +'<div class="frm"><label>Σημειώσεις</label><textarea id="ap-notes" placeholder="..."></textarea></div>',
     '<button class="btn btn-out btn-sm" onclick="closeM()">Ακύρωση</button>'
@@ -9773,7 +9773,7 @@ function editOffer(el){
     +'<div class="frm"><label>Ημερομηνία</label><input id="ap-d" type="date" value="'+(o.date||'')+'"></div>'
     +'<div class="frm"><label>Ώρα</label><input id="ap-h" type="time" value="'+fmtTime(o.time)+'"></div>'
     +'</div>'
-    +'<div class="frm"><label>Περιγραφή</label><input id="ap-desc" value="'+(o.desc||'')+'"></div>'
+    +'<div class="frm"><label>Περιγραφή</label><textarea id="ap-desc" rows="2" style="width:100%;min-height:64px;resize:vertical;font:inherit;line-height:1.4" oninput="this.style.height=\'auto\';this.style.height=this.scrollHeight+\'px\'">'+esc(o.desc||'')+'</textarea></div>'
     +'<div class="frm"><label>Εκτιμώμενο ποσό (€)</label><input id="ap-agreed" type="number" value="'+(o.amount||0)+'"></div>'
     +'<div class="frm"><label>Σημειώσεις</label><textarea id="ap-notes">'+(o.notes||'')+'</textarea></div>',
     '<button class="btn btn-out btn-sm" onclick="closeM()">Ακύρωση</button>'
