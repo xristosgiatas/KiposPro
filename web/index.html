@@ -1887,8 +1887,9 @@ function mclRowsK(){
   });
 }
 function mclRowsA(){
-  return (appointments||[]).filter(function(a){return !a.done;}).sort(function(a,b){return ((a.date||'')+(a.time||'')).localeCompare((b.date||'')+(b.time||''));}).map(function(a){
-    return { kind:'a', id:a.id, n:a.name||'—', a:a.address||'', area:getArea(a.address||''),
+  window._mclA=(appointments||[]).filter(function(a){return !a.done;}).sort(function(a,b){return ((a.date||'')+(a.time||'')).localeCompare((b.date||'')+(b.time||''));});
+  return window._mclA.map(function(a,ix){
+    return { kind:'a', id:ix, n:a.name||'—', a:a.address||'', area:getArea(a.address||''),
       s:a.desc||'', tag:mclTag((a.date?planShort(a.date):'χωρίς ημ.')+(a.time?' '+a.time:''),'#2C5570','#E8F0F4'), dot:'#2C5570',
       txt:[a.name,a.address,a.tel,a.desc,a.notes].join(' ') };
   });
@@ -1905,6 +1906,9 @@ function mclRowsP(){
 }
 var MCL_SEG=[['c','Συντηρήσεις',mclRowsC],['a','Ραντεβού',mclRowsA],['p','Προσφορές',mclRowsP],['k','Κατασκευές',mclRowsK]];
 function mclOpen(kind,id){
+  try{ mclOpen2(kind,id); }catch(e){ alert('Σφάλμα: '+e.message); }
+}
+function mclOpen2(kind,id){
   if(kind==='c') showDet(id,'clients');
   else if(kind==='k'){ var g=(window._mclEkta||[])[id]; if(g) showEktaClientDetail(g); }
   else if(kind==='a') mclApptSheet(id);
@@ -1917,8 +1921,10 @@ function mclDoComplete(id){
     try{ openCompleteAppt(id); }catch(e){ alert('Σφάλμα ολοκλήρωσης: '+e.message); }
   },120);
 }
-function mclApptSheet(id){
-  var a=(appointments||[]).find(function(x){return x.id==id;}); if(!a) return;
+function mclApptSheet(ix){
+  var a=(window._mclA||[])[+ix];
+  if(!a){ alert('Δεν βρέθηκε το ραντεβού ('+ix+')'); return; }
+  if(a.id===undefined||a.id===null||a.id===''){ alert('Το ραντεβού δεν έχει κωδικό — άνοιξέ το από τον υπολογιστή'); return; }
   var tel=(a.tel||'').replace(/[^0-9+]/g,'');
   var b=function(ic,l,fn,col){ return '<button onclick="'+fn+'" style="display:flex;align-items:center;gap:12px;width:100%;min-height:54px;padding:0 14px;border:1px solid var(--brd);border-radius:14px;background:var(--paper);font-family:inherit;font-size:15px;font-weight:700;color:'+(col||'var(--tx)')+';cursor:pointer;text-align:left"><span style="font-size:18px;width:24px;text-align:center">'+ic+'</span>'+l+'</button>'; };
   openM(tdEsc(a.name||'Ραντεβού'),
