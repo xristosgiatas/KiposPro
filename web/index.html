@@ -1587,7 +1587,88 @@ function fmtDate(d){if(!d)return "";var p=d.split("-");return p.length===3?p[2]+
 function fmt(n){var v=parseFloat(n);return (isNaN(v)?0:Math.round(v))+'€';}
 function fmtD(n){return (Math.round(n*100)/100)+'€';}
 function mKey(m,y){return (y!==undefined?y:kpiY)+'-'+m;}
-function mVal(c,m,y){if(!c.months)return undefined;var ny=(y!==undefined?y:kpiY);var nk=ny+'-'+m;if(c.months[nk]!==undefined)return c.months[nk];if(ny===CY&&c.months[m]!==undefined)return c.months[m];return undefined;}
+function mVal(c,m,y){if(!c.months)return undefined;var ny=(y!==undefined?y:kpiY);var nk=ny+'-'+m;if(c.months[nk]!==undefined)return c.months[nk];if(ny===KP_LEGACY_Y&&c.months[m]!==undefined)return c.months[m];return undefined;}
+/* Μήνες χωρίς χρονιά = 2026 (παλιά μορφή). Ποτέ CY, αλλιώς το 2027 θα τους διάβαζε ως δικούς του. */
+var KP_LEGACY_Y=2026;
+var archClients=[];
+function isArch(c){ var v=c&&c.archived; return v===true||v==='1'||v===1||v==='true'; }
+function archSave(c){ google.script.run.withSuccessHandler(function(){}).withFailureHandler(function(e){alert('Σφάλμα αποθήκευσης: '+(e&&e.message||e));}).saveClient(window._kpEmail||localStorage.getItem('kipospro_email')||'',c); }
+function archC(id){
+  var c=gc(id); if(!c) return;
+  var owe=0; try{ owe=tdOwe(c); }catch(e){}
+  if(!confirm('Αρχειοθέτηση «'+(c.name||'')+'»;'+(owe?'\n\nΠροσοχή: έχει οφειλή '+fmt(owe)+'. Στο αρχείο δεν θα μετράει στις οφειλές.':'')+'\n\nΔεν σβήνεται τίποτα — μπορείς να τον επαναφέρεις από το Αρχείο συντηρήσεων.')) return;
+  c.archived='1'; c.archivedAt=toLocalISO(new Date());
+  clients=clients.filter(function(x){return x.id!=id;}); archClients.push(c);
+  archSave(c); toast('Μπήκε στο Αρχείο συντηρήσεων');
+  try{ if(document.getElementById('det-page')&&typeof go==='function'&&!document.body.classList.contains('mob-mode')) go('clients'); }catch(e){}
+  try{ closeM(); }catch(e){}
+  renderActivePage();
+}
+function unArchC(id){
+  var c=archClients.find(function(x){return x.id==id;}); if(!c) return;
+  c.archived='';
+  archClients=archClients.filter(function(x){return x.id!=id;}); clients.push(c);
+  archSave(c); toast('Επανήλθε στις Συντηρήσεις'); arcShow(); renderActivePage();
+}
+function delArchC(id){
+  if(!confirm('Οριστική διαγραφή; Δεν επαναφέρεται.')) return;
+  archClients=archClients.filter(function(x){return x.id!=id;});
+  google.script.run.withSuccessHandler(function(){toast('Διαγράφηκε');}).deleteClient(window._kpEmail||localStorage.getItem('kipospro_email')||'',id);
+  arcShow();
+}
+function arcShow(){
+  var old=document.getElementById('arc-sheet'); if(old) old.remove();
+  var L=archClients.slice().sort(function(a,b){return (a.name||'').localeCompare(b.name||'','el');});
+  var bt='height:38px;padding:0 12px;border-radius:11px;border:0;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap';
+  var rows=L.length?L.map(function(c){
+    var q="'"+String(c.id).replace(/'/g,'')+"'";
+    var ys=Object.keys(c.months||{}).map(function(k){return parseInt(String(k).split('-')[0],10);}).filter(function(y){return !isNaN(y);});
+    var last=ys.length?Math.max.apply(null,ys):'';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--brd)">'
+      +'<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:800;color:var(--tx)">'+tdEsc(c.name||'—')+'</div>'
+      +'<div style="font-family:var(--mono);font-size:11.5px;color:var(--tx2);margin-top:2px">'+tdEsc(c.address||'')+(last?' · τελ. χρονιά '+last:'')+'</div></div>'
+      +'<button onclick="unArchC('+q+')" style="'+bt+';background:#E3F0E7;color:#1D4632">↩ Επαναφορά</button>'
+      +'<button onclick="delArchC('+q+')" style="'+bt+';background:#F5DEDE;color:#8E2A2A">🗑</button></div>';
+  }).join(''):'<div style="padding:20px 0;text-align:center;color:var(--tx2);font-size:14px">Το αρχείο είναι άδειο.</div>';
+  var m=document.createElement('div'); m.id='arc-sheet'; m.className='lp-menu ready';
+  m.innerHTML='<div class="lp-bd" onclick="document.getElementById(\'arc-sheet\').remove()"></div><div class="lp-sh">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-size:17px;font-weight:800;color:var(--tx)">📦 Αρχείο συντηρήσεων · '+L.length+'</div>'
+    +'<button onclick="document.getElementById(\'arc-sheet\').remove()" style="width:34px;height:34px;border-radius:50%;border:0;background:#EEEAE0;font-size:16px;cursor:pointer">×</button></div>'
+    +'<div style="font-size:12.5px;color:var(--tx2);margin-bottom:8px">Πελάτες που σταμάτησαν. Κρατιούνται με όλο το ιστορικό, φωτογραφίες και πληρωμές.</div>'+rows+'</div>';
+  document.body.appendChild(m); requestAnimationFrame(function(){ m.classList.add('on'); });
+}
+function yrMonths(c,y){ var a=[]; for(var m=0;m<12;m++){ if(c.months&&c.months[y+'-'+m]) a.push(m); } return a; }
+function maxRun(ms){ var best=0,run=0; for(var m=0;m<12;m++){ if(ms.indexOf(m)>=0){ run++; if(run>best) best=run; } else run=0; } return best; }
+function needsYear(c,y){ return y>KP_LEGACY_Y && !yrMonths(c,y).length && yrMonths(c,y-1).length===1; }
+function kpYearRoll(){
+  var Y=CY, P=Y-1, dirty=[];
+  clients.forEach(function(c){
+    if(!c.months) c.months={};
+    var ch=false;
+    Object.keys(c.months).forEach(function(k){
+      if(/^\d+$/.test(k)){ var nk=KP_LEGACY_Y+'-'+parseInt(k,10); if(!c.months[nk]) c.months[nk]=c.months[k]; delete c.months[k]; ch=true; }
+    });
+    var mk='kp_roll_'+Y+'_'+c.id;
+    if(Y>KP_LEGACY_Y && !yrMonths(c,Y).length && !localStorage.getItem(mk)){
+      var prev=yrMonths(c,P);
+      if(prev.length>=2){
+        var tgt=maxRun(prev)>=2?[0,1,2,3,4,5,6,7,8,9,10,11]:prev;
+        tgt.forEach(function(m){
+          var src=c.months[P+'-'+m];
+          if(!src){ var b=prev.filter(function(x){return x<m;}); src=c.months[P+'-'+(b.length?b[b.length-1]:prev[0])]; }
+          c.months[Y+'-'+m]={visits:parseInt(src&&src.visits)||c.defVisits||2,price:numOr(src&&src.price,numOr(c.defPrice,80)),paid:false,extras:[]};
+        });
+        ch=true;
+      }
+      if(prev.length) try{ localStorage.setItem(mk,'1'); }catch(e){}
+    }
+    if(ch) dirty.push(c);
+  });
+  var em=window._kpEmail||localStorage.getItem('kipospro_email')||'';
+  dirty.forEach(function(c,i){ setTimeout(function(){ try{ google.script.run.withSuccessHandler(function(){}).withFailureHandler(function(){}).saveClient(em,c); }catch(e){} },i*400); });
+  if(dirty.length&&Y>KP_LEGACY_Y) setTimeout(function(){ try{ toast('Νέα χρονιά '+Y+': ενημερώθηκαν '+dirty.length+' κήποι'); }catch(e){} },1500);
+}
+
 function isAct(c,m,y){return !!mVal(c,m,y);}
 function isPd(c,m,y){var v=mVal(c,m,y);return !!(v&&v.paid);}
 function gPbase(c,m,y){var v=mVal(c,m,y);return v?numOr(v.price,numOr(c.defPrice,80)):numOr(c.defPrice,80);}
@@ -1906,8 +1987,9 @@ function mclRowsC(){
     var urg={red:0,soon:1,ok:2,novisit:3}[grp]*100000-(od?od.overdue:-99999);
     var stk=pi&&grp!=='red'?(pi.missed?'red':'plan'):grp;
     var ST={red:['#F5DEDE','#8E2A2A','rgba(142,42,42,.3)','#B03636'],soon:['#FCEFD2','#95681A','rgba(138,74,34,.35)','#B58A2B'],plan:['#E4EDF6','#28506F','rgba(40,80,111,.28)','#3C74A8'],ok:['#E3F0E7','#2D6B4C','rgba(0,0,0,0)','#2D6B4C'],novisit:['#EEEAE0','#4E5A50','rgba(0,0,0,0)','#A9A398']}[stk];
-    var offM=!isAct(c,SM,SY);
-    if(offM){ ST=['#EEEAE0','#4E5A50','rgba(0,0,0,0)','#C9C3B6']; urg+=1000000; }
+    var offM=!isAct(c,SM,SY), needY=needsYear(c,SY);
+    if(needY){ offM=false; ST=['#FBE3CF','#9A4A12','rgba(154,74,18,.35)','#E07B2A']; tag=mclTag('όρισε μήνες '+SY,'#9A4A12','#FBE3CF'); urg-=1000000; }
+    else if(offM){ ST=['#EEEAE0','#4E5A50','rgba(0,0,0,0)','#C9C3B6']; urg+=1000000; }
     var card1a=true;
     return { kind:'c', id:c.id, tint:tint, urg:urg, s2c:s2c, st:ST, card:card1a, pi:pi, grp:grp, n:c.name, a:c.address||'', area:getArea(c.address||''),
       s:(function(){
@@ -1915,7 +1997,7 @@ function mclRowsC(){
         var nx='';
         if(od){ nx=od.overdue>3?'Καθυστερημένος '+od.overdue+' μέρες':od.overdue>=0?'Πρέπει να πάει σήμερα':'Επόμενη επίσκεψη σε '+(od.interval-od.daysSince)+' μέρες'; }
         return lv?'Τελ. επίσκεψη '+d2(lv.date||lv):'';
-      })(), s2:(od?(od.overdue>3?'Καθυστερημένος '+od.overdue+' μέρες':od.overdue>=0?'Πρέπει να πάει σήμερα':'Επόμενη επίσκεψη σε '+(od.interval-od.daysSince)+' μέρες'):''), tag:tag, dot:dot, offM:offM, offTxt:offM?'Ανενεργός τον '+MNF[SM]:'',
+      })(), s2:(od?(od.overdue>3?'Καθυστερημένος '+od.overdue+' μέρες':od.overdue>=0?'Πρέπει να πάει σήμερα':'Επόμενη επίσκεψη σε '+(od.interval-od.daysSince)+' μέρες'):''), tag:tag, dot:dot, offM:offM, offTxt:needY?'Ένας μήνας πέρσι · όρισε ενεργούς μήνες '+SY:offM?'Ανενεργός τον '+MNF[SM]:'', needY:needY,
       owe:!!owe, late:!!(od&&od.overdue>3), rep:rep, vis:parseInt(c.defVisits||2),
       txt:[c.name,c.address,c.tel,c.notes,c.afm].join(' ') };
   });
@@ -2025,7 +2107,7 @@ function mclRowHtml(r){
   if(r.card){
     var S=r.st, st2=r.offTxt||r.s2||(r.kind==='c'&&!r.s?'Χωρίς ιστορικό επισκέψεων':'');
     if(r.pi){ var pl=(r.pi.missed?'Χάθηκε από το πλάνο · ':'Στο πλάνο · ')+planShort(r.pi.date)+(r.pi.extra>0?' +'+r.pi.extra:''); st2=r.grp==='red'?st2+' · '+pl:pl; }
-    return '<div class="td-row mcl-drag" data-cid="'+tdEsc(r.id)+'" data-cname="'+tdEsc(r.n)+'" onclick="mclOpen(\'c\',\''+tdEsc(r.id)+'\')" style="display:block;'+(r.offM?'opacity:.6;':'')+'background:var(--paper);border:1px solid var(--brd);border-left:3px solid '+S[3]+';border-radius:18px;padding:13px 14px">'
+    return '<div class="td-row mcl-drag" data-cid="'+tdEsc(r.id)+'" data-cname="'+tdEsc(r.n)+'" onclick="mclOpen(\'c\',\''+tdEsc(r.id)+'\')" style="display:block;'+(r.offM?'opacity:.6;':'')+'background:'+(r.needY?'#FFF4EA':'var(--paper)')+';border:1px solid var(--brd);border-left:3px solid '+S[3]+';border-radius:18px;padding:13px 14px">'
       +'<div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span class="n" style="font-size:15.5px;font-weight:800">'+tdEsc(r.n)+'</span>'
       +'<span style="font-family:var(--mono);font-size:11.5px;font-weight:700;border-radius:8px;padding:3px 8px;white-space:nowrap;flex:none;color:'+r.tag.fg+';background:'+r.tag.bg+'">'+tdEsc(r.tag.t)+'</span></div>'
       +(r.a?'<div style="font-family:var(--mono);font-size:11.5px;color:var(--tx2);margin-top:3px">'+tdEsc(r.a)+'</div>':'')
@@ -2129,6 +2211,7 @@ function mclBody(){
   Object.keys(by).forEach(function(k){ by[k].sort(function(a,b){ if(useU&&a.urg!==b.urg) return a.urg-b.urg; return (a.n||'').localeCompare(b.n||'','el'); }); });
   var keys=Object.keys(by).sort(function(a,b){ if(a==='Άλλο') return 1; if(b==='Άλλο') return -1; if(useU){ var d=by[a][0].urg-by[b][0].urg; if(d) return d; } return by[b].length-by[a].length; });
   h+='<div style="display:flex;flex-direction:column;gap:14px;margin-top:14px">'+keys.map(function(k){ return mclGroup(_mcl.seg+':'+k,k,by[k]); }).join('')+'</div>';
+  if(_mcl.seg==='c') h+='<button onclick="arcShow()" style="width:100%;margin-top:16px;height:48px;border-radius:14px;border:1px dashed #C9C3B6;background:transparent;font-family:inherit;font-size:14px;font-weight:700;color:var(--tx2);cursor:pointer">📦 Αρχείο συντηρήσεων · '+archClients.length+'</button>';
   el.innerHTML=h;
 }
 function mclAdd(){
@@ -3283,7 +3366,7 @@ function loadData(){
           Object.keys(c.months).forEach(function(k){
             var p=String(k).split('-');
             var km=p.length>1?parseInt(p[1],10):parseInt(k,10);
-            var ky=p.length>1?parseInt(p[0],10):CY;
+            var ky=p.length>1?parseInt(p[0],10):KP_LEGACY_Y;
             if(isNaN(km)||isNaN(ky)||km<0||km>11) delete c.months[k];
           });
           c.defVisits=parseInt(c.defVisits)||2;
@@ -3297,7 +3380,8 @@ function loadData(){
         docs=(data.docs||[]).map(function(d){d.amount=parseFloat(d.amount)||0;d.warranty=parseFloat(d.warranty)||0;return d;});
         supply=(data.supply||[]).map(function(s){s.cost=parseFloat(s.cost)||0;s.price=parseFloat(s.price)||0;s.qty=parseFloat(s.qty)||1;s.depleted=(s.depleted==='true'||s.depleted===true);return s;});
         offers=(data.offers||[]).map(function(o){o.amount=parseFloat(o.amount)||0;return o;});
-        visits=(data.visits||[]);
+        archClients=clients.filter(isArch); clients=clients.filter(function(c){return !isArch(c);});
+        try{ kpYearRoll(); }catch(e){ console.warn('yearRoll',e); }
         visits=(data.visits||[]);
         receipts=(data.receipts||[]);
         reports=(data.reports||[]);
@@ -3782,7 +3866,8 @@ function lpShow(cid,name){
     ['€',owe?'Πληρωμή '+fmt(owe):'Πληρωμή','swPay('+q+')',owe?'y':'n'],
     ['📷','Φωτογραφίες','openPhotos('+q+')','n'],
     addr&&['🧭','Οδηγίες',"window.open('https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(addr)+"')",'n'],
-    ['👤','Καρτέλα','showDet('+q+',\'clients\')','n']
+    ['👤','Καρτέλα','showDet('+q+',\'clients\')','n'],
+    ['📦','Αρχειοθέτηση','archC('+q+')','y']
   ]);
 }
 /* ── συμβάντα ── */
@@ -5170,6 +5255,8 @@ function renderDet(id){
             +'<button class="d-mi" onclick="closeDetMenu();openClientPortalLink(\''+c.id+'\')"><span class="d-mi-ic">ΛΙ</span>Link αναφοράς πελάτη</button>'
             +'<button class="d-mi" onclick="closeDetMenu();saveContact(\''+c.id+'\')"><span class="d-mi-ic">ΕΠΦ</span>Αποθήκευση επαφής</button>'
             +'<div class="d-sep"></div>'
+            +'<button class="d-mi" onclick="closeDetMenu();archC(\''+c.id+'\')"><span class="d-mi-ic">ΑΡΧ</span>Αρχειοθέτηση</button>'
+            +'<button class="d-mi" onclick="closeDetMenu();arcShow()"><span class="d-mi-ic">📦</span>Αρχείο συντηρήσεων ('+archClients.length+')</button>'
             +'<button class="d-mi danger" onclick="closeDetMenu();delC(\''+c.id+'\')"><span class="d-mi-ic">ΔΙ</span>Διαγραφή πελάτη</button>'
           +'</div>'
         +'</div>'
