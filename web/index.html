@@ -1665,7 +1665,9 @@ function kpYearRoll(){
     if(ch) dirty.push(c);
   });
   var em=window._kpEmail||localStorage.getItem('kipospro_email')||'';
-  dirty.forEach(function(c,i){ setTimeout(function(){ try{ google.script.run.withSuccessHandler(function(){}).withFailureHandler(function(){}).saveClient(em,c); }catch(e){} },i*400); });
+  var big=dirty.length&&Y>KP_LEGACY_Y;
+  if(big) try{ google.script.run.withSuccessHandler(function(){}).withFailureHandler(function(){}).kpBackupNow(em,'πριν τη νέα χρονιά '+Y); }catch(e){}
+  dirty.forEach(function(c,i){ setTimeout(function(){ try{ google.script.run.withSuccessHandler(function(){}).withFailureHandler(function(){}).saveClient(em,c); }catch(e){} },(big?8000:0)+i*400); });
   if(dirty.length&&Y>KP_LEGACY_Y) setTimeout(function(){ try{ toast('Νέα χρονιά '+Y+': ενημερώθηκαν '+dirty.length+' κήποι'); }catch(e){} },1500);
 }
 
@@ -1950,13 +1952,52 @@ function renderMore(){
     h+='</div></div>';
   });
   h+='<div><div class="td-sec">ΛΟΓΑΡΙΑΣΜΟΣ</div><div class="mr-list">'
+    +'<button onclick="bkSheet()"><span>🛡 Αντίγραφα ασφαλείας <span id="bk-mini" style="display:block;font-size:12px;font-weight:600;color:var(--tx2);margin-top:2px">…</span></span><span style="color:var(--tx2)">›</span></button>'
     +'<button onclick="go(\'pelat\')"><span>Πελατολόγιο &amp; επαφές κινητού</span><span style="color:var(--tx2)">›</span></button>'
     +'<button onclick="toggleSB()"><span>Πλήρες μενού</span><span style="color:var(--tx2)">›</span></button>'
     +'<button onclick="logoutKP()" style="color:var(--red)"><span>Αποσύνδεση</span></button>'
     +'</div></div></div>';
   root.innerHTML=h;
+  bkInfo(function(i){ var e=document.getElementById('bk-mini'); if(e) e.innerHTML=bkLabel(i); });
 }
-
+/* ===== Backup ===== */
+var _bk=null;
+function bkEm(){ return window._kpEmail||localStorage.getItem('kipospro_email')||''; }
+function bkAgo(iso){ if(!iso) return ''; var d=new Date(iso), n=new Date(), t=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+  if(d.toDateString()===n.toDateString()) return 'σήμερα '+t; var y=new Date(n); y.setDate(n.getDate()-1); if(d.toDateString()===y.toDateString()) return 'χθες '+t;
+  return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+' '+t; }
+function bkLabel(i){
+  if(!i) return 'Δεν έχει ρυθμιστεί ακόμα';
+  if(i.err) return '<span style="color:var(--red)">Δεν έχει ρυθμιστεί στο Apps Script</span>';
+  var old=i.last&&(Date.now()-new Date(i.last).getTime()>36*36e5);
+  return i.last?('<span style="color:'+(old?'var(--red)':'#2D6B4C')+'">Τελευταίο: '+bkAgo(i.last)+(old?' ⚠':' ✓')+'</span>'):'<span style="color:var(--red)">Δεν έχει γίνει κανένα</span>';
+}
+function bkInfo(cb){
+  try{ google.script.run.withSuccessHandler(function(r){ _bk=typeof r==='string'?JSON.parse(r):r; cb(_bk); }).withFailureHandler(function(){ _bk={err:1}; cb(_bk); }).kpBackupInfo(bkEm()); }catch(e){ cb({err:1}); }
+}
+function bkNow(tag,silent){
+  var b=document.getElementById('bk-now'); if(b){ b.disabled=true; b.textContent='Γίνεται backup…'; }
+  google.script.run.withSuccessHandler(function(){ if(!silent) toast('✓ Έγινε backup'); bkInfo(function(){ if(document.getElementById('arc-sheet')) bkSheet(); var e=document.getElementById('bk-mini'); if(e) e.innerHTML=bkLabel(_bk); }); })
+    .withFailureHandler(function(e){ if(!silent) alert('Το backup απέτυχε: '+(e&&e.message||e)); if(b){ b.disabled=false; b.textContent='Backup τώρα'; } })
+    .kpBackupNow(bkEm(),tag||'χειροκίνητο');
+}
+function bkSheet(){
+  var old=document.getElementById('arc-sheet'); if(old) old.remove();
+  var i=_bk||{};
+  var row=function(l,v){ return '<div style="display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--brd);font-size:14px"><span style="color:var(--tx2)">'+l+'</span><span style="font-weight:700;text-align:right">'+v+'</span></div>'; };
+  var m=document.createElement('div'); m.id='arc-sheet'; m.className='lp-menu ready';
+  m.innerHTML='<div class="lp-bd" onclick="document.getElementById(\'arc-sheet\').remove()"></div><div class="lp-sh">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-size:17px;font-weight:800">🛡 Αντίγραφα ασφαλείας</div>'
+    +'<button onclick="document.getElementById(\'arc-sheet\').remove()" style="width:34px;height:34px;border-radius:50%;border:0;background:#EEEAE0;font-size:16px;cursor:pointer">×</button></div>'
+    +row('Τελευταίο backup',bkLabel(i))
+    +row('Αυτόματο κάθε βράδυ',i.err?'—':(i.auto?'<span style="color:#2D6B4C">Ενεργό ✓</span>':'<span style="color:var(--red)">Ανενεργό</span>'))
+    +row('Email με Excel','Κάθε Δευτέρα')
+    +row('Κρατούνται','30 τελευταία + 1 / μήνα')
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">'
+    +'<button id="bk-now" onclick="bkNow()" style="height:48px;border-radius:14px;border:0;background:#2D6B4C;color:#fff;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer">Backup τώρα</button>'
+    +'<button onclick="'+(i.folderUrl?'window.open(\''+i.folderUrl+'\')':'alert(\'Ο φάκελος δημιουργείται με το πρώτο backup\')')+'" style="height:48px;border-radius:14px;border:1px solid var(--brd);background:var(--paper);font-family:inherit;font-size:14px;font-weight:700;color:var(--tx);cursor:pointer">📁 Φάκελος Drive</button></div></div>';
+  document.body.appendChild(m); requestAnimationFrame(function(){ m.classList.add('on'); });
+}
 
 /* ===== ΚΙΝΗΤΟ: Πελάτες ===== */
 var _mcl={seg:'c',f:'all',q:'',closed:{}};
@@ -3275,6 +3316,7 @@ function renderAccountInfo(){
   var expiryTxt=_accountExpiry?fmtDate(_accountExpiry):'—';
   el.innerHTML='<div style="font-weight:700;color:rgba(255,255,255,.85);word-break:break-all">👤 '+email+'</div>'
     +'<div style="margin-top:3px">Συνδρομή έως: '+expiryTxt+'</div>'
+    +'<button onclick="bkInfo(bkSheet)" style="margin-top:7px;width:100%;background:rgba(255,255,255,.12);color:#fff;border:none;border-radius:6px;padding:7px 0;font-size:11px;font-weight:700;cursor:pointer">🛡 Αντίγραφα ασφαλείας</button>'
     +'<button onclick="logoutKP()" style="margin-top:7px;width:100%;background:rgba(255,255,255,.12);color:#fff;border:none;border-radius:6px;padding:7px 0;font-size:11px;font-weight:700;cursor:pointer">🚪 Αποσύνδεση</button>';
 }
 
