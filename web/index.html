@@ -1983,7 +1983,7 @@ function mclOEl(id){ var s=document.createElement('span'); s.setAttribute('data-
 (function(){
   var T=null, sx=0, sy=0, fired=false;
   document.addEventListener('touchstart',function(e){
-    var r=e.target.closest&&e.target.closest('.mcl-lp[data-oid]'); if(!r) return;
+    var r=e.target.closest&&e.target.closest('.mcl-lp[data-oid]:not(.mcl-drag)'); if(!r||r.closest('.mcl-drag')) return;
     fired=false; sx=e.touches[0].clientX; sy=e.touches[0].clientY; clearTimeout(T);
     T=setTimeout(function(){ fired=true; if(navigator.vibrate) navigator.vibrate(12); mclLpRun(r); },480);
   },{passive:true});
@@ -3777,6 +3777,71 @@ function lpShow(cid,name){
     ['👤','Καρτέλα','showDet('+q+',\'clients\')','n']
   ]);
 }
+/* ── συμβάντα ── */
+document.addEventListener('touchstart',function(e){
+  var card=e.target.closest&&e.target.closest('.cc[data-cid],.mcl-drag[data-cid],[data-swc]');
+  if(!card||e.target.closest('a,button,input,textarea,select')) return;
+  if(e.target.closest('.lp-menu')) return;
+  var t=e.touches[0]; DG.sx=t.clientX; DG.sy=t.clientY;
+  clearTimeout(DG.timer);
+  DG.timer=setTimeout(function(){ var mob=document.body.classList.contains('mob-mode'); dgStart(card,DG.sx,DG.sy,mob); if(mob) lpOpen(); },380);
+},{passive:true});
+
+document.addEventListener('touchmove',function(e){
+  var t=e.touches[0];
+  if(!DG.on){
+    if(Math.abs(t.clientX-DG.sx)>9||Math.abs(t.clientY-DG.sy)>9) clearTimeout(DG.timer);
+    return;
+  }
+  e.preventDefault();
+  if(DG.lazy){
+    if(Math.abs(t.clientX-DG.sx)<=14&&Math.abs(t.clientY-DG.sy)<=14) return;
+    DG.lazy=false; lpHide();
+    DG.ghost.style.display=''; dgBuildBar();
+  }
+  dgMove(t.clientX,t.clientY);
+},{passive:false});
+
+['touchend','touchcancel'].forEach(function(ev){
+  document.addEventListener(ev,function(){
+    clearTimeout(DG.timer);
+    if(DG.on){
+      if(DG.lazy){ DG.hot=null; if(DG.lp) DG.lp.classList.add('ready'); DG.sup=true; setTimeout(function(){DG.sup=false;},350); }
+      else DG.moved=true;
+      dgEnd();
+    }
+  });
+});
+
+document.addEventListener('mousedown',function(e){
+  if(e.button!==0) return;
+  var card=e.target.closest&&e.target.closest('.cc[data-cid],.mcl-drag[data-cid]');
+  if(!card) return;
+  if(e.target.closest('a,button,input,select,textarea')) return;
+  DG.sx=e.clientX; DG.sy=e.clientY; DG.pend=card;
+});
+
+document.addEventListener('mousemove',function(e){
+  if(DG.pend&&!DG.on){
+    if(Math.abs(e.clientX-DG.sx)>7||Math.abs(e.clientY-DG.sy)>7){
+      dgStart(DG.pend,e.clientX,e.clientY); DG.pend=null;
+    }
+    return;
+  }
+  if(DG.on){ e.preventDefault(); dgMove(e.clientX,e.clientY); }
+});
+
+document.addEventListener('mouseup',function(){
+  DG.pend=null;
+  if(DG.on){ DG.sup=true; dgEnd(); setTimeout(function(){DG.sup=false;},60); }
+});
+
+/* το drop ή το άφημα μετά το παρατεταμένο δεν πρέπει να ανοίξει την καρτέλα */
+document.addEventListener('click',function(e){
+  if(e.target.closest&&e.target.closest('.lp-menu')) return;
+  if(DG.sup||DG.moved){ e.stopPropagation(); e.preventDefault(); DG.moved=false; }
+},true);
+
 function renderClients(){
   if(document.body.classList.contains('mob-mode')){ renderMobClients(); return; }
   renderRepBanner();
