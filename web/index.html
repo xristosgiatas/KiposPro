@@ -1934,9 +1934,11 @@ function renderOwed(){
   mtabBadges();
 }
 
+var MORE_IC_MK='<path d="M3 21 21 3"/><path d="M3 21h18V3"/><path d="M8 21v-3M13 21v-3M18 21v-3M21 8h-3M21 13h-3"/>';
 var MORE_IC={"RV":"<rect x=\"3\" y=\"4\" width=\"18\" height=\"17\" rx=\"3\"/><path d=\"M3 9h18M8 2v4M16 2v4M12 13v3l2 1\"/>","KA":"<path d=\"M3 17 17 3l4 4L7 21H3z\"/><path d=\"m6 14 2 2M9 11l2 2M12 8l2 2M15 5l2 2\"/>","PR":"<path d=\"M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z\"/><path d=\"M14 3v5h5M9 13h6M9 17h4\"/>","AN":"<path d=\"M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z\"/><path d=\"M12 7v4M12 14h.01\"/>","SX":"<path d=\"M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7\"/><path d=\"M14 3l5 5h-5z\"/><path d=\"M8 10h4M8 14h3\"/><path d=\"m15 21 6-6-2-2-6 6v2z\"/>","FY":"<path d=\"M11 20A7 7 0 0 1 4 13c0-5 4-9 16-10-1 12-5 16-10 16\"/><path d=\"M4 21c3-6 7-9 11-11\"/>","XA":"<path d=\"M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z\"/><path d=\"M9 4v14M15 6v14\"/>","AR":"<rect x=\"3\" y=\"4\" width=\"18\" height=\"5\" rx=\"1\"/><path d=\"M5 9v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9M10 13h4\"/>","OI":"<path d=\"M3 3v18h18\"/><path d=\"m7 15 4-4 3 3 5-6\"/>","TI":"<path d=\"M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z\"/><path d=\"M9 8h6M9 12h6\"/>","AL":"<path d=\"M21 8 12 3 3 8v8l9 5 9-5z\"/><path d=\"m3 8 9 5 9-5M12 13v8\"/>"};
+MORE_IC.MK=MORE_IC_MK;
 var MORE_TILES=[
-  ['ΔΟΥΛΕΙΑ',[['appts','Ραντεβού','RV'],['ekta','Κατασκευές','KA'],['quote','Προσφορά','PR'],['reports','Αναφορές πελατών','AN'],['design','Σχέδιο κήπου','SX'],['plants','Οδηγός φυτών','FY'],['map','Χάρτης','XA'],['archive','Αρχείο','AR']]],
+  ['ΔΟΥΛΕΙΑ',[['appts','Ραντεβού','RV'],['ekta','Κατασκευές','KA'],['quote','Προσφορά','PR'],['reports','Αναφορές πελατών','AN'],['mk','Μέτρα κήπου','MK'],['design','Σχέδιο κήπου','SX'],['plants','Οδηγός φυτών','FY'],['map','Χάρτης','XA'],['archive','Αρχείο','AR']]],
   ['ΟΙΚΟΝΟΜΙΚΑ',[['fin','Οικονομικά','OI'],['docs','Τιμολόγια','TI'],['supply','Αναλώσιμα','AL']]]
 ];
 function renderMore(){
@@ -1998,6 +2000,295 @@ function bkSheet(){
     +'<button id="bk-now" onclick="bkNow()" style="height:48px;border-radius:14px;border:0;background:#2D6B4C;color:#fff;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer">Backup τώρα</button>'
     +'<button onclick="'+(i.folderUrl?'window.open(\''+i.folderUrl+'\')':'alert(\'Ο φάκελος δημιουργείται με το πρώτο backup\')')+'" style="height:48px;border-radius:14px;border:1px solid var(--brd);background:var(--paper);font-family:inherit;font-size:14px;font-weight:700;color:var(--tx);cursor:pointer">📁 Φάκελος Drive</button></div></div>';
   document.body.appendChild(m); requestAnimationFrame(function(){ m.classList.add('on'); });
+}
+
+/* ===== Μέτρα κήπου ===== */
+var MK={list:null,cur:null,client:'',addr:'',sel:'A'};
+var MK_DEF={rect:{A:12,B:8},L:{A:14,B:10,C:6,D:4},trap:{A:14,B:9,H:7,C:7,D:8.5,E:13},tri:{A:12,B:9,C:10}};
+var MK_KG={A:'Α',B:'Β',C:'Γ',D:'Δ',H:'Υ',E:'Ε'};
+var MK_SH=[['rect','Ορθογώνιο','4,4 30,4 30,22 4,22'],['L','Γ','4,4 19,4 19,11 30,11 30,22 4,22'],['trap','Τραπέζιο','10,4 24,4 30,22 4,22'],['tri','Τρίγωνο','17,3 31,23 3,23']];
+var MK_TS={mid:'Συμμετρικό',l:'Ίσια αριστερά',r:'Ίσια δεξιά',auto:'Στραβό'};
+function mkEm(){ return window._kpEmail||localStorage.getItem('kipospro_email')||''; }
+function mkN(x){ return (Math.round(x*10)/10).toLocaleString('el-GR'); }
+function mkLbl(sh,ts){
+  if(sh==='rect') return {A:'Μήκος',B:'Πλάτος'};
+  if(sh==='L') return {A:'Συνολικό μήκος',B:'Συνολικό πλάτος',C:'Κομμένο μήκος',D:'Κομμένο πλάτος'};
+  if(sh==='trap') return ts==='auto'?{A:'Μπροστά',B:'Πίσω',C:'Αριστερή πλευρά',D:'Δεξιά πλευρά',E:'Διαγώνιος ↗ (μπρ.αριστ.–πίσω δεξ.)'}:{A:'Μπροστά (μεγάλη)',B:'Πίσω (μικρή)',H:'Βάθος'};
+  return {A:'Πλευρά Α',B:'Πλευρά Β',C:'Πλευρά Γ'};
+}
+function mkGeo(sh,v,o){
+  o=o||{}; var n=function(k){ return Math.max(0,parseFloat(String(v[k]==null?'':v[k]).replace(',','.'))||0); };
+  if(sh==='rect'){ var w=n('A'),h=n('B'); return {p:[[0,0],[w,0],[w,h],[0,h]],s:[['A',0],['B',1]],area:w*h}; }
+  if(sh==='L'){ var W=n('A'),H=n('B'),w2=Math.min(n('C'),W),h2=Math.min(n('D'),H);
+    var p=[[0,0],[W-w2,0],[W-w2,h2],[W,h2],[W,H],[0,H]], cr=o.corner||'tr', fx=cr==='tl'||cr==='bl', fy=cr==='br'||cr==='bl';
+    p=p.map(function(q){ return [fx?W-q[0]:q[0], fy?H-q[1]:q[1]]; });
+    return {p:p,s:[['A',4],['B',5],['C',2],['D',1]],area:W*H-w2*h2}; }
+  if(sh==='trap'&&(o.tside||'mid')!=='auto'){ var a=n('A'),b=n('B'),hh=n('H'),ts=o.tside||'mid',of=ts==='l'?0:ts==='r'?a-b:(a-b)/2;
+    return {p:[[of,0],[of+b,0],[a,hh],[0,hh]],s:[['A',2],['B',0],['H',-1]],area:(a+b)/2*hh,hgt:[[a/2,0],[a/2,hh]]}; }
+  if(sh==='trap'){ var A=n('A'),B=n('B'),C=n('C'),D=n('D'),E=n('E');
+    var bad={p:[[0,0],[A||1,0],[A||1,0.01],[0,0.01]],s:[['A',0]],area:0,bad:'Αυτά τα μέτρα δεν κλείνουν σχήμα. Έλεγξε τη διαγώνιο.'};
+    var x2=(A*A+E*E-D*D)/(2*A||1), yy=E*E-x2*x2; if(!(yy>0)) return bad;
+    var P2=[x2,Math.sqrt(yy)], ux=P2[0]/E, uy=P2[1]/E, t=(C*C-B*B+E*E)/(2*E), hq2=C*C-t*t; if(!(hq2>=0)) return bad;
+    var hq=Math.sqrt(hq2), P3=[ux*t-uy*hq, uy*t+ux*hq], F=function(q){ return [q[0],-q[1]]; };
+    var pts=[P3,P2,[A,0],[0,0]].map(F);
+    var ar=Math.abs(pts.reduce(function(s,q,i){ var r=pts[(i+1)%4]; return s+q[0]*r[1]-r[0]*q[1]; },0))/2;
+    return {p:pts,s:[['A',2],['B',0],['C',3],['D',1],['E',-1]],area:ar,hgt:[F([0,0]),F(P2)]}; }
+  var a3=n('A'),b3=n('B'),c3=n('C'),x=(a3*a3+b3*b3-c3*c3)/(2*a3||1),y2=b3*b3-x*x;
+  if(!(y2>0)) return {p:[[0,0],[a3||1,0],[(a3||1)/2,0.01]],s:[['A',0]],area:0,bad:'Αυτά τα μέτρα δεν κλείνουν τρίγωνο'};
+  var y=Math.sqrt(y2); return {p:[[0,y],[a3,y],[x,0]],s:[['A',0],['C',1],['B',2]],area:a3*y/2};
+}
+function mkPer(g){ return g.p.reduce(function(s,q,i){ var r=g.p[(i+1)%g.p.length]; return s+Math.hypot(r[0]-q[0],r[1]-q[1]); },0); }
+function mkFit(g,W,H,pad,kF){
+  var xs=g.p.map(function(q){return q[0];}), ys=g.p.map(function(q){return q[1];});
+  var mnx=Math.min.apply(0,xs),mxx=Math.max.apply(0,xs),mny=Math.min.apply(0,ys),mxy=Math.max.apply(0,ys);
+  var k=kF||Math.min((W-2*pad)/((mxx-mnx)||1),(H-2*pad)/((mxy-mny)||1));
+  var ox=(W-(mxx-mnx)*k)/2, oy=(H-(mxy-mny)*k)/2;
+  var P=function(q){ return [ox+(q[0]-mnx)*k, oy+(q[1]-mny)*k]; };
+  return {k:k,P:P,pts:g.p.map(P),ox:ox,oy:oy,w:(mxx-mnx),h:(mxy-mny)};
+}
+function mkDims(sh,g,F,off){
+  var pts=F.pts, cx=0, cy=0; pts.forEach(function(q){ cx+=q[0]; cy+=q[1]; }); cx/=pts.length; cy/=pts.length;
+  return g.s.map(function(e){
+    var key=e[0], idx=e[1], a, b, nx=0, ny=0, o=off;
+    if(idx<0){ a=F.P(g.hgt[0]); b=F.P(g.hgt[1]); o=0; }
+    else { a=pts[idx]; b=pts[(idx+1)%pts.length];
+      if(sh==='L'&&key==='C'){ a=pts[1]; b=[pts[3][0],pts[1][1]]; }
+      if(sh==='L'&&key==='D'){ a=[pts[3][0],pts[1][1]]; b=[pts[3][0],pts[2][1]]; }
+      var dx0=b[0]-a[0], dy0=b[1]-a[1], L0=Math.hypot(dx0,dy0)||1, m0=[(a[0]+b[0])/2,(a[1]+b[1])/2];
+      nx=-dy0/L0; ny=dx0/L0; if((m0[0]+nx-cx)*nx+(m0[1]+ny-cy)*ny<0){ nx=-nx; ny=-ny; } }
+    var A=[a[0]+nx*o,a[1]+ny*o], B=[b[0]+nx*o,b[1]+ny*o], dx=B[0]-A[0], dy=B[1]-A[1], L=Math.hypot(dx,dy)||1;
+    var ang=Math.atan2(dy,dx)*180/Math.PI; if(ang>90) ang-=180; if(ang<-90) ang+=180;
+    return {key:key,a:a,b:b,A:A,B:B,nx:nx,ny:ny,o:o,ux:dx/L,uy:dy/L,ang:ang,mx:(A[0]+B[0])/2,my:(A[1]+B[1])/2,diag:idx<0};
+  });
+}
+function mkDimSvg(D,txt,s,on,click){
+  var f=function(x){ return x.toFixed(1); }, col=on?'#D9822B':'#4E5A50', h='';
+  var hit=click?' onclick="'+click+'" style="cursor:pointer"':'';
+  h+='<g'+hit+'>';
+  if(click) h+='<line x1="'+f(D.a[0])+'" y1="'+f(D.a[1])+'" x2="'+f(D.b[0])+'" y2="'+f(D.b[1])+'" stroke="rgba(0,0,0,0)" stroke-width="28"/>';
+  if(!D.diag){
+    h+='<line x1="'+f(D.a[0]+D.nx*3*s)+'" y1="'+f(D.a[1]+D.ny*3*s)+'" x2="'+f(D.A[0]+D.nx*4*s)+'" y2="'+f(D.A[1]+D.ny*4*s)+'" stroke="'+col+'" stroke-width="'+(0.9*s)+'"/>';
+    h+='<line x1="'+f(D.b[0]+D.nx*3*s)+'" y1="'+f(D.b[1]+D.ny*3*s)+'" x2="'+f(D.B[0]+D.nx*4*s)+'" y2="'+f(D.B[1]+D.ny*4*s)+'" stroke="'+col+'" stroke-width="'+(0.9*s)+'"/>';
+  }
+  h+='<line x1="'+f(D.A[0])+'" y1="'+f(D.A[1])+'" x2="'+f(D.B[0])+'" y2="'+f(D.B[1])+'" stroke="'+col+'" stroke-width="'+((on?2.2:1.1)*s)+'"'+(D.diag?' stroke-dasharray="'+(5*s)+' '+(4*s)+'"':'')+'/>';
+  [D.A,D.B].forEach(function(p){ var t=4*s; h+='<line x1="'+f(p[0]-(D.ux+D.nx)*t)+'" y1="'+f(p[1]-(D.uy+D.ny)*t)+'" x2="'+f(p[0]+(D.ux+D.nx)*t)+'" y2="'+f(p[1]+(D.uy+D.ny)*t)+'" stroke="'+col+'" stroke-width="'+(1.6*s)+'"/>'; });
+  var fs=11.5*s, w=txt.length*fs*0.62+10*s, hh=fs+8*s;
+  h+='<g transform="translate('+f(D.mx)+','+f(D.my)+') rotate('+D.ang.toFixed(1)+')"><rect x="'+f(-w/2)+'" y="'+f(-hh/2)+'" width="'+f(w)+'" height="'+f(hh)+'" rx="'+(5*s)+'" fill="'+(on?'#D9822B':'#FBFAF6')+'" stroke="'+(on?'none':'#D8D2C4')+'" stroke-width="'+(0.8*s)+'"/>'
+    +'<text x="0" y="'+f(fs*0.36)+'" text-anchor="middle" font-family="IBM Plex Mono,ui-monospace,monospace" font-weight="700" font-size="'+f(fs)+'" fill="'+(on?'#fff':'#12281F')+'">'+tdEsc(txt)+'</text></g>';
+  return h+'</g>';
+}
+function mkLoad(cb){
+  if(MK.list) return cb();
+  try{ google.script.run.withSuccessHandler(function(r){ try{ MK.list=typeof r==='string'?JSON.parse(r):(r||[]); }catch(e){ MK.list=[]; } cb(); })
+    .withFailureHandler(function(e){ alert('Δεν φόρτωσαν τα μέτρα: '+(e&&e.message||e)+'\n\nΈχεις προσθέσει το Metra.gs στο Apps Script;'); MK.list=[]; cb(); }).loadMeasures(mkEm()); }catch(e){ MK.list=[]; cb(); }
+}
+function mkWrap(){
+  var m=document.getElementById('mk-ov');
+  if(!m){ m=document.createElement('div'); m.id='mk-ov'; m.style.cssText='position:fixed;inset:0;z-index:9000;background:#F4F1EA;display:flex;flex-direction:column;font-family:inherit;color:#12281F;max-width:560px;margin:0 auto;box-shadow:0 0 0 100vmax rgba(18,40,31,.35)'; document.body.appendChild(m); }
+  return m;
+}
+function mkClose(){ var m=document.getElementById('mk-ov'); if(m) m.remove(); }
+function mkOpen(client,addr){ MK.client=client||''; MK.addr=addr||''; mkWrap().innerHTML='<div style="padding:40px;text-align:center;color:#4E5A50">Φόρτωση…</div>'; mkLoad(mkListView); }
+function mkTop(title,sub,back,right){
+  return '<div style="display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top) + 12px) 16px 10px;background:#F4F1EA">'
+    +'<button onclick="'+back+'" style="width:42px;height:42px;border-radius:13px;border:1px solid #E5E0D3;background:#FFFDF8;font-size:20px;font-weight:700;color:#243A2B;cursor:pointer;flex:none">‹</button>'
+    +'<div style="flex:1;min-width:0"><div style="font-size:19px;font-weight:800;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+title+'</div>'+(sub?'<div style="font-size:12px;font-weight:600;color:#9C8F73;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+sub+'</div>':'')+'</div>'+(right||'')+'</div>';
+}
+function mkListView(){
+  var m=mkWrap(), q=grNorm(MK.client), all=(MK.list||[]).slice().sort(function(a,b){ return String(b.date||'').localeCompare(String(a.date||'')); });
+  var mine=MK.client?all.filter(function(x){ return grNorm(x.client)===q; }):all;
+  var SHN={rect:'Ορθογώνιο',L:'Γ',trap:'Τραπέζιο',tri:'Τρίγωνο'};
+  var rows=mine.map(function(x){ var id=tdEsc(x.id);
+    return '<div onclick="mkEdit(\''+id+'\')" style="background:#FFFDF8;border:1px solid #E5E0D3;border-radius:18px;padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer">'
+      +'<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:800">'+tdEsc(x.title||SHN[x.shape]||'Μέτρηση')+'</div>'
+      +'<div style="font-size:12px;color:#4E5A50;margin-top:2px">'+(MK.client?'':tdEsc(x.client||'')+' · ')+(SHN[x.shape]||'')+' · '+(x.date?planShort(String(x.date).slice(0,10)):'')+'</div></div>'
+      +'<div style="text-align:right;flex:none"><div style="font-size:17px;font-weight:800">'+mkN(parseFloat(x.area)||0)+' <span style="font-size:11px">τ.μ.</span></div><div style="font-size:11.5px;color:#4E5A50">'+mkN(parseFloat(x.per)||0)+' μ.</div></div>'
+      +'<button onclick="event.stopPropagation();mkPrintId(\''+id+'\')" style="width:40px;height:40px;border-radius:12px;border:1px solid #E5E0D3;background:#fff;font-size:17px;cursor:pointer;flex:none">🖨</button></div>';
+  }).join('');
+  m.innerHTML=mkTop('Μέτρα κήπου',tdEsc(MK.client||'Όλοι οι πελάτες'),'mkClose()','')
+    +'<div style="flex:1;overflow-y:auto;padding:6px 16px 120px;display:flex;flex-direction:column;gap:8px">'
+    +(rows||'<div style="text-align:center;padding:50px 10px;color:#9C8F73;font-weight:600">Δεν υπάρχουν μετρήσεις ακόμα</div>')+'</div>'
+    +'<div style="position:absolute;left:0;right:0;bottom:0;padding:12px 16px calc(env(safe-area-inset-bottom) + 14px);background:#FFFDF8;border-top:1px solid #E5E0D3">'
+    +'<button onclick="mkNew()" style="width:100%;height:54px;border-radius:16px;border:0;background:#2D6B4C;color:#fff;font-family:inherit;font-size:16px;font-weight:800;cursor:pointer">＋ Νέα μέτρηση</button></div>';
+}
+function mkNew(){
+  var c=MK.client;
+  if(!c){ c=prompt('Όνομα πελάτη:'); if(!c) return; c=c.trim(); var cl=(clients||[]).concat(offers||[]).find(function(x){ return grNorm(x.name)===grNorm(c); }); if(cl){ c=cl.name; MK.addr=cl.address||cl.addr||''; } MK.client=c; }
+  MK.cur={id:'m'+Date.now(),client:c,address:MK.addr,title:'',shape:'rect',opt:{},vals:JSON.parse(JSON.stringify(MK_DEF.rect)),bank:{},date:toLocalISO()};
+  MK.sel='A'; mkEditor();
+}
+function mkEdit(id){
+  var x=(MK.list||[]).find(function(r){ return String(r.id)===String(id); }); if(!x) return;
+  MK.cur=JSON.parse(JSON.stringify(x)); MK.cur.bank={}; MK.cur.opt=MK.cur.opt||{}; MK.client=x.client; MK.sel='A'; mkEditor();
+}
+function mkEditor(){
+  var c=MK.cur, m=mkWrap();
+  m.innerHTML=mkTop('Μέτρα κήπου',tdEsc(c.client+(c.address?' · '+c.address:'')),'mkListView()',
+      ((MK.list||[]).some(function(x){ return String(x.id)===String(c.id); })?'<button onclick="mkDel()" style="width:42px;height:42px;border-radius:13px;border:1px solid #E5E0D3;background:#FFFDF8;font-size:16px;cursor:pointer;flex:none">🗑</button>':'')+'<button onclick="mkPrint()" style="height:42px;padding:0 12px;border-radius:13px;border:1px solid #E5E0D3;background:#FFFDF8;font-family:inherit;font-size:14px;font-weight:700;color:#243A2B;cursor:pointer;flex:none">🖨 Εκτύπωση</button>')
+    +'<div style="flex:1;overflow-y:auto;padding:0 16px 12px;display:flex;flex-direction:column;gap:9px">'
+    +'<input id="mk-title" value="'+tdEsc(c.title||'')+'" placeholder="Όνομα, π.χ. Πίσω κήπος" oninput="MK.cur.title=this.value" style="box-sizing:border-box;width:100%;min-height:46px;height:46px;border-radius:13px;border:1px solid #E5E0D3;background:#FFFDF8;padding:0 14px;font-family:inherit;font-size:16px;font-weight:700;color:#12281F;outline:0">'
+    +'<div id="mk-shapes" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px"></div>'
+    +'<div style="background:#FFFDF8;border:1px solid #E5E0D3;border-radius:20px;padding:10px;position:relative">'
+    +'<button id="mk-var" onclick="mkCycle()" style="position:absolute;right:10px;top:10px;z-index:2;height:36px;padding:0 12px;border-radius:11px;border:1px solid #E5E0D3;background:#fff;font-family:inherit;font-size:13px;font-weight:700;color:#243A2B;cursor:pointer;display:none"></button>'
+    +'<svg id="mk-svg" viewBox="0 0 330 230" style="display:block;width:100%"></svg>'
+    +'<div id="mk-msg" style="font-size:12.5px;font-weight:700;text-align:center;padding:2px 0 0"></div></div>'
+    +'<div id="mk-fields" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div></div>'
+    +'<div style="border-top:1px solid #E5E0D3;background:#FFFDF8;padding:12px 16px calc(env(safe-area-inset-bottom) + 14px);display:flex;align-items:center;gap:12px">'
+    +'<div style="flex:1;min-width:0"><div style="font-size:26px;line-height:1;font-weight:800"><span id="mk-area">0</span> <span style="font-size:14px">τ.μ.</span></div><div style="font-size:12.5px;font-weight:600;color:#4E5A50;margin-top:4px">Περίμετρος <span id="mk-per">0</span> μ.</div></div>'
+    +'<button id="mk-save" onclick="mkSave()" style="height:52px;padding:0 20px;border-radius:15px;border:0;background:#2D6B4C;color:#fff;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer">Αποθήκευση</button></div>';
+  mkShapes(); mkFields(); mkDraw();
+}
+function mkShapes(){
+  var c=MK.cur;
+  document.getElementById('mk-shapes').innerHTML=MK_SH.map(function(s){ var on=s[0]===c.shape;
+    return '<button onclick="mkShape(\''+s[0]+'\')" style="height:60px;border-radius:14px;border:0;cursor:pointer;background:'+(on?'#1D4632':'#FFFDF8')+';box-shadow:'+(on?'none':'inset 0 0 0 1px #E5E0D3')+';display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-family:inherit">'
+      +'<svg width="34" height="26" viewBox="0 0 34 26"><polygon points="'+s[2]+'" fill="'+(on?'rgba(244,241,234,.18)':'#E3F0E7')+'" stroke="'+(on?'#F4F1EA':'#243A2B')+'" stroke-width="2" stroke-linejoin="round"/></svg>'
+      +'<span style="font-size:11.5px;font-weight:700;color:'+(on?'#F4F1EA':'#243A2B')+'">'+s[1]+'</span></button>'; }).join('');
+}
+function mkShape(sh){
+  var c=MK.cur; if(sh===c.shape) return;
+  c.bank[c.shape]=c.vals; c.shape=sh; c.vals=c.bank[sh]||JSON.parse(JSON.stringify(MK_DEF[sh]));
+  MK.sel='A'; mkShapes(); mkFields(); mkDraw();
+}
+function mkCycle(){
+  var c=MK.cur;
+  if(c.shape==='L'){ var o=['tr','br','bl','tl']; c.opt.corner=o[(o.indexOf(c.opt.corner||'tr')+1)%4]; }
+  else { var t=['mid','l','r','auto']; c.opt.tside=t[(t.indexOf(c.opt.tside||'mid')+1)%4]; var d=MK_DEF.trap; Object.keys(d).forEach(function(k){ if(c.vals[k]==null) c.vals[k]=d[k]; }); MK.sel='A'; mkFields(); }
+  mkDraw();
+}
+function mkFields(){
+  var c=MK.cur, L=mkLbl(c.shape,c.opt.tside||'mid'), keys=Object.keys(L);
+  document.getElementById('mk-fields').innerHTML=keys.map(function(k,i){
+    return '<label id="mk-f-'+k+'" style="display:flex;flex-direction:column;gap:2px;background:#FFFDF8;border:2px solid #E5E0D3;border-radius:16px;padding:9px 12px 6px">'
+      +'<span style="display:flex;align-items:center;gap:6px"><span class="mk-chip" style="width:22px;height:22px;border-radius:7px;background:#1D4632;color:#fff;font-size:12px;font-weight:800;line-height:22px;text-align:center;flex:none">'+MK_KG[k]+'</span><span style="font-size:12px;font-weight:700;color:#4E5A50;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+L[k]+'</span></span>'
+      +'<span style="display:flex;align-items:baseline;gap:4px"><input data-mk="'+k+'" value="'+tdEsc(c.vals[k]==null?'':String(c.vals[k]))+'" inputmode="decimal" enterkeyhint="'+(i<keys.length-1?'next':'done')+'" onfocus="mkSel(\''+k+'\',1)" oninput="MK.cur.vals[\''+k+'\']=this.value;mkDraw()" onkeydown="mkKey(event,'+i+')" style="width:100%;min-width:0;border:0;outline:0;background:transparent;font-family:inherit;font-size:26px;font-weight:800;color:#12281F;padding:0"><span style="font-size:14px;font-weight:700;color:#9C8F73">μ.</span></span></label>';
+  }).join('');
+}
+function mkKey(e,i){
+  if(e.key!=='Enter') return; e.preventDefault();
+  var keys=Object.keys(mkLbl(MK.cur.shape,MK.cur.opt.tside||'mid'));
+  if(i<keys.length-1) mkFocus(keys[i+1]); else { e.target.blur(); }
+}
+function mkSel(k,noFocus){ MK.sel=k; mkDraw(); }
+function mkFocus(k){ MK.sel=k; mkDraw(); var el=document.querySelector('#mk-ov input[data-mk="'+k+'"]'); if(el){ el.focus(); try{ el.select(); }catch(x){} } }
+function mkDraw(){
+  var c=MK.cur, g=mkGeo(c.shape,c.vals,c.opt), F=mkFit(g,330,230,50), D=mkDims(c.shape,g,F,16);
+  var poly=F.pts.map(function(q){ return q[0].toFixed(1)+','+q[1].toFixed(1); }).join(' ');
+  var h='<polygon points="'+poly+'" fill="#EAF2EA"/><polygon points="'+poly+'" fill="none" stroke="#12281F" stroke-width="2.6" stroke-linejoin="round"/>';
+  D.forEach(function(d){ h+=mkDimSvg(d,MK_KG[d.key]+' '+mkN(parseFloat(String(c.vals[d.key]).replace(',','.'))||0)+' μ',1,MK.sel===d.key,"mkFocus('"+d.key+"')"); });
+  document.getElementById('mk-svg').innerHTML=h;
+  document.getElementById('mk-area').textContent=mkN(g.area);
+  document.getElementById('mk-per').textContent=mkN(mkPer(g));
+  var msg=document.getElementById('mk-msg');
+  msg.style.color=g.bad?'#8E2A2A':'#4E5A50';
+  msg.textContent=g.bad||(c.shape==='trap'&&(c.opt.tside||'mid')==='auto'&&g.p[0]?'Βάθος κήπου: '+mkN(Math.max.apply(0,g.p.map(function(q){return q[1];}))-Math.min.apply(0,g.p.map(function(q){return q[1];})))+' μ.':'');
+  var vb=document.getElementById('mk-var');
+  vb.style.display=c.shape==='L'||c.shape==='trap'?'block':'none';
+  vb.textContent=c.shape==='L'?'↻ Γύρισε':'⇆ '+MK_TS[c.opt.tside||'mid'];
+  Object.keys(MK_KG).forEach(function(k){ var f=document.getElementById('mk-f-'+k); if(!f) return; var on=MK.sel===k;
+    f.style.borderColor=on?'#D9822B':'#E5E0D3'; var ch=f.querySelector('.mk-chip'); if(ch) ch.style.background=on?'#D9822B':'#1D4632'; });
+}
+function mkRec(){
+  var c=MK.cur, g=mkGeo(c.shape,c.vals,c.opt), L=mkLbl(c.shape,c.opt.tside||'mid'), v={};
+  Object.keys(L).forEach(function(k){ v[k]=parseFloat(String(c.vals[k]).replace(',','.'))||0; });
+  return {id:c.id,client:c.client,address:c.address||'',title:(c.title||'').trim(),shape:c.shape,opt:c.opt||{},vals:v,area:Math.round(g.area*10)/10,per:Math.round(mkPer(g)*10)/10,date:c.date||toLocalISO()};
+}
+function mkSave(){
+  var r=mkRec(), b=document.getElementById('mk-save'); if(b){ b.disabled=true; b.textContent='Αποθήκευση…'; }
+  var i=(MK.list||[]).findIndex(function(x){ return String(x.id)===String(r.id); });
+  if(i>=0) MK.list[i]=r; else (MK.list=MK.list||[]).push(r);
+  google.script.run.withSuccessHandler(function(){ toast('✓ Αποθηκεύτηκε στον πελάτη'); if(b){ b.disabled=false; b.textContent='Αποθήκευση'; } })
+    .withFailureHandler(function(e){ alert('Δεν αποθηκεύτηκε: '+(e&&e.message||e)); if(b){ b.disabled=false; b.textContent='Αποθήκευση'; } })
+    .saveMeasure(mkEm(),r);
+}
+function mkDel(){
+  if(!confirm('Διαγραφή αυτής της μέτρησης;')) return;
+  var id=MK.cur.id; MK.list=(MK.list||[]).filter(function(x){ return String(x.id)!==String(id); });
+  google.script.run.withSuccessHandler(function(){}).withFailureHandler(function(){}).deleteMeasure(mkEm(),id); mkListView();
+}
+function mkPrintId(id){ var x=(MK.list||[]).find(function(r){ return String(r.id)===String(id); }); if(x) mkPrintRec(x); }
+function mkPrint(){ mkPrintRec(mkRec()); }
+function mkPrintRec(r){
+  var g=mkGeo(r.shape,r.vals,r.opt||{}), U=1000/277, S=[20,25,50,100,200,250,500,1000].find(function(s){ var k=1000/s*U; var xs=g.p.map(function(q){return q[0];}),ys=g.p.map(function(q){return q[1];}); return (Math.max.apply(0,xs)-Math.min.apply(0,xs))*k<=620&&(Math.max.apply(0,ys)-Math.min.apply(0,ys))*k<=540; })||1000;
+  var k=1000/S*U, F=mkFit(g,730,686,0,k), D=mkDims(r.shape,g,F,30), poly=F.pts.map(function(q){ return q[0].toFixed(1)+','+q[1].toFixed(1); }).join(' ');
+  var minor=k>=12?1:k*5>=12?5:10, major=minor*5, h='';
+  h+='<defs><pattern id="mkg1" width="'+(k*minor)+'" height="'+(k*minor)+'" patternUnits="userSpaceOnUse" x="'+F.ox.toFixed(2)+'" y="'+F.oy.toFixed(2)+'"><path d="M '+(k*minor)+' 0 L 0 0 0 '+(k*minor)+'" fill="none" stroke="#D9D4C7" stroke-width="0.6"/></pattern>'
+    +'<pattern id="mkg2" width="'+(k*major)+'" height="'+(k*major)+'" patternUnits="userSpaceOnUse" x="'+F.ox.toFixed(2)+'" y="'+F.oy.toFixed(2)+'"><path d="M '+(k*major)+' 0 L 0 0 0 '+(k*major)+'" fill="none" stroke="#A9A398" stroke-width="1.1"/></pattern>'
+    +'<pattern id="mkh" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="9" stroke="#BFD6C6" stroke-width="1.6"/></pattern></defs>';
+  h+='<rect x="0" y="0" width="730" height="686" fill="url(#mkg1)"/><rect x="0" y="0" width="730" height="686" fill="url(#mkg2)"/>';
+  h+='<polygon points="'+poly+'" fill="#EEF5EE"/><polygon points="'+poly+'" fill="url(#mkh)"/><polygon points="'+poly+'" fill="none" stroke="#12281F" stroke-width="4" stroke-linejoin="miter"/>';
+  D.forEach(function(d){ h+=mkDimSvg(d,MK_KG[d.key]+' '+mkN(parseFloat(r.vals[d.key])||0)+' μ',1.55,false,''); });
+  var sb=[1,2,5,10,20,50].find(function(m){ return m*k>=90; })||50, sx=24, sy=660;
+  h+='<rect x="'+sx+'" y="'+(sy-6)+'" width="'+(sb*k/2)+'" height="6" fill="#12281F"/><rect x="'+(sx+sb*k/2)+'" y="'+(sy-6)+'" width="'+(sb*k/2)+'" height="6" fill="#fff" stroke="#12281F" stroke-width="1"/>'
+    +'<text x="'+sx+'" y="'+(sy+16)+'" font-size="13" font-family="IBM Plex Mono,monospace" fill="#12281F">0</text><text x="'+(sx+sb*k)+'" y="'+(sy+16)+'" font-size="13" font-family="IBM Plex Mono,monospace" fill="#12281F" text-anchor="middle">'+sb+' μ.</text>';
+  h+='<g transform="translate(700,40)"><circle r="18" fill="#fff" stroke="#12281F" stroke-width="1.2"/><path d="M0 -14 L7 8 L0 3 L-7 8 Z" fill="#12281F"/><text y="-24" text-anchor="middle" font-size="14" font-weight="700" font-family="Inter,sans-serif" fill="#12281F">Β</text></g>';
+  var SHN={rect:'Ορθογώνιο',L:'Γ',trap:'Τραπέζιο',tri:'Τρίγωνο'}, row=function(l,v,big){ return '<div style="border-top:1px solid #12281F;padding:7px 0"><div style="font:600 9pt IBM Plex Mono,monospace;letter-spacing:.08em;color:#4E5A50">'+l+'</div><div style="font-weight:800;font-size:'+(big?'20pt':'12pt')+';margin-top:2px">'+v+'</div></div>'; };
+  var L=mkLbl(r.shape,(r.opt||{}).tside||'mid');
+  var side='<div style="font-weight:800;font-size:16pt;letter-spacing:-.01em;margin-bottom:8px">ΚΑΤΟΨΗ ΚΗΠΟΥ</div>'
+    +row('ΠΕΛΑΤΗΣ',tdEsc(r.client||''))+(r.address?row('ΔΙΕΥΘΥΝΣΗ',tdEsc(r.address)):'')+(r.title?row('ΧΩΡΟΣ',tdEsc(r.title)):'')
+    +row('ΕΜΒΑΔΟΝ',mkN(r.area)+' τ.μ.',true)+row('ΠΕΡΙΜΕΤΡΟΣ',mkN(r.per)+' μ.')
+    +'<div style="border-top:1px solid #12281F;padding:7px 0;font-size:10pt;line-height:1.55">'+Object.keys(L).map(function(k2){ return '<b>'+MK_KG[k2]+'</b> '+L[k2]+': '+mkN(parseFloat(r.vals[k2])||0)+' μ.'; }).join('<br>')+'</div>'
+    +row('ΚΛΙΜΑΚΑ','1:'+S+' <span style="font-size:9pt;font-weight:600">(σε Α4, 100%)</span>')+row('ΚΑΝΑΒΟΣ','□ = '+minor+' μ. · ■ = '+major+' μ.')
+    +row('ΗΜΕΡΟΜΗΝΙΑ',r.date?fmtDate(String(r.date).slice(0,10)):'')+'<div style="margin-top:auto;font-size:8.5pt;color:#4E5A50">'+SHN[r.shape]+' · KiposPro</div>';
+  var p=document.getElementById('mk-print'); if(p) p.remove();
+  p=document.createElement('div'); p.id='mk-print';
+  p.innerHTML='<div style="display:flex;gap:6mm;width:277mm;height:190mm;font-family:Inter,sans-serif;color:#12281F"><svg viewBox="0 0 730 686" style="width:202mm;height:190mm;border:1.2px solid #12281F">'+h+'</svg><div style="flex:1;display:flex;flex-direction:column;border:1.2px solid #12281F;padding:4mm">'+side+'</div></div>';
+  document.body.appendChild(p);
+  if(!document.getElementById('mk-print-css')){ var st=document.createElement('style'); st.id='mk-print-css';
+    st.textContent='#mk-print{display:none}@media print{@page{size:A4 landscape;margin:10mm}html,body{background:#fff!important}body.mk-printing>*:not(#mk-print){display:none!important}body.mk-printing #mk-print{display:block!important}#mk-print *{-webkit-print-color-adjust:exact;print-color-adjust:exact}}';
+    document.head.appendChild(st); }
+  document.body.classList.add('mk-printing');
+  var done=function(){ document.body.classList.remove('mk-printing'); window.removeEventListener('afterprint',done); };
+  window.addEventListener('afterprint',done);
+  setTimeout(function(){ window.print(); setTimeout(done,1500); },60);
+}
+
+/* ===== Φωτογραφίες προσφοράς ===== */
+function opOffer(oid){ return (offers||[]).find(function(x){ return String(x.id)===String(oid); }); }
+function openOfferPhotos(oid){
+  var o=opOffer(oid); if(!o) return;
+  openM('Φωτογραφίες — '+(o.name||'Προσφορά'),
+    '<input type="file" id="op-input" accept="image/*" multiple style="display:none" onchange="handleOfferPhotoUpload(\''+oid+'\')">'
+    +'<button class="btn btn-g btn-sm" id="op-up-btn" style="width:100%;margin-bottom:6px" onclick="document.getElementById(\'op-input\').click()">📤 Ανέβασμα φωτογραφιών</button>'
+    +'<div style="font-size:11.5px;color:var(--tx2);text-align:center;margin-bottom:12px">Αποθηκεύονται στο Drive → Προσφορές → '+tdEsc(o.name||'')+'. Αν γίνει πελάτης, μεταφέρονται στον φάκελό του.</div>'
+    +'<div id="op-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"><div style="grid-column:1/-1;color:var(--tx2);font-size:13px;text-align:center;padding:16px 0">Φόρτωση...</div></div>',
+    '<button class="btn btn-out btn-sm" onclick="closeM()">Κλείσιμο</button>');
+  loadOfferPhotos(oid);
+}
+function loadOfferPhotos(oid){
+  var o=opOffer(oid); if(!o) return;
+  google.script.run.withSuccessHandler(function(ph){
+    var el=document.getElementById('op-grid'); if(!el) return; _photoViewList=ph||[];
+    el.innerHTML=!_photoViewList.length?'<div style="grid-column:1/-1;color:var(--tx2);font-size:13px;text-align:center;padding:16px 0">Δεν υπάρχουν φωτογραφίες ακόμα</div>'
+      :_photoViewList.map(function(p,i){ return '<div style="position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--brd);aspect-ratio:1">'
+        +'<img src="'+p.thumb+'" style="width:100%;height:100%;object-fit:cover;display:block;cursor:pointer" loading="lazy" onclick="viewPhoto('+i+')">'
+        +'<button onclick="removeOfferPhoto(\''+oid+'\',\''+p.id+'\')" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:12px;cursor:pointer;line-height:1">✕</button></div>'; }).join('');
+  }).withFailureHandler(function(e){ var el=document.getElementById('op-grid'); if(el) el.innerHTML='<div style="grid-column:1/-1;color:#991b1b;font-size:13px;text-align:center">❌ '+(e&&e.message||'Σφάλμα')+'<br>Έχεις προσθέσει το OfferPhotos.gs;</div>'; })
+  .getOfferPhotos(mkEm(), o.name);
+}
+function removeOfferPhoto(oid,fid){
+  if(!confirm('Διαγραφή φωτογραφίας;')) return;
+  google.script.run.withSuccessHandler(function(){ loadOfferPhotos(oid); }).withFailureHandler(function(){ loadOfferPhotos(oid); }).deletePhoto(mkEm(),fid);
+}
+function handleOfferPhotoUpload(oid){
+  var input=document.getElementById('op-input'), o=opOffer(oid);
+  var files=[].slice.call((input&&input.files)||[]).filter(function(f){ return !f.type||f.type.indexOf('image')===0; });
+  if(input) input.value=''; if(!files.length||!o) return;
+  var btn=document.getElementById('op-up-btn'), total=files.length, done=0, failed=[], next=0, stamp=Date.now();
+  var label=function(){ if(btn){ btn.disabled=true; btn.textContent='⏳ Ανέβασμα '+Math.min(done+failed.length+1,total)+' από '+total+'…'; } };
+  var one=function(i){ var file=files[i], base=(file.name||'photo').replace(/\.[^.]+$/,'');
+    var nm=(total>1&&/^(image|photo)$/i.test(base)?base+'_'+stamp+'_'+(i+1):base)+'.jpg';
+    return resizeImageForUpload(file,2000,0.85).then(function(res){ return new Promise(function(ok){
+      google.script.run.withSuccessHandler(function(r){ if(r&&r.error) failed.push(file.name||'#'+(i+1)); else done++; ok(); })
+        .withFailureHandler(function(){ failed.push(file.name||'#'+(i+1)); ok(); })
+        .uploadOfferPhoto(mkEm(),o.name,nm,res.base64,res.mimeType); }); })
+      .catch(function(){ failed.push(file.name||'#'+(i+1)); }); };
+  var worker=function(){ if(next>=total) return Promise.resolve(); var i=next++; label(); return one(i).then(function(){ if(done&&done%3===0) loadOfferPhotos(oid); return worker(); }); };
+  Promise.all([worker(),worker()]).then(function(){
+    if(btn){ btn.disabled=false; btn.textContent='📤 Ανέβασμα φωτογραφιών'; }
+    loadOfferPhotos(oid);
+    if(!failed.length) toast('✓ Ανέβηκ'+(total===1?'ε 1 φωτογραφία':'αν '+total+' φωτογραφίες')); else alert('Ανέβηκαν '+done+' από '+total+'.\nΔεν ανέβηκαν: '+failed.join(', '));
+  });
 }
 
 /* ===== Προσφορές: στάδια ===== */
@@ -2155,6 +2446,8 @@ function mclOfferSheet(id){
     ['🌿','Στις Συντηρήσεις',"offerToClient("+el+")",'g'],
     ['✎','Επεξεργασία / τιμή',"setTimeout(function(){editOffer("+el+")},120)",'n'],
     ['📄','Προσφορά PDF',"go('quote');pqFromOffer("+q+")",'g'],
+    ['📷','Φωτογραφίες',"openOfferPhotos("+q+")",'n'],
+    ['📐','Μέτρα κήπου',"mkOpen("+nq+",'"+String(o.address||'').replace(/'/g,'')+"')",'g'],
     tel&&['📞','Κλήση',"location.href='tel:"+tel+"'",'g'],
     tel&&['💬','Μήνυμα',"location.href='sms:"+tel+"'",'b'],
     ['📅','Στο πλάνο',"swPlanT("+q+","+nq+",'offer')",'b'],
@@ -3510,6 +3803,7 @@ function loadData(){
 var PAGE_TITLES={today:'Σήμερα',owed:'Οφειλές',more:'Περισσότερα',clients:'Συντηρήσεις',ekta:'Κατασκευές/Καθαρισμοί',pelat:'Πελατολόγιο',fin:'Οικονομικά',docs:'Τιμολόγια',quote:'Προσφορά',reports:'Αναφορές',supply:'Αναλώσιμα',map:'Χάρτης',plants:'Φυτά',design:'Σχέδιο Κήπου',appts:'Ραντεβού',archive:'Αρχείο',detail:'Πελάτης',edet:'Έκτακτη'};
 
 function go(page){
+  if(page==='mk'){ mkOpen(''); return; }
   if(_userPlan==='basic' && PRO_FEATURES.indexOf(page)>=0){
     showUpgradePrompt(page);
     return;
@@ -3966,6 +4260,7 @@ function lpShow(cid,name){
     ['📅','Στο πλάνο','swPlan('+q+','+nq+')','b'],
     ['€',owe?'Πληρωμή '+fmt(owe):'Πληρωμή','swPay('+q+')',owe?'y':'n'],
     ['📷','Φωτογραφίες','openPhotos('+q+')','n'],
+    ['📐','Μέτρα κήπου','mkOpen('+nq+',\''+String(addr).replace(/'/g,'')+'\')','g'],
     addr&&['🧭','Οδηγίες',"window.open('https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(addr)+"')",'n'],
     ['👤','Καρτέλα','showDet('+q+',\'clients\')','n'],
     ['📦','Αρχειοθέτηση','archC('+q+')','y']
@@ -9881,6 +10176,7 @@ function delSupply(id){
 /* Μεταφέρει τα PDF προσφορών του πελάτη από τον γενικό φάκελο «Προσφορές» στον φάκελό του */
 function pqMoveToClient(name, offerId){
   name=String(name||'').trim(); if(!name) return;
+  try{ google.script.run.withSuccessHandler(function(r){ try{ var j=JSON.parse(r||'{}'); if(j.moved) toast('📷 '+j.moved+' φωτογραφίες πέρασαν στον φάκελο του πελάτη'); }catch(x){} }).withFailureHandler(function(){}).moveOfferPhotos(mkEm(),name); }catch(e){}
   try{ google.script.run.withSuccessHandler(function(){}).withFailureHandler(function(){})
     .prosf_moveToClient(window._kpEmail||localStorage.getItem('kipospro_email')||'', name, offerId?String(offerId):''); }catch(e){}
 }
@@ -9902,6 +10198,8 @@ function renderOffers(){
         +'<button '+q+'offerOk(this)" style="'+ab+';background:#3C6A88;color:#fff">🤝 Συμφωνία OK</button>'
         +'<button '+q+'go(\'quote\');pqFromOffer(this.getAttribute(\'data-oid\'))" style="'+ab+';background:#3f6b3f;color:#fff">📄 Προσφορά</button>'
         +'<button '+q+'offerToClient(this)" style="'+ab+';background:var(--gl);color:var(--gd)">🌿 Συντήρηση</button>'
+        +'<button '+q+'openOfferPhotos(this.getAttribute(\'data-oid\'))" style="'+ab+';background:#F5F2EB;color:var(--tx)">📷 Φωτο</button>'
+        +'<button '+q+'mkOpen(\''+String(o.name||'').replace(/'/g,'')+'\',\''+String(o.address||'').replace(/'/g,'')+'\')" style="'+ab+';background:#F5F2EB;color:var(--tx)">📐 Μέτρα</button>'
         +'<button '+q+'editOffer(this)" style="'+ab+';background:#F5F2EB;color:var(--tx)">✏ Επεξ.</button>'
         +'<button '+q+'archiveOffer(this)" style="'+ab+';background:#FEF3C7;color:#92400E">📦</button>'
         +'<button '+q+'delOffer(this)" style="'+ab+';background:none;color:var(--tx2)">✕</button></div>';
