@@ -2209,38 +2209,79 @@ function mkDel(){
 function mkPrintId(id){ var x=(MK.list||[]).find(function(r){ return String(r.id)===String(id); }); if(x) mkPrintRec(x); }
 function mkPrint(){ mkPrintRec(mkRec()); }
 function mkPrintRec(r){
-  var g=mkGeo(r.shape,r.vals,r.opt||{}), U=1000/277, S=[20,25,50,100,200,250,500,1000].find(function(s){ var k=1000/s*U; var xs=g.p.map(function(q){return q[0];}),ys=g.p.map(function(q){return q[1];}); return (Math.max.apply(0,xs)-Math.min.apply(0,xs))*k<=620&&(Math.max.apply(0,ys)-Math.min.apply(0,ys))*k<=540; })||1000;
-  var k=1000/S*U, F=mkFit(g,730,686,0,k), D=mkDims(r.shape,g,F,30), poly=F.pts.map(function(q){ return q[0].toFixed(1)+','+q[1].toFixed(1); }).join(' ');
-  var minor=k>=12?1:k*5>=12?5:10, major=minor*5, h='';
-  h+='<defs><pattern id="mkg1" width="'+(k*minor)+'" height="'+(k*minor)+'" patternUnits="userSpaceOnUse" x="'+F.ox.toFixed(2)+'" y="'+F.oy.toFixed(2)+'"><path d="M '+(k*minor)+' 0 L 0 0 0 '+(k*minor)+'" fill="none" stroke="#D9D4C7" stroke-width="0.6"/></pattern>'
-    +'<pattern id="mkg2" width="'+(k*major)+'" height="'+(k*major)+'" patternUnits="userSpaceOnUse" x="'+F.ox.toFixed(2)+'" y="'+F.oy.toFixed(2)+'"><path d="M '+(k*major)+' 0 L 0 0 0 '+(k*major)+'" fill="none" stroke="#A9A398" stroke-width="1.1"/></pattern>'
-    +'<pattern id="mkh" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="9" stroke="#BFD6C6" stroke-width="1.6"/></pattern></defs>';
-  h+='<rect x="0" y="0" width="730" height="686" fill="url(#mkg1)"/><rect x="0" y="0" width="730" height="686" fill="url(#mkg2)"/>';
-  h+='<polygon points="'+poly+'" fill="#EEF5EE"/><polygon points="'+poly+'" fill="url(#mkh)"/><polygon points="'+poly+'" fill="none" stroke="#12281F" stroke-width="4" stroke-linejoin="miter"/>';
+  var g=mkGeo(r.shape,r.vals,r.opt||{}), PW=1123, PH=794, M=34, DW=770, DH=PH-2*M, U=DW/((PW-2*M)/PW*297)*(PW-2*M)/DW;
+  U=PW/297;
+  var xs=g.p.map(function(q){return q[0];}), ys=g.p.map(function(q){return q[1];}), gw=Math.max.apply(0,xs)-Math.min.apply(0,xs), gh=Math.max.apply(0,ys)-Math.min.apply(0,ys);
+  var S=[20,25,50,100,200,250,500,1000].find(function(s){ var k=1000/s*U; return gw*k<=DW-150&&gh*k<=DH-150; })||1000, k=1000/S*U;
+  var F=mkFit(g,DW,DH,0,k), D=mkDims(r.shape,g,F,30), poly=F.pts.map(function(q){ return q[0].toFixed(1)+','+q[1].toFixed(1); }).join(' ');
+  var minor=k>=12?1:k*5>=12?5:10, major=minor*5, h='', fx=function(x){ return x.toFixed(1); };
+  for(var gx=F.ox%(k*minor); gx<DW; gx+=k*minor){ var mj=Math.abs(((gx-F.ox)/(k*minor))%5)<0.01||Math.abs(Math.abs(((gx-F.ox)/(k*minor))%5)-5)<0.01; h+='<line x1="'+fx(gx)+'" y1="0" x2="'+fx(gx)+'" y2="'+DH+'" stroke="'+(mj?'#A9A398':'#DDD8CC')+'" stroke-width="'+(mj?1.1:0.6)+'"/>'; }
+  for(var gy=F.oy%(k*minor); gy<DH; gy+=k*minor){ var mj2=Math.abs(((gy-F.oy)/(k*minor))%5)<0.01||Math.abs(Math.abs(((gy-F.oy)/(k*minor))%5)-5)<0.01; h+='<line x1="0" y1="'+fx(gy)+'" x2="'+DW+'" y2="'+fx(gy)+'" stroke="'+(mj2?'#A9A398':'#DDD8CC')+'" stroke-width="'+(mj2?1.1:0.6)+'"/>'; }
+  h+='<polygon points="'+poly+'" fill="#E6F0E7" fill-opacity="0.85"/><polygon points="'+poly+'" fill="none" stroke="#12281F" stroke-width="4" stroke-linejoin="miter"/>';
   D.forEach(function(d){ h+=mkDimSvg(d,MK_KG[d.key]+' '+mkN(parseFloat(r.vals[d.key])||0)+' μ',1.55,false,''); });
-  var sb=[1,2,5,10,20,50].find(function(m){ return m*k>=90; })||50, sx=24, sy=660;
-  h+='<rect x="'+sx+'" y="'+(sy-6)+'" width="'+(sb*k/2)+'" height="6" fill="#12281F"/><rect x="'+(sx+sb*k/2)+'" y="'+(sy-6)+'" width="'+(sb*k/2)+'" height="6" fill="#fff" stroke="#12281F" stroke-width="1"/>'
-    +'<text x="'+sx+'" y="'+(sy+16)+'" font-size="13" font-family="IBM Plex Mono,monospace" fill="#12281F">0</text><text x="'+(sx+sb*k)+'" y="'+(sy+16)+'" font-size="13" font-family="IBM Plex Mono,monospace" fill="#12281F" text-anchor="middle">'+sb+' μ.</text>';
-  h+='<g transform="translate(700,40)"><circle r="18" fill="#fff" stroke="#12281F" stroke-width="1.2"/><path d="M0 -14 L7 8 L0 3 L-7 8 Z" fill="#12281F"/><text y="-24" text-anchor="middle" font-size="14" font-weight="700" font-family="Inter,sans-serif" fill="#12281F">Β</text></g>';
-  var SHN={rect:'Ορθογώνιο',L:'Γ',trap:'Τραπέζιο',tri:'Τρίγωνο'}, row=function(l,v,big){ return '<div style="border-top:1px solid #12281F;padding:7px 0"><div style="font:600 9pt IBM Plex Mono,monospace;letter-spacing:.08em;color:#4E5A50">'+l+'</div><div style="font-weight:800;font-size:'+(big?'20pt':'12pt')+';margin-top:2px">'+v+'</div></div>'; };
-  var L=mkLbl(r.shape,(r.opt||{}).tside||'mid');
-  var side='<div style="font-weight:800;font-size:16pt;letter-spacing:-.01em;margin-bottom:8px">ΚΑΤΟΨΗ ΚΗΠΟΥ</div>'
-    +row('ΠΕΛΑΤΗΣ',tdEsc(r.client||''))+(r.address?row('ΔΙΕΥΘΥΝΣΗ',tdEsc(r.address)):'')+(r.title?row('ΧΩΡΟΣ',tdEsc(r.title)):'')
-    +row('ΕΜΒΑΔΟΝ',mkN(r.area)+' τ.μ.',true)+row('ΠΕΡΙΜΕΤΡΟΣ',mkN(r.per)+' μ.')
-    +'<div style="border-top:1px solid #12281F;padding:7px 0;font-size:10pt;line-height:1.55">'+Object.keys(L).map(function(k2){ return '<b>'+MK_KG[k2]+'</b> '+L[k2]+': '+mkN(parseFloat(r.vals[k2])||0)+' μ.'; }).join('<br>')+'</div>'
-    +row('ΚΛΙΜΑΚΑ','1:'+S+' <span style="font-size:9pt;font-weight:600">(σε Α4, 100%)</span>')+row('ΚΑΝΑΒΟΣ','□ = '+minor+' μ. · ■ = '+major+' μ.')
-    +row('ΗΜΕΡΟΜΗΝΙΑ',r.date?fmtDate(String(r.date).slice(0,10)):'')+'<div style="margin-top:auto;font-size:8.5pt;color:#4E5A50">'+SHN[r.shape]+' · KiposPro</div>';
+  var sb=[1,2,5,10,20,50].find(function(m){ return m*k>=90; })||50, sx=22, sy=DH-28;
+  h+='<rect x="'+sx+'" y="'+(sy-6)+'" width="'+fx(sb*k/2)+'" height="6" fill="#12281F"/><rect x="'+fx(sx+sb*k/2)+'" y="'+(sy-6)+'" width="'+fx(sb*k/2)+'" height="6" fill="#fff" stroke="#12281F" stroke-width="1"/>'
+    +'<text x="'+sx+'" y="'+(sy+16)+'" font-size="13" font-family="monospace" fill="#12281F">0</text><text x="'+fx(sx+sb*k)+'" y="'+(sy+16)+'" font-size="13" font-family="monospace" fill="#12281F" text-anchor="middle">'+sb+' μ.</text>';
+  h+='<g transform="translate('+(DW-40)+',46)"><circle r="18" fill="#fff" stroke="#12281F" stroke-width="1.2"/><path d="M0 -14 L7 8 L0 3 L-7 8 Z" fill="#12281F"/><text y="-24" text-anchor="middle" font-size="14" font-weight="700" font-family="sans-serif" fill="#12281F">Β</text></g>';
+  var SHN={rect:'Ορθογώνιο',L:'Γ',trap:'Τραπέζιο',tri:'Τρίγωνο'}, L=mkLbl(r.shape,(r.opt||{}).tside||'mid');
+  var cut=function(s,n){ s=String(s||''); return s.length>n?s.slice(0,n-1)+'…':s; };
+  var px=M+DW+18, pw=PW-M-px, y=M+30, side='<text x="'+(px+14)+'" y="'+y+'" font-family="sans-serif" font-size="22" font-weight="800" fill="#12281F">ΚΑΤΟΨΗ ΚΗΠΟΥ</text>';
+  y+=18;
+  var row=function(l,v,big){ side+='<line x1="'+px+'" y1="'+y+'" x2="'+(px+pw)+'" y2="'+y+'" stroke="#12281F" stroke-width="1"/>'
+    +'<text x="'+(px+14)+'" y="'+(y+18)+'" font-family="monospace" font-size="11" letter-spacing="1" fill="#4E5A50">'+l+'</text>'
+    +'<text x="'+(px+14)+'" y="'+(y+(big?46:38))+'" font-family="sans-serif" font-size="'+(big?26:15)+'" font-weight="800" fill="#12281F">'+tdEsc(v)+'</text>'; y+=big?60:50; };
+  row('ΠΕΛΑΤΗΣ',cut(r.client,26)); if(r.address) row('ΔΙΕΥΘΥΝΣΗ',cut(r.address,30)); if(r.title) row('ΧΩΡΟΣ',cut(r.title,26));
+  row('ΕΜΒΑΔΟΝ',mkN(r.area)+' τ.μ.',true); row('ΠΕΡΙΜΕΤΡΟΣ',mkN(r.per)+' μ.');
+  side+='<line x1="'+px+'" y1="'+y+'" x2="'+(px+pw)+'" y2="'+y+'" stroke="#12281F" stroke-width="1"/>';
+  Object.keys(L).forEach(function(k2,i){ side+='<text x="'+(px+14)+'" y="'+(y+22+i*20)+'" font-family="sans-serif" font-size="13" fill="#12281F"><tspan font-weight="800">'+MK_KG[k2]+'</tspan> '+tdEsc(cut(L[k2],24))+': '+mkN(parseFloat(r.vals[k2])||0)+' μ.</text>'; });
+  y+=30+Object.keys(L).length*20;
+  row('ΚΛΙΜΑΚΑ','1:'+S+' (σε Α4, 100%)'); row('ΚΑΝΑΒΟΣ','□ '+minor+' μ. · ■ '+major+' μ.'); row('ΗΜΕΡΟΜΗΝΙΑ',r.date?fmtDate(String(r.date).slice(0,10)):'');
+  side+='<text x="'+(px+14)+'" y="'+(PH-M-14)+'" font-family="sans-serif" font-size="11" fill="#4E5A50">'+SHN[r.shape]+' · KiposPro</text>';
+  var svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+PW+' '+PH+'" width="'+PW+'" height="'+PH+'"><rect width="'+PW+'" height="'+PH+'" fill="#fff"/>'
+    +'<svg x="'+M+'" y="'+M+'" width="'+DW+'" height="'+DH+'" viewBox="0 0 '+DW+' '+DH+'" overflow="hidden">'+h+'</svg>'
+    +'<rect x="'+M+'" y="'+M+'" width="'+DW+'" height="'+DH+'" fill="none" stroke="#12281F" stroke-width="1.4"/>'
+    +'<rect x="'+px+'" y="'+M+'" width="'+pw+'" height="'+DH+'" fill="none" stroke="#12281F" stroke-width="1.4"/>'+side+'</svg>';
+  MK.psvg=svg; MK.pname=('Κάτοψη '+(r.client||'')+(r.title?' '+r.title:'')).trim();
+  var pv=document.getElementById('mk-pv'); if(pv) pv.remove();
+  pv=document.createElement('div'); pv.id='mk-pv';
+  pv.style.cssText='position:fixed;inset:0;z-index:9500;background:rgba(18,28,22,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:16px';
+  var bs='height:52px;padding:0 18px;border-radius:15px;border:0;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer';
+  pv.innerHTML='<div style="width:min(100%, 900px, calc((100vh - 190px) * 1.414));flex:none;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.4)">'+svg.replace('width="'+PW+'" height="'+PH+'"','style="display:block;width:100%;height:auto"')+'</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">'
+    +'<button onclick="mkShareImg()" style="'+bs+';background:#2D6B4C;color:#fff">📤 Αποθήκευση / Αποστολή</button>'
+    +'<button onclick="mkDoPrint()" style="'+bs+';background:#fff;color:#12281F">🖨 Εκτύπωση</button>'
+    +'<button onclick="document.getElementById(\'mk-pv\').remove()" style="'+bs+';background:rgba(255,255,255,.15);color:#fff">Κλείσιμο</button></div>'
+    +'<div style="color:rgba(255,255,255,.7);font-size:12.5px;text-align:center;max-width:520px">Αν η εκτύπωση δεν ανοίγει στο κινητό, πάτα «Αποθήκευση / Αποστολή» και τύπωσέ το από εκεί. Για σωστή κλίμακα τύπωσε σε Α4 οριζόντια, 100%.</div>';
+  document.body.appendChild(pv);
+}
+function mkDoPrint(){
   var p=document.getElementById('mk-print'); if(p) p.remove();
   p=document.createElement('div'); p.id='mk-print';
-  p.innerHTML='<div style="display:flex;gap:6mm;width:277mm;height:190mm;font-family:Inter,sans-serif;color:#12281F"><svg viewBox="0 0 730 686" style="width:202mm;height:190mm;border:1.2px solid #12281F">'+h+'</svg><div style="flex:1;display:flex;flex-direction:column;border:1.2px solid #12281F;padding:4mm">'+side+'</div></div>';
+  p.innerHTML=MK.psvg.replace(/width="1123" height="794"/,'style="display:block;width:277mm;height:196mm"');
   document.body.appendChild(p);
   if(!document.getElementById('mk-print-css')){ var st=document.createElement('style'); st.id='mk-print-css';
-    st.textContent='#mk-print{display:none}@media print{@page{size:A4 landscape;margin:10mm}html,body{background:#fff!important}body.mk-printing>*:not(#mk-print){display:none!important}body.mk-printing #mk-print{display:block!important}#mk-print *{-webkit-print-color-adjust:exact;print-color-adjust:exact}}';
+    st.textContent='#mk-print{display:none}@media print{@page{size:A4 landscape;margin:7mm 10mm}html,body{background:#fff!important}body.mk-printing>*:not(#mk-print){display:none!important}body.mk-printing #mk-print{display:block!important}#mk-print *{-webkit-print-color-adjust:exact;print-color-adjust:exact}}';
     document.head.appendChild(st); }
   document.body.classList.add('mk-printing');
   var done=function(){ document.body.classList.remove('mk-printing'); window.removeEventListener('afterprint',done); };
   window.addEventListener('afterprint',done);
-  setTimeout(function(){ window.print(); setTimeout(done,1500); },60);
+  try{ window.print(); }catch(e){ alert('Η εκτύπωση δεν υποστηρίζεται εδώ. Πάτα «Αποθήκευση / Αποστολή».'); }
+  setTimeout(done,2000);
+}
+function mkShareImg(){
+  var img=new Image(), url=URL.createObjectURL(new Blob([MK.psvg],{type:'image/svg+xml'}));
+  img.onload=function(){
+    var c=document.createElement('canvas'); c.width=2246; c.height=1588;
+    var x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height); x.drawImage(img,0,0,c.width,c.height); URL.revokeObjectURL(url);
+    c.toBlob(function(b){
+      var name=MK.pname.replace(/[\\/:*?"<>|]/g,'')+'.png', file=new File([b],name,{type:'image/png'});
+      if(navigator.canShare&&navigator.canShare({files:[file]})){ navigator.share({files:[file],title:MK.pname}).catch(function(){}); return; }
+      var a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=name; document.body.appendChild(a); a.click(); setTimeout(function(){ a.remove(); },500);
+      toast('✓ Κατέβηκε η εικόνα');
+    },'image/png');
+  };
+  img.onerror=function(){ alert('Δεν δημιουργήθηκε η εικόνα'); };
+  img.src=url;
 }
 
 /* ===== Φωτογραφίες προσφοράς ===== */
