@@ -2004,9 +2004,9 @@ function bkSheet(){
 
 /* ===== Μέτρα κήπου ===== */
 var MK={list:null,cur:null,client:'',addr:'',sel:'A'};
-var MK_DEF={rect:{A:12,B:8},L:{A:14,B:10,C:6,D:4},trap:{A:14,B:9,H:7,C:7,D:8.5,E:13},tri:{A:12,B:9,C:10}};
+var MK_DEF={U:{A:16,B:10,C:6,D:5},rect:{A:12,B:8},L:{A:14,B:10,C:6,D:4},trap:{A:14,B:9,H:7,C:7,D:8.5,E:13},tri:{A:12,B:9,C:10}};
 var MK_KG={A:'Α',B:'Β',C:'Γ',D:'Δ',H:'Υ',E:'Ε'};
-var MK_SH=[['rect','Ορθογώνιο','4,4 30,4 30,22 4,22'],['L','Γ','4,4 19,4 19,11 30,11 30,22 4,22'],['trap','Τραπέζιο','10,4 24,4 30,22 4,22'],['tri','Τρίγωνο','17,3 31,23 3,23']];
+var MK_SH=[['rect','Ορθογώνιο','4,4 30,4 30,22 4,22'],['L','Γ','4,4 19,4 19,11 30,11 30,22 4,22'],['trap','Τραπέζιο','10,4 24,4 30,22 4,22'],['tri','Τρίγωνο','17,3 31,23 3,23'],['U','Π','3,4 31,4 31,22 22,22 22,13 12,13 12,22 3,22']];
 var MK_TS={mid:'Συμμετρικό',l:'Ίσια αριστερά',r:'Ίσια δεξιά',auto:'Στραβό'};
 function mkEm(){ return window._kpEmail||localStorage.getItem('kipospro_email')||''; }
 function mkN(x){ return (Math.round(x*10)/10).toLocaleString('el-GR'); }
@@ -2014,10 +2014,16 @@ function mkLbl(sh,ts){
   if(sh==='rect') return {A:'Μήκος',B:'Πλάτος'};
   if(sh==='L') return {A:'Συνολικό μήκος',B:'Συνολικό πλάτος',C:'Κομμένο μήκος',D:'Κομμένο πλάτος'};
   if(sh==='trap') return ts==='auto'?{A:'Μπροστά',B:'Πίσω',C:'Αριστερή πλευρά',D:'Δεξιά πλευρά',E:'Διαγώνιος ↗ (μπρ.αριστ.–πίσω δεξ.)'}:{A:'Μπροστά (μεγάλη)',B:'Πίσω (μικρή)',H:'Βάθος'};
+  if(sh==='U') return {A:'Συνολικό μήκος',B:'Συνολικό πλάτος',C:'Άνοιγμα κομμένου',D:'Βάθος κομμένου'};
   return {A:'Πλευρά Α',B:'Πλευρά Β',C:'Πλευρά Γ'};
 }
 function mkGeo(sh,v,o){
   o=o||{}; var n=function(k){ return Math.max(0,parseFloat(String(v[k]==null?'':v[k]).replace(',','.'))||0); };
+  if(sh==='U'){ var UW=n('A'),UH=n('B'),uc=Math.min(n('C'),UW),ud=Math.min(n('D'),UH),l=(UW-uc)/2,r2=(UW+uc)/2, side=o.uside||'b';
+    var T=function(q){ var x=q[0],y=q[1]; if(side==='t') return [x,UH-y]; if(side==='r') return [UH-y,x]; if(side==='l') return [y,x]; return [x,y]; };
+    var up=[[0,0],[UW,0],[UW,UH],[r2,UH],[r2,UH-ud],[l,UH-ud],[l,UH],[0,UH]].map(T);
+    return {p:up,s:[['A',0],['B',1],['C',-2],['D',-3]],area:UW*UH-uc*ud,
+      segs:{A:[T([0,0]),T([UW,0])],B:[T([UW,0]),T([UW,UH])],C:[T([l,UH]),T([r2,UH])],D:[T([UW/2,UH]),T([UW/2,UH-ud]),1]}}; }
   if(sh==='rect'){ var w=n('A'),h=n('B'); return {p:[[0,0],[w,0],[w,h],[0,h]],s:[['A',0],['B',1]],area:w*h}; }
   if(sh==='L'){ var W=n('A'),H=n('B'),w2=Math.min(n('C'),W),h2=Math.min(n('D'),H);
     var p=[[0,0],[W-w2,0],[W-w2,h2],[W,h2],[W,H],[0,H]], cr=o.corner||'tr', fx=cr==='tl'||cr==='bl', fy=cr==='br'||cr==='bl';
@@ -2050,8 +2056,10 @@ function mkDims(sh,g,F,off){
   var pts=F.pts, cx=0, cy=0; pts.forEach(function(q){ cx+=q[0]; cy+=q[1]; }); cx/=pts.length; cy/=pts.length;
   return g.s.map(function(e){
     var key=e[0], idx=e[1], a, b, nx=0, ny=0, o=off;
-    if(idx<0){ a=F.P(g.hgt[0]); b=F.P(g.hgt[1]); o=0; }
-    else { a=pts[idx]; b=pts[(idx+1)%pts.length];
+    if(g.segs&&g.segs[key]){ var sg=g.segs[key]; a=F.P(sg[0]); b=F.P(sg[1]);
+      if(sg[2]){ o=0; idx=-1; } else { var dxs=b[0]-a[0], dys=b[1]-a[1], Ls=Math.hypot(dxs,dys)||1, ms=[(a[0]+b[0])/2,(a[1]+b[1])/2]; nx=-dys/Ls; ny=dxs/Ls; if((ms[0]+nx-cx)*nx+(ms[1]+ny-cy)*ny<0){ nx=-nx; ny=-ny; } idx=0; } }
+    else if(idx<0){ a=F.P(g.hgt[0]); b=F.P(g.hgt[1]); o=0; }
+    else if(!(g.segs&&g.segs[key])) { a=pts[idx]; b=pts[(idx+1)%pts.length];
       if(sh==='L'&&key==='C'){ a=pts[1]; b=[pts[3][0],pts[1][1]]; }
       if(sh==='L'&&key==='D'){ a=[pts[3][0],pts[1][1]]; b=[pts[3][0],pts[2][1]]; }
       var dx0=b[0]-a[0], dy0=b[1]-a[1], L0=Math.hypot(dx0,dy0)||1, m0=[(a[0]+b[0])/2,(a[1]+b[1])/2];
@@ -2097,7 +2105,7 @@ function mkTop(title,sub,back,right){
 function mkListView(){
   var m=mkWrap(), q=grNorm(MK.client), all=(MK.list||[]).slice().sort(function(a,b){ return String(b.date||'').localeCompare(String(a.date||'')); });
   var mine=MK.client?all.filter(function(x){ return grNorm(x.client)===q; }):all;
-  var SHN={rect:'Ορθογώνιο',L:'Γ',trap:'Τραπέζιο',tri:'Τρίγωνο'};
+  var SHN={rect:'Ορθογώνιο',L:'Γ',trap:'Τραπέζιο',tri:'Τρίγωνο',U:'Π'};
   var rows=mine.map(function(x){ var id=tdEsc(x.id);
     return '<div onclick="mkEdit(\''+id+'\')" style="background:#FFFDF8;border:1px solid #E5E0D3;border-radius:18px;padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer">'
       +'<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:800">'+tdEsc(x.title||SHN[x.shape]||'Μέτρηση')+'</div>'
@@ -2127,7 +2135,7 @@ function mkEditor(){
       ((MK.list||[]).some(function(x){ return String(x.id)===String(c.id); })?'<button onclick="mkDel()" style="width:42px;height:42px;border-radius:13px;border:1px solid #E5E0D3;background:#FFFDF8;font-size:16px;cursor:pointer;flex:none">🗑</button>':'')+'<button onclick="mkPrint()" style="height:42px;padding:0 12px;border-radius:13px;border:1px solid #E5E0D3;background:#FFFDF8;font-family:inherit;font-size:14px;font-weight:700;color:#243A2B;cursor:pointer;flex:none">🖨 Εκτύπωση</button>')
     +'<div style="flex:1;overflow-y:auto;padding:0 16px 12px;display:flex;flex-direction:column;gap:9px">'
     +'<input id="mk-title" value="'+tdEsc(c.title||'')+'" placeholder="Όνομα, π.χ. Πίσω κήπος" oninput="MK.cur.title=this.value" style="box-sizing:border-box;width:100%;min-height:46px;height:46px;border-radius:13px;border:1px solid #E5E0D3;background:#FFFDF8;padding:0 14px;font-family:inherit;font-size:16px;font-weight:700;color:#12281F;outline:0">'
-    +'<div id="mk-shapes" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px"></div>'
+    +'<div id="mk-shapes" style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px"></div>'
     +'<div style="background:#FFFDF8;border:1px solid #E5E0D3;border-radius:20px;padding:10px;position:relative">'
     +'<button id="mk-var" onclick="mkCycle()" style="position:absolute;right:10px;top:10px;z-index:2;height:36px;padding:0 12px;border-radius:11px;border:1px solid #E5E0D3;background:#fff;font-family:inherit;font-size:13px;font-weight:700;color:#243A2B;cursor:pointer;display:none"></button>'
     +'<svg id="mk-svg" viewBox="0 0 330 230" style="display:block;width:100%"></svg>'
@@ -2153,6 +2161,7 @@ function mkShape(sh){
 function mkCycle(){
   var c=MK.cur;
   if(c.shape==='L'){ var o=['tr','br','bl','tl']; c.opt.corner=o[(o.indexOf(c.opt.corner||'tr')+1)%4]; }
+  else if(c.shape==='U'){ var us=['b','l','t','r']; c.opt.uside=us[(us.indexOf(c.opt.uside||'b')+1)%4]; }
   else { var t=['mid','l','r','auto']; c.opt.tside=t[(t.indexOf(c.opt.tside||'mid')+1)%4]; var d=MK_DEF.trap; Object.keys(d).forEach(function(k){ if(c.vals[k]==null) c.vals[k]=d[k]; }); MK.sel='A'; mkFields(); }
   mkDraw();
 }
@@ -2183,8 +2192,8 @@ function mkDraw(){
   msg.style.color=g.bad?'#8E2A2A':'#4E5A50';
   msg.textContent=g.bad||(c.shape==='trap'&&(c.opt.tside||'mid')==='auto'&&g.p[0]?'Βάθος κήπου: '+mkN(Math.max.apply(0,g.p.map(function(q){return q[1];}))-Math.min.apply(0,g.p.map(function(q){return q[1];})))+' μ.':'');
   var vb=document.getElementById('mk-var');
-  vb.style.display=c.shape==='L'||c.shape==='trap'?'block':'none';
-  vb.textContent=c.shape==='L'?'↻ Γύρισε':'⇆ '+MK_TS[c.opt.tside||'mid'];
+  vb.style.display=c.shape==='L'||c.shape==='trap'||c.shape==='U'?'block':'none';
+  vb.textContent=c.shape==='L'||c.shape==='U'?'↻ Γύρισε':'⇆ '+MK_TS[c.opt.tside||'mid'];
   Object.keys(MK_KG).forEach(function(k){ var f=document.getElementById('mk-f-'+k); if(!f) return; var on=MK.sel===k;
     f.style.borderColor=on?'#D9822B':'#E5E0D3'; var ch=f.querySelector('.mk-chip'); if(ch) ch.style.background=on?'#D9822B':'#1D4632'; });
 }
@@ -2226,7 +2235,7 @@ function mkPrintRec(r){
   h+='<rect x="'+sx+'" y="'+(sy-6)+'" width="'+fx(sb*k/2)+'" height="6" fill="#12281F"/><rect x="'+fx(sx+sb*k/2)+'" y="'+(sy-6)+'" width="'+fx(sb*k/2)+'" height="6" fill="#fff" stroke="#12281F" stroke-width="1"/>'
     +'<text x="'+sx+'" y="'+(sy+16)+'" font-size="13" font-family="monospace" fill="#12281F">0</text><text x="'+fx(sx+sb*k)+'" y="'+(sy+16)+'" font-size="13" font-family="monospace" fill="#12281F" text-anchor="middle">'+sb+' μ.</text>';
   h+='<g transform="translate('+(DW-40)+',46)"><circle r="18" fill="#fff" stroke="#12281F" stroke-width="1.2"/><path d="M0 -14 L7 8 L0 3 L-7 8 Z" fill="#12281F"/><text y="-24" text-anchor="middle" font-size="14" font-weight="700" font-family="sans-serif" fill="#12281F">Β</text></g>';
-  var SHN={rect:'Ορθογώνιο',L:'Γ',trap:'Τραπέζιο',tri:'Τρίγωνο'}, L=mkLbl(r.shape,(r.opt||{}).tside||'mid');
+  var SHN={rect:'Ορθογώνιο',L:'Γ',trap:'Τραπέζιο',tri:'Τρίγωνο',U:'Π'}, L=mkLbl(r.shape,(r.opt||{}).tside||'mid');
   var cut=function(s,n){ s=String(s||''); return s.length>n?s.slice(0,n-1)+'…':s; };
   var px=M+DW+18, pw=PW-M-px, y=M+30, side='<text x="'+(px+14)+'" y="'+y+'" font-family="sans-serif" font-size="22" font-weight="800" fill="#12281F">ΚΑΤΟΨΗ ΚΗΠΟΥ</text>';
   y+=18;
