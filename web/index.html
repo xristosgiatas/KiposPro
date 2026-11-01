@@ -2352,7 +2352,22 @@ function handleOfferPhotoUpload(oid){
 
 /* ===== Προσφορές: στάδια ===== */
 function offT(v){ return v===true||v===1||v==='1'||v==='true'; }
-function offStage(o){ if(offT(o.archived)) return 'arc'; if(parseFloat(o.amount||0)>0) return 'price'; if(String(o.notes||'').trim()||offT(o.visited)) return 'note'; return 'go'; }
+var OFF_SITE_RE=/^🌐 Από το site[^\n]*(?:\n(?!———)[^\n]*)*(?:\n———\n?|$)/;
+function offIsSite(o){ return String(o.id||'').indexOf('fr')===0||String(o.notes||'').indexOf('🌐 Από το site')===0; }
+function offSiteMsg(o){ var m=String(o.notes||'').match(OFF_SITE_RE); if(!m) return ''; return m[0].replace(/^🌐 Από το site[^\n]*\n?/,'').replace(/\n?———\n?$/,'').replace(/\n?Email:.*$/m,'').trim(); }
+function offSeen(){ try{ return JSON.parse(localStorage.getItem('kp_site_seen')||'{}'); }catch(e){ return {}; } }
+function offMarkSeen(id){ var s=offSeen(); if(s[id]) return; s[id]=1; try{ localStorage.setItem('kp_site_seen',JSON.stringify(s)); }catch(e){} offSiteBadge(); }
+function offIsNew(o){ return offIsSite(o)&&!offSeen()[o.id]&&!offT(o.archived); }
+function offNewCount(){ return (offers||[]).filter(offIsNew).length; }
+function offSiteBadge(){
+  var b=document.getElementById('mt-clients'); if(!b) return;
+  var n=offNewCount(), d=document.getElementById('mt-site-dot');
+  if(!n){ if(d) d.remove(); return; }
+  if(!d){ d=document.createElement('span'); d.id='mt-site-dot'; d.style.cssText='position:absolute;top:2px;left:50%;margin-left:6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#2D6B4C;color:#fff;font-size:11px;font-weight:800;line-height:18px;text-align:center;box-shadow:0 0 0 2px #FFFDF8;pointer-events:none'; if(getComputedStyle(b).position==='static') b.style.position='relative'; b.appendChild(d); }
+  d.textContent=n;
+}
+setInterval(offSiteBadge,3000);
+function offStage(o){ if(offT(o.archived)) return 'arc'; if(parseFloat(o.amount||0)>0) return 'price'; if(String(o.notes||'').replace(OFF_SITE_RE,'').trim()||offT(o.visited)) return 'note'; return 'go'; }
 var OFF_ST={go:['📍','Να πάω','#FFFFFF','#243A2B','#C9C2B2','Ραντεβού που δεν έχεις κάνει ακόμα. Δεν έχεις γράψει τίποτα.'],
   note:['📝','Πήγα, θέλει τιμή','#E4EDF6','#28506F','#3C74A8','Έχεις σημειώσεις, λείπει η τιμή.'],
   price:['💶','Έδωσα τιμή','#E3F0E7','#2D6B4C','#6FA286','Περιμένεις απάντηση. Με «Συμφωνία ΟΚ» περνάει στα Ραντεβού.'],
@@ -2374,15 +2389,16 @@ function offSave(o,msg){ google.script.run.withSuccessHandler(function(){}).with
 function offWent(id){ var o=(offers||[]).find(function(x){return x.id==id;}); if(!o) return; o.visited='1'; o.visitedAt=toLocalISO(); offSave(o,'📝 Πέρασε στο «Πήγα, θέλει τιμή»'); }
 function offDay(id){ editOffer(mclOEl(id)); }
 function offTilesHtml(cols){
-  var c=offCounts(), cur=offCur();
-  return '<div style="display:grid;grid-template-columns:repeat('+cols+',minmax(0,1fr));gap:8px">'+Object.keys(OFF_ST).map(function(k){ var S=OFF_ST[k], on=k===cur;
+  var c=offCounts(), cur=offCur(), nn=offNewCount();
+  return (nn?'<div style="display:inline-flex;align-items:center;gap:6px;background:#E3F0E7;color:#2D6B4C;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:800;margin-bottom:8px">🌐 '+nn+(nn===1?' νέο αίτημα':' νέα αιτήματα')+' από το site</div>':'')
+    +'<div style="display:grid;grid-template-columns:repeat('+cols+',minmax(0,1fr));gap:8px">'+Object.keys(OFF_ST).map(function(k){ var S=OFF_ST[k], on=k===cur;
     return '<button onclick="offPick(\''+k+'\')" style="text-align:left;border:0;cursor:pointer;border-radius:18px;padding:12px 13px;height:'+(k==='arc'&&cols<4?'56':'84')+'px;display:flex;flex-direction:'+(k==='arc'&&cols<4?'row;align-items:center':'column')+';justify-content:space-between;background:'+S[2]+';box-shadow:'+(on?'inset 0 0 0 2.5px #12281F':'inset 0 0 0 1px rgba(0,0,0,.08)')+';font-family:inherit;'+(k==='arc'&&cols<4?'grid-column:1/-1;':'')+'">'
       +(k==='arc'&&cols<4?'<span style="font-size:14px;font-weight:800;color:'+S[3]+'">'+S[0]+' '+S[1]+'</span><span style="font-size:18px;font-weight:800;color:'+S[3]+'">'+c[k]+'</span>'
       :'<span style="display:flex;justify-content:space-between;align-items:center;width:100%"><span style="font-size:18px;line-height:1">'+S[0]+'</span><span style="font-size:24px;line-height:1;font-weight:800;color:'+S[3]+'">'+c[k]+'</span></span><span style="font-size:14px;line-height:1.2;font-weight:800;color:'+S[3]+'">'+S[1]+'</span>')
       +'</button>'; }).join('')+'</div>'
     +'<div style="font-size:12.5px;line-height:1.4;color:#4E5A50;margin:8px 2px 10px">'+OFF_ST[cur][5]+'</div>';
 }
-function offList(){ var cur=offCur(); return (offers||[]).filter(function(o){ return offStage(o)===cur; }).sort(function(a,b){ return String(a.date||'9999').localeCompare(String(b.date||'9999')); }); }
+function offList(){ var cur=offCur(); return (offers||[]).filter(function(o){ return offStage(o)===cur; }).sort(function(a,b){ var na=offIsNew(a)?0:1, nb=offIsNew(b)?0:1; if(na!==nb) return na-nb; return String(a.date||'9999').localeCompare(String(b.date||'9999')); }); }
 function offCardHtml(o,mob,actions){
   var I=offInfo(o), S=OFF_ST[I.st], id=tdEsc(o.id), tel=String(o.tel||'').replace(/[^0-9+]/g,'');
   var bar=I.late?'#D9822B':S[4], stBg=I.late?'#FCEFD2':S[2]===('#FFFFFF')?'#F1EEE6':S[2], stFg=I.late?'#95681A':I.st==='go'?'#4E5A50':S[3];
@@ -2391,7 +2407,9 @@ function offCardHtml(o,mob,actions){
   var dg=mob?' mcl-drag" data-cid="'+id+'" data-dgt="offer" data-lix="'+id+'" data-cname="'+tdEsc(o.name||''):'';
   return '<div class="'+(mob?'td-row':'')+dg+'" onclick="'+(mob?"mclOpen('p','"+id+"')":(I.st==='arc'?"if(confirm('Επαναφορά από το αρχείο;'))unarchiveOffer(mclOEl('"+id+"'))":"editOffer(mclOEl('"+id+"'))"))+'" style="display:flex;flex-direction:column;align-items:stretch;text-align:left;width:100%;box-sizing:border-box;gap:6px;background:var(--paper,#FFFDF8);border:1px solid var(--brd,#E5E0D3);border-left:4px solid '+bar+';border-radius:18px;padding:13px 14px;cursor:pointer">'
     +'<div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span style="font-size:15.5px;font-weight:800;color:#12281F">'+tdEsc(o.name||'—')+'</span><span style="font-family:var(--mono);font-size:11.5px;font-weight:700;color:#4E5A50;white-space:nowrap">'+tdEsc((getArea(o.address||'')||'').replace(/^Άλλο$/,''))+'</span></div>'
+    +(offIsNew(o)?'<div style="align-self:flex-start;background:#2D6B4C;color:#fff;border-radius:7px;padding:3px 8px;font-size:11.5px;font-weight:800">🌐 Νέο από site</div>':'')
     +(o.address?'<div style="font-family:var(--mono);font-size:11.5px;color:var(--tx2)">'+tdEsc(o.address)+'</div>':'')
+    +(!o.desc&&offSiteMsg(o)?'<div style="font-size:12.5px;line-height:1.4;color:#4E5A50;white-space:pre-line;font-style:italic">«'+tdEsc(offSiteMsg(o).slice(0,220))+'»</div>':'')
     +(o.desc?'<div style="font-size:12.5px;line-height:1.4;color:#4E5A50;white-space:pre-line">'+tdEsc(o.desc)+'</div>':'')
     +'<div style="display:flex;align-items:center;gap:7px;border-radius:9px;padding:7px 10px;background:'+stBg+';color:'+stFg+';font-size:12.5px;font-weight:700"><span style="width:7px;height:7px;border-radius:50%;background:'+stFg+';flex:none"></span>'+tdEsc(I.txt)+'</div>'
     +(I.st==='go'?'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:2px">'
@@ -2480,6 +2498,7 @@ function mclRowsP(){
 }
 var MCL_SEG=[['c','Συντηρήσεις',mclRowsC],['a','Ραντεβού',mclRowsA],['p','Προσφορές',mclRowsP],['k','Κατασκευές',mclRowsK]];
 function mclOpen(kind,id){
+  if(kind==='p') offMarkSeen(id);
   try{ mclOpen2(kind,id); }catch(e){ alert('Σφάλμα: '+e.message); }
 }
 function mclOpen2(kind,id){
@@ -10435,7 +10454,7 @@ function confirmOffer(el){
 }
 
 function editOffer(el){
-  var id=el.getAttribute('data-oid');
+  var id=el.getAttribute('data-oid'); offMarkSeen(id);
   var o=offers.find(function(x){return x.id==id;});
   if(!o) return;
   openM('Επεξεργασία Προσφοράς',
