@@ -3910,13 +3910,14 @@ var MD_MN=['Ιαν','Φεβ','Μαρ','Απρ','Μάι','Ιουν','Ιουλ','�
 var MD_MF=['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
 function mdEur(n){ return (Math.round((n||0)*100)/100).toLocaleString('el-GR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'; }
 function mdLoad(force){
-  if(MD.loading) return; MD.loading=true; MD.err=''; renderMydata();
+  if(MD.loading&&Date.now()-(MD.t0||0)<60000) return; MD.loading=true; MD.t0=Date.now(); MD.err=''; renderMydata();
+  var my=MD.t0; setTimeout(function(){ if(MD.loading&&MD.t0===my){ MD.loading=false; MD.err='Η ΑΑΔΕ αργεί να απαντήσει. Πάτα ↻ για νέα προσπάθεια.'; renderMydata(); } },60000);
   try{
     var cached=!force&&localStorage.getItem('kp_md_'+MD.y);
     if(cached&&!MD.data){ MD.data=JSON.parse(cached); }
   }catch(e){}
   google.script.run.withSuccessHandler(function(s){
-    MD.loading=false; try{ MD.data=typeof s==='string'?JSON.parse(s):s; localStorage.setItem('kp_md_'+MD.y, JSON.stringify(MD.data)); }catch(e){ MD.err='Λάθος απάντηση'; }
+    MD.loading=false; try{ MD.data=typeof s==='string'?JSON.parse(s):s; }catch(e){ MD.err='Λάθος απάντηση'; } try{ localStorage.setItem('kp_md_'+MD.y, JSON.stringify(MD.data)); }catch(e){}
     renderMydata();
   }).withFailureHandler(function(e){ MD.loading=false; MD.err=(e&&e.message)||String(e); renderMydata(); }).mydata_summary(MD.y, !!force);
 }
@@ -3949,6 +3950,13 @@ function mdMissing(){
   }).map(function(c){ return {c:c,m:m}; });
 }
 function renderMydata(){
+  try{ renderMydata2(); }catch(e){
+    var root=document.getElementById('md-root');
+    if(root) root.innerHTML='<div class="td-wrap"><div style="background:#F5DEDE;color:#8E2A2A;border-radius:14px;padding:14px;font-weight:700">Σφάλμα myDATA: '+tdEsc(e.message)+'</div><button class="btn" style="margin-top:10px" onclick="mdReset()">Καθαρισμός & ξαναφόρτωση</button></div>';
+  }
+}
+function mdReset(){ try{ Object.keys(localStorage).forEach(function(k){ if(k.indexOf('kp_md_')===0) localStorage.removeItem(k); }); }catch(e){} MD.data=null; MD.loading=false; MD.err=''; mdLoad(true); }
+function renderMydata2(){
   var root=document.getElementById('md-root'); if(!root) return;
   if(!MD.data&&!MD.loading&&!MD.err){ try{ var c=localStorage.getItem('kp_md_'+MD.y); if(c) MD.data=JSON.parse(c); }catch(e){} setTimeout(function(){ mdLoad(false); },0); }
   var card='background:var(--paper,#FFFDF8);border:1px solid var(--brd,#E5E0D3);border-radius:20px;padding:16px 18px';
