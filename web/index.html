@@ -1009,7 +1009,7 @@ body.d-fs #d-row-zones .zone-btn{padding:4px 9px;font-size:11.5px}
     <div class="sb-sec">Πελάτες</div>
     <button class="si on" onclick="go('clients')" id="nav-clients"><span class="si-ic"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16c0-7 5.5-12 12-12 0 6.5-5 12-12 12Z"/><path d="M4.5 15.5 11 9"/></svg></span>Συντηρήσεις</button>
     <button class="si" onclick="go('schedule')" id="nav-schedule"><span class="si-ic"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="14" height="12" rx="2"/><path d="M3 9h14M7 3v3M13 3v3"/></svg></span>Πλάνο</button>
-    <button class="si" onclick="go('appts')" id="nav-appts"><span class="si-ic"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7"/><path d="M10 6v4.3l2.8 1.9"/></svg></span>Ραντεβού</button>
+    <button class="si" onclick="go('appts')" id="nav-appts"><span class="si-ic"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7"/><path d="M10 6v4.3l2.8 1.9"/></svg></span>Δουλειές</button>
     <button class="si" onclick="go('ekta')" id="nav-ekta"><span class="si-ic"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3v6"/><path d="M6.6 9h6.8l-3.4 8Z"/></svg></span>Κατασκευές/Καθαρισμοί</button>
     <button class="si" onclick="go('archive')" id="nav-archive"><span class="si-ic"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3.5" width="14" height="4" rx="1"/><path d="M4.6 7.5v9h10.8v-9M8 11.5h4"/></svg></span>Αρχείο</button>
     <button class="si" onclick="go('pelat')" id="nav-pelat"><span class="si-ic"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="14" height="12" rx="2"/><circle cx="8" cy="9" r="1.7"/><path d="M5.4 13.8c0-1.6 1.2-2.4 2.6-2.4s2.6.8 2.6 2.4M13 8.6h2.4M13 11.6h2.4"/></svg></span>Πελατολόγιο</button>
@@ -1079,7 +1079,7 @@ body.d-fs #d-row-zones .zone-btn{padding:4px 9px;font-size:11.5px}
 <!-- ΡΑΝΤΕΒΟΥ -->
 <div class="page" id="pg-appts">
   <div class="tb">
-    <div class="pt" style="margin:0">Ραντεβού</div>
+    <div class="pt" style="margin:0">Δουλειές</div>
     <div style="display:flex;gap:8px">
       <button class="btn btn-b" onclick="openAddAppt()">+ Εργασία</button>
       <button class="btn" style="background:#3C6A88;color:#fff" onclick="openAddOffer()">+ Εκτίμηση</button>
@@ -2305,13 +2305,18 @@ function mkShareImg(){
 }
 
 /* ===== Φωτογραφίες προσφοράς ===== */
-function opOffer(oid){ return (offers||[]).find(function(x){ return String(x.id)===String(oid); }); }
+function opOffer(oid){ oid=String(oid); if(oid.indexOf('ap_')===0){ var a=(appointments||[]).find(function(x){ return 'ap_'+x.id===oid; }); return a?{id:oid,name:a.name,job:true}:null; } return (offers||[]).find(function(x){ return String(x.id)===oid; }); }
+function mclApptPhotos(id){
+  var a=(appointments||[]).find(function(x){ return String(x.id)===String(id); }); if(!a) return;
+  var k=grNorm(a.name||''), c=(clients||[]).find(function(x){ return grNorm(x.name||'')===k; });
+  openPhotos3(a.name,'Δουλειά');
+}
 function openOfferPhotos(oid){
   var o=opOffer(oid); if(!o) return;
   openM('Φωτογραφίες — '+(o.name||'Προσφορά'),
     '<input type="file" id="op-input" accept="image/*" multiple style="display:none" onchange="handleOfferPhotoUpload(\''+oid+'\')">'
     +'<button class="btn btn-g btn-sm" id="op-up-btn" style="width:100%;margin-bottom:6px" onclick="document.getElementById(\'op-input\').click()">📤 Ανέβασμα φωτογραφιών</button>'
-    +'<div style="font-size:11.5px;color:var(--tx2);text-align:center;margin-bottom:12px">Αποθηκεύονται στο Drive → Προσφορές → '+tdEsc(o.name||'')+'. Αν γίνει πελάτης, μεταφέρονται στον φάκελό του.</div>'
+    +'<div style="font-size:11.5px;color:var(--tx2);text-align:center;margin-bottom:12px">'+(o.job?'Αποθηκεύονται στο Drive → Δουλειές → '+tdEsc(o.name||''):'Αποθηκεύονται στο Drive → Προσφορές → '+tdEsc(o.name||'')+'. Αν γίνει πελάτης, μεταφέρονται στον φάκελό του.')+'</div>'
     +'<div id="op-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"><div style="grid-column:1/-1;color:var(--tx2);font-size:13px;text-align:center;padding:16px 0">Φόρτωση...</div></div>',
     '<button class="btn btn-out btn-sm" onclick="closeM()">Κλείσιμο</button>');
   loadOfferPhotos(oid);
@@ -2325,7 +2330,7 @@ function loadOfferPhotos(oid){
         +'<img src="'+p.thumb+'" style="width:100%;height:100%;object-fit:cover;display:block;cursor:pointer" loading="lazy" onclick="viewPhoto('+i+')">'
         +'<button onclick="removeOfferPhoto(\''+oid+'\',\''+p.id+'\')" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:12px;cursor:pointer;line-height:1">✕</button></div>'; }).join('');
   }).withFailureHandler(function(e){ var el=document.getElementById('op-grid'); if(el) el.innerHTML='<div style="grid-column:1/-1;color:#991b1b;font-size:13px;text-align:center">❌ '+(e&&e.message||'Σφάλμα')+'<br>Έχεις προσθέσει το OfferPhotos.gs;</div>'; })
-  .getOfferPhotos(mkEm(), o.name);
+  [o.job?'getJobPhotos':'getOfferPhotos'](mkEm(), o.name);
 }
 function removeOfferPhoto(oid,fid){
   if(!confirm('Διαγραφή φωτογραφίας;')) return;
@@ -2342,7 +2347,7 @@ function handleOfferPhotoUpload(oid){
     return resizeImageForUpload(file,2000,0.85).then(function(res){ return new Promise(function(ok){
       google.script.run.withSuccessHandler(function(r){ if(r&&r.error) failed.push(file.name||'#'+(i+1)); else done++; ok(); })
         .withFailureHandler(function(){ failed.push(file.name||'#'+(i+1)); ok(); })
-        .uploadOfferPhoto(mkEm(),o.name,nm,res.base64,res.mimeType); }); })
+        [o.job?'uploadJobPhoto':'uploadOfferPhoto'](mkEm(),o.name,nm,res.base64,res.mimeType); }); })
       .catch(function(){ failed.push(file.name||'#'+(i+1)); }); };
   var worker=function(){ if(next>=total) return Promise.resolve(); var i=next++; label(); return one(i).then(function(){ if(done&&done%3===0) loadOfferPhotos(oid); return worker(); }); };
   Promise.all([worker(),worker()]).then(function(){
@@ -2498,7 +2503,7 @@ function mclRowsP(){
       txt:[o.name,o.address,o.tel,o.desc,o.notes].join(' ') };
   });
 }
-var MCL_SEG=[['c','Συντηρήσεις',mclRowsC],['a','Ραντεβού',mclRowsA],['p','Προσφορές',mclRowsP],['k','Κατασκευές',mclRowsK]];
+var MCL_SEG=[['c','Συντηρήσεις',mclRowsC],['a','Δουλειές',mclRowsA],['p','Προσφορές',mclRowsP],['k','Κατασκευές',mclRowsK]];
 function mclOpen(kind,id){
   if(kind==='p') offMarkSeen(id);
   try{ mclOpen2(kind,id); }catch(e){ alert('Σφάλμα: '+e.message); }
@@ -2559,11 +2564,12 @@ function mclApptSheet(ix){
   if(a.id===undefined||a.id===null||a.id===''){ alert('Το ραντεβού δεν έχει κωδικό — άνοιξέ το από τον υπολογιστή'); return; }
   var tel=String(a.tel||'').replace(/[^0-9+]/g,''), id=String(a.id).replace(/'/g,''), nq=String(a.name||'').replace(/'/g,'');
   var sub=(a.date?planShort(a.date):'χωρίς ημερομηνία')+(a.time?' · '+a.time:'')+(a.address?' · '+a.address:'')+(a.desc?'\n'+a.desc:'');
-  lpSheet(a.name||'Ραντεβού', sub, [
+  lpSheet(a.name||'Δουλειά', sub, [
     ['✓','Ολοκληρώθηκε',"mclDoComplete('"+id+"')",'g'],
     tel&&['📞','Κλήση',"location.href='tel:"+tel+"'",'g'],
     tel&&['💬','Μήνυμα',"location.href='sms:"+tel+"'",'b'],
     ['📅','Στο πλάνο',"swPlanT('"+id+"','"+nq+"','appt')",'b'],
+    ['📷','Φωτογραφίες',"mclApptPhotos('"+id+"')",'n'],
     a.address&&['🧭','Οδηγίες',"window.open('https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(a.address)+"')",'n'],
     ['✎','Επεξεργασία',"openEditAppt('"+id+"')",'n'],
     ['🗑','Διαγραφή',"delAppt('"+id+"')",'r']
@@ -4007,7 +4013,7 @@ function renderMydata(){
 }
 
 /* ===== NAV ===== */
-var PAGE_TITLES={mydata:'myDATA',today:'Σήμερα',owed:'Οφειλές',more:'Περισσότερα',clients:'Συντηρήσεις',ekta:'Κατασκευές/Καθαρισμοί',pelat:'Πελατολόγιο',fin:'Οικονομικά',docs:'Τιμολόγια',quote:'Προσφορά',reports:'Αναφορές',supply:'Αναλώσιμα',map:'Χάρτης',plants:'Φυτά',design:'Σχέδιο Κήπου',appts:'Ραντεβού',archive:'Αρχείο',detail:'Πελάτης',edet:'Έκτακτη'};
+var PAGE_TITLES={mydata:'myDATA',today:'Σήμερα',owed:'Οφειλές',more:'Περισσότερα',clients:'Συντηρήσεις',ekta:'Κατασκευές/Καθαρισμοί',pelat:'Πελατολόγιο',fin:'Οικονομικά',docs:'Τιμολόγια',quote:'Προσφορά',reports:'Αναφορές',supply:'Αναλώσιμα',map:'Χάρτης',plants:'Φυτά',design:'Σχέδιο Κήπου',appts:'Δουλειές',archive:'Αρχείο',detail:'Πελάτης',edet:'Έκτακτη'};
 
 function go(page){
   if(page==='mk'){ mkOpen(''); return; }
@@ -11111,8 +11117,63 @@ function emailDocReceipt(){
     .sendReceiptEmail(window._kpEmail||localStorage.getItem('kipospro_email')||'', toEmail, _lastDocReceipt.clientName, _lastDocReceipt.id, _lastDocReceipt.name);
 }
 
-/* ===== CLIENT PHOTOS ===== */
-function openPhotos(cid){
+/* ===== CLIENT PHOTOS (3 στάδια) ===== */
+var P3={name:'',st:'Συντήρηση',data:null};
+var P3_ST=[['Εκτίμηση','🔍'],['Δουλειά','🛠'],['Συντήρηση','🌿']];
+function openPhotos(cid){ var c=gc(cid); if(!c) return; openPhotos3(c.name,'Συντήρηση'); }
+function openPhotos3(name,st){
+  P3.name=name; P3.st=st||'Συντήρηση'; P3.data=null;
+  openM('Φωτογραφίες — '+name,
+    '<input type="file" id="p3-input" accept="image/*" multiple style="display:none" onchange="p3Upload()">'
+    +'<div id="p3-tabs" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px"></div>'
+    +'<button class="btn btn-g btn-sm" id="p3-btn" style="width:100%;margin-bottom:6px" onclick="document.getElementById(\'p3-input\').click()">📤 Ανέβασμα στο «'+P3.st+'»</button>'
+    +'<div id="p3-path" style="font-size:11.5px;color:var(--tx2);text-align:center;margin-bottom:12px"></div>'
+    +'<div id="p3-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"><div style="grid-column:1/-1;color:var(--tx2);font-size:13px;text-align:center;padding:16px 0">Φόρτωση...</div></div>',
+    '<button class="btn btn-out btn-sm" onclick="closeM()">Κλείσιμο</button>');
+  p3Draw(); p3Load();
+}
+function p3Tab(s){ P3.st=s; var b=document.getElementById('p3-btn'); if(b) b.textContent='📤 Ανέβασμα στο «'+s+'»'; p3Draw(); }
+function p3Load(){
+  google.script.run.withSuccessHandler(function(s){ try{ P3.data=typeof s==='string'?JSON.parse(s):s; }catch(e){ P3.data={}; } p3Draw(); })
+    .withFailureHandler(function(e){ var el=document.getElementById('p3-grid'); if(el) el.innerHTML='<div style="grid-column:1/-1;color:#991b1b;font-size:13px;text-align:center">❌ '+tdEsc((e&&e.message)||'Σφάλμα')+'</div>'; })
+    .getStagePhotos(mkEm(),P3.name);
+}
+function p3Draw(){
+  var t=document.getElementById('p3-tabs'); if(!t) return;
+  t.innerHTML=P3_ST.map(function(s){ var on=P3.st===s[0], n=P3.data&&P3.data[s[0]]?P3.data[s[0]].length:''; return '<button onclick="p3Tab(\''+s[0]+'\')" style="height:40px;border-radius:12px;border:1px solid '+(on?'#1D4632':'var(--brd)')+';background:'+(on?'#1D4632':'var(--paper,#fff)')+';color:'+(on?'#fff':'var(--tx)')+';font:inherit;font-weight:700;font-size:13px;cursor:pointer">'+s[1]+' '+s[0]+(n!==''?' <span style="opacity:.7;font-size:11.5px">'+n+'</span>':'')+'</button>'; }).join('');
+  var p=document.getElementById('p3-path'); if(p) p.textContent='Drive → '+P3.name+' → Φωτογραφίες → '+P3.st;
+  var el=document.getElementById('p3-grid'); if(!el||!P3.data) return;
+  var L=P3.data[P3.st]||[]; _photoViewList=L;
+  el.innerHTML=!L.length?'<div style="grid-column:1/-1;color:var(--tx2);font-size:13px;text-align:center;padding:16px 0">Καμία φωτογραφία στο «'+P3.st+'»</div>'
+    :L.map(function(ph,i){ return '<div style="position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--brd);aspect-ratio:1">'
+      +'<img src="'+ph.thumb+'" style="width:100%;height:100%;object-fit:cover;display:block;cursor:pointer" loading="lazy" onclick="viewPhoto('+i+')">'
+      +'<span style="position:absolute;left:3px;bottom:3px;background:rgba(0,0,0,.55);color:#fff;border-radius:5px;padding:1px 5px;font-size:10px">'+String(ph.date||'').split('-').reverse().join('/')+'</span>'
+      +'<button onclick="p3Del(\''+ph.id+'\')" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:12px;cursor:pointer;line-height:1">✕</button></div>'; }).join('');
+}
+function p3Del(fid){ if(!confirm('Διαγραφή φωτογραφίας;')) return; google.script.run.withSuccessHandler(p3Load).withFailureHandler(p3Load).deletePhoto(mkEm(),fid); }
+function p3Upload(){
+  var input=document.getElementById('p3-input');
+  var files=[].slice.call((input&&input.files)||[]).filter(function(f){ return !f.type||f.type.indexOf('image')===0; });
+  if(input) input.value=''; if(!files.length) return;
+  var st=P3.st, name=P3.name, btn=document.getElementById('p3-btn'), total=files.length, done=0, failed=[], next=0, stamp=Date.now();
+  var label=function(){ if(btn){ btn.disabled=true; btn.textContent='⏳ '+(done+failed.length)+' / '+total; } };
+  var one=function(i){ var file=files[i], base=(file.name||'photo').replace(/\.[^.]+$/,'');
+    var nm=(total>1&&/^(image|photo)$/i.test(base)?base+'_'+stamp+'_'+(i+1):base)+'.jpg';
+    return resizeImageForUpload(file,2000,0.85).then(function(res){ return new Promise(function(ok){
+      google.script.run.withSuccessHandler(function(r){ if(r&&r.error) failed.push(file.name||'#'+(i+1)); else done++; label(); ok(); })
+        .withFailureHandler(function(){ failed.push(file.name||'#'+(i+1)); label(); ok(); })
+        .uploadStagePhoto(mkEm(),name,st,nm,res.base64,res.mimeType); }); })
+      .catch(function(){ failed.push(file.name||'#'+(i+1)); }); };
+  var worker=function(){ if(next>=total) return Promise.resolve(); var i=next++; return one(i).then(worker); };
+  label();
+  Promise.all([worker(),worker()]).then(function(){
+    if(btn){ btn.disabled=false; btn.textContent='📤 Ανέβασμα στο «'+P3.st+'»'; }
+    p3Load();
+    if(!failed.length) toast('✓ Ανέβηκ'+(total===1?'ε 1 φωτογραφία':'αν '+total+' φωτογραφίες')+' στο «'+st+'»'); else alert('Ανέβηκαν '+done+' από '+total+'.\nΔεν ανέβηκαν: '+failed.join(', '));
+  });
+}
+/* ===== CLIENT PHOTOS (παλιό) ===== */
+function openPhotosOld(cid){
   var c=gc(cid); if(!c) return;
   openM('Φωτογραφίες — '+c.name,
     '<input type="file" id="photo-input" accept="image/*" multiple style="display:none" onchange="handlePhotoUpload(\''+cid+'\')">'
