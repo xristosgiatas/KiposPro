@@ -17,11 +17,13 @@
     uploadPhoto:1, uploadDocFile:1, getClientPhotos:1, getDocsFolderUrl:1,
     createQuotePdf:1, createReceipt:1, sendReceiptEmail:1, getNextReceiptNumber:1,
     getDrivingKm:1, getPortalLink:1, portal_link:1, loadDesigns:1, resolveReport:1,
-    prosf_init:1, prosf_savePdf:1
+    prosf_init:1, prosf_savePdf:1,
+    mydata_summary:1, getStagePhotos:1, uploadStagePhoto:1, getJobPhotos:1, uploadJobPhoto:1,
+    getOfferPhotos:1, uploadOfferPhoto:1, kpBackupInfo:1
   };
-  var SLOW = { uploadPhoto:1, uploadDocFile:1, createQuotePdf:1, createReceipt:1, sendReceiptEmail:1, loadAll:1, prosf_savePdf:1 };
+  var SLOW = { mydata_summary:1, uploadStagePhoto:1, uploadOfferPhoto:1, uploadJobPhoto:1, uploadPhoto:1, uploadDocFile:1, createQuotePdf:1, createReceipt:1, sendReceiptEmail:1, loadAll:1, prosf_savePdf:1 };
 
-  var KP_VERSION = '2026-11-02i';
+  var KP_VERSION = '2026-11-02j';
   window.KP_WEB = true;
   window.KP_VERSION = KP_VERSION;
 
@@ -191,7 +193,7 @@
   var _pending = {};          // opId -> {ok, fail, user}
   var _flushing = false;
 
-  function queue() { return ls(LS_QUEUE) || []; }
+  function queue() { var q = ls(LS_QUEUE) || []; var c = q.filter(function (x) { return !ONLINE_ONLY[x.fn]; }); if (c.length !== q.length) ls(LS_QUEUE, c); return c; }
   function setQueue(q) { ls(LS_QUEUE, q); badge(); }
 
   function enqueue(fn, args) {

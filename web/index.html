@@ -3914,15 +3914,17 @@ function mdLoad(force){
   var my=MD.t0; setTimeout(function(){ if(MD.loading&&MD.t0===my){ MD.loading=false; MD.err='Η ΑΑΔΕ αργεί να απαντήσει. Πάτα ↻ για νέα προσπάθεια.'; renderMydata(); } },60000);
   try{
     var cached=!force&&localStorage.getItem('kp_md_'+MD.y);
-    if(cached&&!MD.data){ MD.data=JSON.parse(cached); }
+    if(cached&&!MD.data){ var cd=JSON.parse(cached); if(cd&&Array.isArray(cd.docs)) MD.data=cd; }
   }catch(e){}
   google.script.run.withSuccessHandler(function(s){
-    MD.loading=false; try{ MD.data=typeof s==='string'?JSON.parse(s):s; }catch(e){ MD.err='Λάθος απάντηση'; } try{ localStorage.setItem('kp_md_'+MD.y, JSON.stringify(MD.data)); }catch(e){}
+    MD.loading=false; var nd=null; try{ nd=typeof s==='string'?JSON.parse(s):s; }catch(e){}
+    if(!nd||!Array.isArray(nd.docs)){ MD.err=nd&&nd.queued?'Χωρίς σύνδεση με την ΑΑΔΕ τώρα. Πάτα ↻ σε λίγο.':'Λάθος απάντηση από την ΑΑΔΕ.'; renderMydata(); return; }
+    MD.data=nd; try{ localStorage.setItem('kp_md_'+MD.y, JSON.stringify(MD.data)); }catch(e){}
     renderMydata();
   }).withFailureHandler(function(e){ MD.loading=false; MD.err=(e&&e.message)||String(e); renderMydata(); }).mydata_summary(MD.y, !!force);
 }
 function mdSet(k,v){ MD[k]=v; if(k==='per') MD.idx=-1; renderMydata(); }
-function mdYear(d){ MD.y+=d; MD.data=null; MD.idx=-1; try{ var c=localStorage.getItem('kp_md_'+MD.y); if(c) MD.data=JSON.parse(c); }catch(e){} renderMydata(); mdLoad(false); }
+function mdYear(d){ MD.y+=d; MD.data=null; MD.idx=-1; try{ var c=localStorage.getItem('kp_md_'+MD.y); if(c){ var cd=JSON.parse(c); if(cd&&Array.isArray(cd.docs)) MD.data=cd; } }catch(e){} renderMydata(); mdLoad(false); }
 function mdRange(){
   var now=new Date(), cm=MD.y===now.getFullYear()?now.getMonth():11;
   if(MD.per==='m'){ var i=MD.idx<0?cm:MD.idx; return {a:i,b:i,i:i,n:12,l:MD_MF[i]}; }
@@ -3958,7 +3960,7 @@ function renderMydata(){
 function mdReset(){ try{ Object.keys(localStorage).forEach(function(k){ if(k.indexOf('kp_md_')===0) localStorage.removeItem(k); }); }catch(e){} MD.data=null; MD.loading=false; MD.err=''; mdLoad(true); }
 function renderMydata2(){
   var root=document.getElementById('md-root'); if(!root) return;
-  if(!MD.data&&!MD.loading&&!MD.err){ try{ var c=localStorage.getItem('kp_md_'+MD.y); if(c) MD.data=JSON.parse(c); }catch(e){} setTimeout(function(){ mdLoad(false); },0); }
+  if(!MD.data&&!MD.loading&&!MD.err){ try{ var c=localStorage.getItem('kp_md_'+MD.y); if(c){ var cd=JSON.parse(c); if(cd&&Array.isArray(cd.docs)) MD.data=cd; } }catch(e){} setTimeout(function(){ mdLoad(false); },0); }
   var card='background:var(--paper,#FFFDF8);border:1px solid var(--brd,#E5E0D3);border-radius:20px;padding:16px 18px';
   var mono="font-family:var(--mono,'IBM Plex Mono',monospace)";
   var r=mdRange(), D=MD.data, docs=(D&&D.docs)||[];
