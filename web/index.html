@@ -1940,7 +1940,7 @@ var MORE_IC_MK='<path d="M3 21 21 3"/><path d="M3 21h18V3"/><path d="M8 21v-3M13
 var MORE_IC={"MD":"<path d=\"M4 20V10M10 20V4M16 20v-7M22 20H2\"/>","RV":"<rect x=\"3\" y=\"4\" width=\"18\" height=\"17\" rx=\"3\"/><path d=\"M3 9h18M8 2v4M16 2v4M12 13v3l2 1\"/>","KA":"<path d=\"M3 17 17 3l4 4L7 21H3z\"/><path d=\"m6 14 2 2M9 11l2 2M12 8l2 2M15 5l2 2\"/>","PR":"<path d=\"M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z\"/><path d=\"M14 3v5h5M9 13h6M9 17h4\"/>","AN":"<path d=\"M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z\"/><path d=\"M12 7v4M12 14h.01\"/>","SX":"<path d=\"M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7\"/><path d=\"M14 3l5 5h-5z\"/><path d=\"M8 10h4M8 14h3\"/><path d=\"m15 21 6-6-2-2-6 6v2z\"/>","FY":"<path d=\"M11 20A7 7 0 0 1 4 13c0-5 4-9 16-10-1 12-5 16-10 16\"/><path d=\"M4 21c3-6 7-9 11-11\"/>","XA":"<path d=\"M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z\"/><path d=\"M9 4v14M15 6v14\"/>","AR":"<rect x=\"3\" y=\"4\" width=\"18\" height=\"5\" rx=\"1\"/><path d=\"M5 9v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9M10 13h4\"/>","OI":"<path d=\"M3 3v18h18\"/><path d=\"m7 15 4-4 3 3 5-6\"/>","TI":"<path d=\"M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z\"/><path d=\"M9 8h6M9 12h6\"/>","AL":"<path d=\"M21 8 12 3 3 8v8l9 5 9-5z\"/><path d=\"m3 8 9 5 9-5M12 13v8\"/>"};
 MORE_IC.MK=MORE_IC_MK;
 var MORE_TILES=[
-  ['ΔΟΥΛΕΙΑ',[['appts','Ραντεβού','RV'],['ekta','Κατασκευές','KA'],['quote','Προσφορά','PR'],['reports','Αναφορές πελατών','AN'],['mk','Μέτρα κήπου','MK'],['design','Σχέδιο κήπου','SX'],['plants','Οδηγός φυτών','FY'],['map','Χάρτης','XA'],['archive','Αρχείο','AR']]],
+  ['ΔΟΥΛΕΙΑ',[['quote','Προσφορά','PR'],['reports','Αναφορές πελατών','AN'],['mk','Μέτρα κήπου','MK'],['design','Σχέδιο κήπου','SX'],['plants','Οδηγός φυτών','FY'],['map','Χάρτης','XA'],['archive','Αρχείο','AR']]],
   ['ΟΙΚΟΝΟΜΙΚΑ',[['fin','Οικονομικά','OI'],['mydata','myDATA','MD'],['docs','Τιμολόγια','TI'],['supply','Αναλώσιμα','AL']]]
 ];
 function renderMore(){
@@ -2647,6 +2647,24 @@ function mclBody(){
     el.innerHTML=h; return;
   }
   var rows=seg[2]();
+  if(_mcl.seg==='k'){
+    var KYr=_mcl.kyr==null?CY:_mcl.kyr, ys=String(KYr);
+    var ky=(ektas||[]).filter(function(e){ return e.date&&String(e.date).indexOf(ys)===0; });
+    var kTot=ky.reduce(function(s,e){return s+(parseFloat(e.amt)||0);},0);
+    var kMon=ky.filter(function(e){ return String(e.date).slice(5,7)===String(CM+1).padStart(2,'0'); }).reduce(function(s,e){return s+(parseFloat(e.amt)||0);},0);
+    var kAll=(ektas||[]).reduce(function(s,e){return s+(parseFloat(e.amt)||0);},0);
+    var kCl={}; ky.forEach(function(e){ kCl[(e.name||'')+'|'+(e.tel||'')]=1; });
+    var bx='background:var(--paper,#FFFDF8);border:1px solid var(--brd,#E5E0D3);border-radius:16px;padding:12px 14px';
+    h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px">'
+      +'<button class="btn btn-sm" onclick="_mcl.kyr='+(KYr-1)+';mclBody()">‹</button><b style="font-size:16px">Κατασκευές '+KYr+'</b><button class="btn btn-sm" onclick="_mcl.kyr='+(KYr+1)+';mclBody()">›</button></div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">'
+      +'<div style="background:#E3F0E7;border-radius:16px;padding:12px 14px;grid-column:1/-1;display:flex;justify-content:space-between;align-items:baseline"><span style="font-weight:800;font-size:24px;color:#1D4632">'+fmt(kTot)+'</span><span style="font-weight:700;font-size:12.5px;color:#2D6B4C">Εισπράξεις '+KYr+'</span></div>'
+      +'<div style="'+bx+'"><div style="font-size:11.5px;font-weight:700;color:#4E5A50">Εργασίες</div><div style="font-weight:800;font-size:20px;margin-top:2px">'+ky.length+'</div><div style="font-size:11.5px;color:#9C8F73">'+Object.keys(kCl).length+' πελάτες</div></div>'
+      +'<div style="'+bx+'"><div style="font-size:11.5px;font-weight:700;color:#4E5A50">'+(KYr===CY?MNF[CM]:'Μ.Ο. εργασίας')+'</div><div style="font-weight:800;font-size:20px;margin-top:2px">'+(KYr===CY?fmt(kMon):fmt(ky.length?kTot/ky.length:0))+'</div><div style="font-size:11.5px;color:#9C8F73">'+(KYr===CY?'αυτόν τον μήνα':'ανά εργασία')+'</div></div>'
+      +'<div style="'+bx+';grid-column:1/-1;display:flex;justify-content:space-between;align-items:center"><span style="font-size:12.5px;font-weight:700;color:#4E5A50">Σύνολο όλων των ετών</span><b>'+fmt(kAll)+'</b></div>'
+      +'</div>';
+    rows=rows.filter(function(r){ var e=(ektas||[]).find(function(x){return String(x.id)===String(r.id);}); return !e||!e.date||String(e.date).indexOf(ys)===0; });
+  }
   if(_mcl.seg==='c'){
     try{
       var KM=_mcl.km==null?CM:_mcl.km, KY=_mcl.ky==null?CY:_mcl.ky;
@@ -2688,7 +2706,7 @@ function mclBody(){
   el.innerHTML=h;
 }
 function mclAdd(){
-  if(_mcl.seg==='a') openAddAppt(); else if(_mcl.seg==='p') openAddOffer(); else if(_mcl.seg==='k') go('ekta'); else openAddC();
+  if(_mcl.seg==='a') openAddAppt(); else if(_mcl.seg==='p') openAddOffer(); else if(_mcl.seg==='k') openAddEkta(); else openAddC();
 }
 
 /* ===== MOBILE DETECTION ===== */
