@@ -3931,9 +3931,10 @@ function mdRange(){
 }
 function mdMonth(d){ var m=String(d.date||'').slice(5,7); return parseInt(m,10)-1; }
 function mdDocNo(d){ return (d.series?d.series+'-':'')+(d.aa||''); }
-function mdTypeName(d){ var T={'11.1':'ΑΛΠ','11.2':'ΑΠΥ','11.3':'Απλοπ.','11.4':'Πιστ. λιαν.','1.1':'Τιμολόγιο','2.1':'Τιμ. Παροχής','5.1':'Πιστωτικό','5.2':'Πιστωτικό','13.1':'Έξοδο','13.30':'Έξοδο','14.1':'Ενδοκοιν.','14.2':'Ενδοκοιν. υπηρ.','14.3':'Ενδοκοιν. υπηρ.','14.4':'Αγορά','14.30':'Αγορά','17.1':'Μισθοδοσία'}; return T[d&&d.type]||('Τύπος '+(d&&d.type||'')); }
+function mdTypeName(d){ var T={'11.1':'ΑΛΠ','11.2':'ΑΠΥ','11.3':'Απλοπ.','11.4':'Πιστ. λιαν.','1.1':'Τιμολόγιο','2.1':'Τιμ. Παροχής','5.1':'Πιστωτικό','5.2':'Πιστωτικό','13.1':'Έξοδο','13.30':'Έξοδο','14.1':'Ενδοκοιν.','14.2':'Ενδοκοιν. υπηρ.','14.3':'Υπηρ. εξωτερικού','14.30':'Λογαριασμός','14.31':'Λογαριασμός','14.4':'Αγορά','14.30':'Αγορά','17.1':'Μισθοδοσία'}; return T[d&&d.type]||('Τύπος '+(d&&d.type||'')); }
 function mdClientByAfm(afm){ if(!afm) return null; return (clients||[]).find(function(c){ return String(c.afm||'').replace(/\D/g,'')===String(afm).replace(/\D/g,''); })||null; }
 function mdWho(d){
+  if(d.self) return d.cpName||d.issuerName||(d.issuerAfm&&d.issuerAfm!=='000000000'?'ΑΦΜ '+d.issuerAfm:mdTypeName(d));
   if(d.dir==='in'){ var c=mdClientByAfm(d.cpAfm); return c?c.name:(d.cpName||(d.cpAfm?'ΑΦΜ '+d.cpAfm:'Ιδιώτης')); }
   return d.issuerName||(d.issuerAfm?'ΑΦΜ '+d.issuerAfm:'—');
 }
@@ -3956,7 +3957,9 @@ function renderMydata(){
   var inP=function(d){ var mm=mdMonth(d); return mm>=r.a&&mm<=r.b; };
   var P=docs.filter(inP), I=P.filter(function(d){return d.dir==='in';}), E=P.filter(function(d){return d.dir==='out';});
   var s=function(a,k){ return a.reduce(function(t,d){return t+(d[k]||0);},0); };
-  var inc=s(I,'net'), exp=s(E,'net');
+  var BK=null; // το βιβλίο ΑΑΔΕ δεν περιέχει τα ΑΠΥ λιανικής — σύνολα από τα παραστατικά
+  var BI=BK?BK.inc.filter(inP):null, BE=BK?BK.exp.filter(inP):null;
+  var inc=BK?s(BI,'net'):s(I,'net'), exp=BK?s(BE,'net'):s(E,'net');
   var stamp=D&&D.fetchedAt?new Date(D.fetchedAt):null;
   var ago=stamp?Math.round((Date.now()-stamp)/60000):null;
   var h='<div class="td-wrap" style="gap:12px;max-width:'+(window.innerWidth>900?'980px':'640px')+';margin:0 auto">';
@@ -3974,7 +3977,7 @@ function renderMydata(){
     +'<div style="background:var(--paper,#FFFDF8);border:1px solid var(--brd,#E5E0D3);border-top:0;border-radius:0 0 20px 20px;padding:14px 18px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-weight:800;font-size:22px;color:'+(inc-exp<0?'#B03636':'#12281F')+'">'+mdEur(inc-exp)+'</span><span style="font-weight:700;font-size:13px;color:#4E5A50">Αποτέλεσμα (καθαρά)</span></div></div>';
   // ΦΠΑ: τρέχων & προηγούμενος μήνας
   var now=new Date(), cm=MD.y===now.getFullYear()?now.getMonth():11;
-  var vatM=function(m){ var a=docs.filter(function(d){return mdMonth(d)===m;}); var o=s(a.filter(function(d){return d.dir==='in';}),'vat'), i2=s(a.filter(function(d){return d.dir==='out';}),'vat'); return {o:o,i:i2,t:o-i2}; };
+  var vatM=function(m){ var f=function(d){return mdMonth(d)===m;}; if(BK){ var o1=s(BK.inc.filter(f),'vat'), i1=s(BK.exp.filter(f),'vat'); return {o:o1,i:i1,t:o1-i1}; } var a=docs.filter(f); var o=s(a.filter(function(d){return d.dir==='in';}),'vat'), i2=s(a.filter(function(d){return d.dir==='out';}),'vat'); return {o:o,i:i2,t:o-i2}; };
   var v1=vatM(cm), v0=cm>0?vatM(cm-1):null;
   var vrow=function(lbl,v){ return '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:10px 0;border-top:1px solid rgba(244,241,234,.15)"><div><div style="font-weight:700;font-size:14.5px">'+lbl+'</div><div style="font-size:12px;color:#BFD6C7;margin-top:2px">'+mdEur(v.o)+' − '+mdEur(v.i)+(v.t<0?' · πιστωτικό':v.t>0?' · χρεωστικό':'')+'</div></div><b style="font-size:22px">'+mdEur(Math.abs(v.t))+'</b></div>'; };
   h+='<div style="background:#12281F;color:#F4F1EA;border-radius:20px;padding:16px 18px 6px"><div style="font-weight:800;font-size:17px;margin-bottom:6px">Κατάσταση ΦΠΑ <span style="font-weight:500;font-size:12px;color:#BFD6C7">· εκτίμηση</span></div>'+vrow(MD_MF[cm]+' '+MD.y,v1)+(v0?vrow(MD_MF[cm-1]+' '+MD.y,v0):'')+'</div>';
@@ -3982,7 +3985,7 @@ function renderMydata(){
   var miss=mdMissing();
   if(miss.length) h+='<div style="background:#FCEFD2;border-radius:20px;padding:14px 16px;box-shadow:inset 0 0 0 1.5px rgba(138,74,34,.3)"><div style="font-weight:800;font-size:14.5px;color:#8A4A22">'+miss.length+(miss.length===1?' κήπος':' κήποι')+' με «Παραστατικά» χωρίς απόδειξη '+MD_MF[miss[0].m]+'</div><div style="font-size:12.5px;line-height:1.45;color:#8A4A22;margin-top:4px">'+miss.map(function(x){return tdEsc(x.c.name)+(x.c.afm?'':' (λείπει ΑΦΜ)');}).join(', ')+'</div><div style="font-size:11.5px;color:#95681A;margin-top:4px">Πληρωμένοι στην εφαρμογή, χωρίς παραστατικό στο myDATA με τον ΑΦΜ τους.</div></div>';
   // Διάγραμμα
-  var mi=[],me=[],mx=1; for(var k=0;k<12;k++){ var a=docs.filter(function(d){return mdMonth(d)===k;}); mi[k]=s(a.filter(function(d){return d.dir==='in';}),'net'); me[k]=s(a.filter(function(d){return d.dir==='out';}),'net'); mx=Math.max(mx,mi[k],me[k]); }
+  var mi=[],me=[],mx=1; for(var k=0;k<12;k++){ var fk=(function(kk){ return function(d){return mdMonth(d)===kk;}; })(k); if(BK){ mi[k]=s(BK.inc.filter(fk),'net'); me[k]=s(BK.exp.filter(fk),'net'); } else { var a=docs.filter(fk); mi[k]=s(a.filter(function(d){return d.dir==='in';}),'net'); me[k]=s(a.filter(function(d){return d.dir==='out';}),'net'); } mx=Math.max(mx,mi[k],me[k]); }
   h+='<div style="'+card+'"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:16px">Ανά μήνα '+MD.y+'</b><span style="font-size:11px;color:#4E5A50;display:flex;gap:10px"><span><span style="color:#7FB394">■</span> έσοδα</span><span><span style="color:#1D4632">■</span> έξοδα</span></span></div>'
     +'<div style="display:flex;align-items:flex-end;gap:4px;height:130px;margin-top:14px">'+mi.map(function(v,k){ var on=k>=r.a&&k<=r.b; return '<div onclick="MD.per=\'m\';MD.idx='+k+';renderMydata()" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;cursor:pointer;opacity:'+(on?1:.45)+'"><div style="display:flex;gap:2px;align-items:flex-end;height:100%"><div style="width:7px;border-radius:4px 4px 0 0;background:#7FB394;height:'+Math.max(2,v/mx*100)+'%"></div><div style="width:7px;border-radius:4px 4px 0 0;background:#1D4632;height:'+Math.max(2,me[k]/mx*100)+'%"></div></div><span style="'+mono+';font-size:9.5px;color:#9C8F73">'+MD_MN[k].slice(0,1)+'</span></div>'; }).join('')+'</div></div>';
   // Έξοδα ανά προμηθευτή
