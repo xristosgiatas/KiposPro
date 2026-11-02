@@ -11048,7 +11048,7 @@ function openReceiptForClient(cid,pre){
     var MG=['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου'];
     var mv=mVal(c,CM,CY)||{}, pr=gPbase(c,CM,CY), vis=parseInt(mv.visits||c.defVisits||0,10), ex=gExtras(c,CM,CY);
     var n2=function(x){ var f=Math.round((parseFloat(x)||0)*100)/100; return String(f).replace('.',','); };
-    var L=['Συντήρηση κήπου '+MG[CM]+(vis?' · '+vis+(vis===1?' επίσκεψη':' επισκέψεις'):'')+' '+n2(pr)];
+    var L=['Συντήρηση κήπου '+MG[CM]+' '+n2(pr)];
     ex.forEach(function(e){ if(e&&e.name) L.push(String(e.name)+' '+n2(e.cost)); });
     pre={desc:L.join('\n'), amt:Math.round((pr+gExtT(c,CM,CY))*100)/100};
   }catch(e){} }
