@@ -2569,6 +2569,7 @@ function mclApptSheet(ix){
     tel&&['📞','Κλήση',"location.href='tel:"+tel+"'",'g'],
     tel&&['💬','Μήνυμα',"location.href='sms:"+tel+"'",'b'],
     ['📅','Στο πλάνο',"swPlanT('"+id+"','"+nq+"','appt')",'b'],
+    ['🧾','Απόδειξη',"openReceiptForAppt('"+id+"')",'b'],
     ['📷','Φωτογραφίες',"mclApptPhotos('"+id+"')",'n'],
     a.address&&['🧭','Οδηγίες',"window.open('https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(a.address)+"')",'n'],
     ['✎','Επεξεργασία',"openEditAppt('"+id+"')",'n'],
@@ -10764,6 +10765,7 @@ function renderApptsList(){
       +'<div style="display:flex;flex-direction:column;gap:6px;margin-left:10px">'
       +'<button data-aid="'+a.id+'" onclick="event.stopPropagation();openCompleteAppt(this.getAttribute(\'data-aid\'))" style="background:var(--gl);color:var(--gd);border:1.5px solid var(--gm);padding:6px 12px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">✓ Ολοκλήρωση</button>'
       +(a.tel?'<button data-tel="'+a.tel+'" data-name="'+a.name+'" data-date="'+a.date+'" data-time="'+fmtTime(a.time)+'" onclick="event.stopPropagation();apptSMS(this)" style="display:inline-flex;align-items:center;justify-content:center;background:#25D366;color:#fff;border:none;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">📱 SMS</button>':'')
+      +'<button data-aid="'+a.id+'" onclick="event.stopPropagation();openReceiptForAppt(this.getAttribute(\'data-aid\'))" style="background:#3C6A88;color:#fff;border:none;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🧾 Απόδειξη</button>'
       +'<button data-aid="'+a.id+'" onclick="event.stopPropagation();openEditAppt(this.getAttribute(\'data-aid\'))" style="background:#F5F2EB;color:var(--tx);border:1px solid var(--brd);padding:5px 10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">✏ Επεξ.</button>'
       +'<button data-aid="'+a.id+'" onclick="event.stopPropagation();delAppt(this.getAttribute(\'data-aid\'))" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--tx2);padding:4px">✕</button>'
       +'</div></div></div>';
@@ -11034,28 +11036,41 @@ function renderReceiptPicker(q){
 }
 
 var _lastDocReceipt = null;
-function openReceiptForClient(cid){
+function openReceiptForAppt(aid){
+  var a=(appointments||[]).find(function(x){ return String(x.id)===String(aid); }); if(!a) return;
+  var amt=parseFloat(a.agreedAmt)||parseFloat(a.amount)||0;
+  openReceiptForClient('',{title:'Απόδειξη — '+(a.name||'Δουλειά'),name:a.name||'',addr:a.address||'',tel:a.tel||'',desc:a.desc||'',amt:amt>0?amt:''});
+}
+function openReceiptForClient(cid,pre){
   var c=cid?gc(cid):null;
   if(cid && !c) return;
-  var isAdhoc=!cid;
-  openM(isAdhoc?'Απόδειξη — Περαστικός πελάτης':('Απόδειξη — '+c.name),
+  if(c&&!pre){ try{
+    var MG=['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου'];
+    var mv=mVal(c,CM,CY)||{}, pr=gPbase(c,CM,CY), vis=parseInt(mv.visits||c.defVisits||0,10), ex=gExtras(c,CM,CY);
+    var n2=function(x){ var f=Math.round((parseFloat(x)||0)*100)/100; return String(f).replace('.',','); };
+    var L=['Συντήρηση κήπου '+MG[CM]+(vis?' · '+vis+(vis===1?' επίσκεψη':' επισκέψεις'):'')+' '+n2(pr)];
+    ex.forEach(function(e){ if(e&&e.name) L.push(String(e.name)+' '+n2(e.cost)); });
+    pre={desc:L.join('\n'), amt:Math.round((pr+gExtT(c,CM,CY))*100)/100};
+  }catch(e){} }
+  var isAdhoc=!cid, P=pre||{}, v=function(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); };
+  openM(P.title||(isAdhoc?'Απόδειξη — Περαστικός πελάτης':('Απόδειξη — '+c.name)),
     (isAdhoc?(
-      '<div class="frm"><label>Ονοματεπώνυμο</label><input id="gr-name" placeholder="Ονοματεπώνυμο πελάτη"></div>'
-      +'<div class="frm"><label>Διεύθυνση (προαιρετικό)</label><input id="gr-addr" placeholder="Διεύθυνση"></div>'
-      +'<div class="frm"><label>Τηλέφωνο (προαιρετικό)</label><input id="gr-tel" placeholder="Τηλέφωνο" type="tel"></div>'
+      '<div class="frm"><label>Ονοματεπώνυμο</label><input id="gr-name" placeholder="Ονοματεπώνυμο πελάτη" value="'+v(P.name)+'"></div>'
+      +'<div class="frm"><label>Διεύθυνση (προαιρετικό)</label><input id="gr-addr" placeholder="Διεύθυνση" value="'+v(P.addr)+'"></div>'
+      +'<div class="frm"><label>Τηλέφωνο (προαιρετικό)</label><input id="gr-tel" placeholder="Τηλέφωνο" type="tel" value="'+v(P.tel)+'"></div>'
     ):'')
-    +'<div class="frm"><label>Περιγραφή εργασιών</label><input id="gr-desc" placeholder="π.χ. Συντήρηση κήπου Ιουλίου"></div>'
+    +'<div class="frm"><label>Εργασίες · μία ανά γραμμή, με ποσό στο τέλος αν θες</label><textarea id="gr-desc" rows="3" placeholder="Συντήρηση κήπου Οκτωβρίου 200&#10;Φύτευση 6 λεβάντες 48" style="width:100%;box-sizing:border-box;font:inherit;resize:vertical">'+v(P.desc)+'</textarea></div>'
     +'<div class="f2">'
     +'<div class="frm"><label>Ημερομηνία</label><input id="gr-date" type="date" value="'+TODAY+'"></div>'
     +'<div class="frm"><label>Αριθμός</label><input id="gr-num" value="…" disabled></div>'
     +'</div>'
     +'<div class="f2">'
-    +'<div class="frm"><label>Ποσό (€)</label><input id="gr-amt" type="number" min="0" placeholder="0"></div>'
-    +'<div class="frm"><label>Καθαρό ποσό (€, προαιρετικό)</label><input id="gr-net" type="number" min="0" placeholder="0"></div>'
+    +'<div class="frm"><label>Σύνολο (€)</label><input id="gr-amt" type="number" min="0" placeholder="0" value="'+v(P.amt)+'"></div>'
+    +'<input id="gr-net" type="hidden" value="">'
     +'</div>'
     +'<div id="gr-result"></div>',
     '<button class="btn btn-out btn-sm" onclick="closeM()">Ακύρωση</button>'
-    +'<button class="btn btn-sm gr-go" style="background:#3C6A88;color:#fff" onclick="generateDocReceipt(\''+(cid||'')+'\')">📄 Δημιουργία Απόδειξης</button>'
+    +'<button class="btn btn-sm gr-go" style="background:#3C6A88;color:#fff" onclick="generateDocReceipt(\''+(cid||'')+'\')">📄 Δημιουργία αναφοράς</button>'
   );
   google.script.run
     .withSuccessHandler(function(n){
@@ -11101,7 +11116,7 @@ function generateDocReceipt(cid){
   if(btn){btn.textContent='⏳ Δημιουργία...';btn.disabled=true;}
   google.script.run
     .withSuccessHandler(function(r){
-      if(btn){btn.textContent='📄 Δημιουργία Απόδειξης';btn.disabled=false;}
+      if(btn){btn.textContent='📄 Δημιουργία αναφοράς';btn.disabled=false;}
       var res=document.getElementById('gr-result');
       if(!res) return;
       if(!r||!r.success){ res.innerHTML='<div style="color:#991b1b;font-size:13px;margin-top:10px">❌ '+(r&&r.error?r.error:'Σφάλμα δημιουργίας')+'</div>'; return; }
@@ -11122,11 +11137,11 @@ function generateDocReceipt(cid){
         +'</div></div>';
     })
     .withFailureHandler(function(e){
-      if(btn){btn.textContent='📄 Δημιουργία Απόδειξης';btn.disabled=false;}
+      if(btn){btn.textContent='📄 Δημιουργία αναφοράς';btn.disabled=false;}
       var res=document.getElementById('gr-result');
       if(res) res.innerHTML='<div style="color:#991b1b;font-size:13px;margin-top:10px">❌ '+(e&&e.message?e.message:'Σφάλμα')+'</div>';
     })
-    .createReceipt(window._kpEmail||localStorage.getItem('kipospro_email')||'', data);
+    .createWorkReport(window._kpEmail||localStorage.getItem('kipospro_email')||'', data);
 }
 
 function emailDocReceipt(){
