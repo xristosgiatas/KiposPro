@@ -1778,6 +1778,10 @@ function tdItem(e){
   return { e:e, c:c, client:(e.type||'client')==='client'?c:null,
     name:c?c.name:(e.name||e.clientName||'—'), addr:c?(c.address||''):'', tel:c?String(c.tel||'').replace(/\s+/g,''):'' };
 }
+function tdOweRows(c){ return c?owedRows().filter(function(r){return r.client.id==c.id;}).sort(function(a,b){return (a.year*12+a.month)-(b.year*12+b.month);}):[]; }
+function tdOwePast(c){ return tdOweRows(c).filter(function(r){ return r.year<CY||(r.year===CY&&r.month<CM); }).reduce(function(s,r){return s+r.amt;},0); }
+function tdOweCur(c){ return tdOweRows(c).filter(function(r){ return r.year===CY&&r.month===CM; }).reduce(function(s,r){return s+r.amt;},0); }
+function tdMShort(r){ var M=['Ιαν','Φεβ','Μαρ','Απρ','Μάι','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ']; return M[r.month]+(r.year!==CY?' '+String(r.year).slice(2):''); }
 function tdOwe(c){
   if(!c) return 0;
   return owedRows().filter(function(r){return r.client.id==c.id;}).reduce(function(s,r){return s+r.amt;},0);
@@ -1818,7 +1822,9 @@ function renderToday(){
       +'<div class="t1"><span>'+(_tdOff!==0?'ΠΡΟΓΡΑΜΜΑ':_tdSel&&pos>1?'ΕΠΙΛΕΓΜΕΝΟΣ':'ΕΠΟΜΕΝΟΣ')+' · '+(done.length+pos)+'/'+total+'</span><span id="td-km"></span></div>'
       +'<div><div class="nm">'+tdEsc(cur.name)+'</div>'+(cur.addr?'<div class="ad">'+tdEsc(cur.addr)+'</div>':'')+'</div>';
     var chips='';
-    if(owe) chips+='<span class="td-chip" style="background:#FCEFD2;color:#6E4C12">Οφειλή '+fmt(owe)+'</span>';
+    if(cur.c){ var oR=tdOweRows(cur.c), oP=oR.filter(function(r){return r.year<CY||(r.year===CY&&r.month<CM);}), oC=oR.filter(function(r){return r.year===CY&&r.month===CM;});
+      if(oP.length) chips+='<span class="td-chip" style="background:#F5DEDE;color:#8E2A2A">Χρωστάει '+oP.map(function(r){return tdMShort(r)+' '+fmt(r.amt);}).join(' · ')+'</span>';
+      if(oC.length) chips+='<span class="td-chip" style="background:#FCEFD2;color:#6E4C12">'+MNF[CM]+' '+fmt(oC[0].amt)+'</span>'; }
     if(cur.e.type&&cur.e.type!=='client') chips+='<span class="td-chip" style="background:rgba(244,241,234,.13);color:#F4F1EA">'+(cur.e.type==='offer'?'Ραντεβού προσφοράς':cur.e.type==='ekta'?'Κατασκευή':'Ραντεβού')+'</span>';
     if(chips) h+='<div style="display:flex;flex-wrap:wrap;gap:6px">'+chips+'</div>';
     myReps.forEach(function(r){
@@ -1836,7 +1842,7 @@ function renderToday(){
       +'<button class="dn" onclick="tdDone(\''+sid+'\')">✓ Επίσκεψη</button>'
       +'</div>'
       +(cur.c&&isAct(cur.c,CM,CY)?(owe>0
-        ?'<button onclick="tdPay(\''+tdEsc(cur.c.id)+'\')" style="height:52px;width:100%;border-radius:14px;border:0;background:#FCEFD2;color:#6E4C12;font-family:inherit;font-size:16px;font-weight:800;cursor:pointer">€ Πληρωμή '+fmt(owe)+'</button>'
+        ?'<button onclick="tdPay(\''+tdEsc(cur.c.id)+'\')" style="height:52px;width:100%;border-radius:14px;border:0;background:#FCEFD2;color:#6E4C12;font-family:inherit;font-size:16px;font-weight:800;cursor:pointer">€ Πληρωμή'+(tdOweRows(cur.c).length>1?' · διάλεξε μήνα':' '+fmt(owe))+'</button>'
         :'<div style="height:52px;border-radius:14px;background:rgba(244,241,234,.13);color:#CFE3D6;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800">✓ Πληρωμένος</div>'):'')
       +'</div>';
   } else if(total){
@@ -1856,7 +1862,7 @@ function renderToday(){
         +'<div class="td-no">'+(done.length+i+1)+'</div>'
         +'<div style="flex:1;min-width:0"><div class="n">'+tdEsc(x.name)+'</div><div class="s">'+tdEsc(x.addr||'')+'</div></div>'
         +(rep?'<span style="font-size:11px;font-weight:800;color:#fff;background:var(--red);border-radius:8px;padding:4px 7px">!</span>':'')
-        +(owe?'<span style="font-family:var(--mono);font-size:12px;font-weight:700;color:#95681A;background:#FCEFD2;border-radius:8px;padding:4px 7px">'+fmt(owe)+'</span>':'')
+        +(x.client&&tdOwePast(x.client)?'<span style="font-family:var(--mono);font-size:12px;font-weight:700;color:#8E2A2A;background:#F5DEDE;border-radius:8px;padding:4px 7px">χρωστ. '+fmt(tdOwePast(x.client))+'</span>':'')
         +'</div>';
     });
     h+='</div></div>';
@@ -1885,13 +1891,26 @@ function tdFillKm(addr){
 function tdPick(id){ _tdSel=(String(_tdSel)===String(id))?null:id; renderToday(); var r=document.getElementById('today-root'); if(r&&r.scrollTo) window.scrollTo({top:0,behavior:'smooth'}); }
 function tdPay(cid){
   var c=gc(cid); if(!c||!c.months) return;
-  var rows=owedRows().filter(function(r){return r.client.id==c.id;}); if(!rows.length) return;
+  var rows=tdOweRows(c); if(!rows.length) return;
+  if(rows.length===1){ var r0=rows[0]; if(!confirm('Πληρωμή '+fmt(r0.amt)+' από '+(c.name||'')+' για '+MNF[r0.month]+' '+r0.year+';')) return; tdPayDo(cid,[r0.year+'-'+r0.month]); return; }
+  var tot=rows.reduce(function(s,r){return s+r.amt;},0), id=String(cid).replace(/'/g,'');
+  var b='<div style="display:flex;flex-direction:column;gap:8px">'
+    +rows.map(function(r){ var cur=r.year===CY&&r.month===CM;
+      return '<button onclick="closeM();tdPayDo(\''+id+'\',[\''+r.year+'-'+r.month+'\'])" style="display:flex;justify-content:space-between;align-items:center;gap:10px;height:56px;padding:0 16px;border-radius:14px;border:1.5px solid '+(cur?'var(--brd)':'#E9C98A')+';background:'+(cur?'var(--paper)':'#FCEFD2')+';font-family:inherit;cursor:pointer;color:#12281F">'
+        +'<span style="text-align:left"><b style="font-size:15.5px">'+MNF[r.month]+' '+r.year+'</b><span style="display:block;font-size:12px;font-weight:600;color:'+(cur?'#4E5A50':'#95681A')+'">'+(cur?'τρέχων μήνας':'προηγούμενη οφειλή')+'</span></span>'
+        +'<b style="font-size:16px">'+fmt(r.amt)+'</b></button>'; }).join('')
+    +'<button onclick="closeM();tdPayDo(\''+id+'\',null)" style="height:52px;border-radius:14px;border:0;background:#1D4632;color:#fff;font-family:inherit;font-size:15.5px;font-weight:800;cursor:pointer;margin-top:4px">Όλα μαζί · '+fmt(tot)+'</button></div>';
+  openM('Πληρωμή — '+(c.name||''), '<div style="font-size:13px;color:var(--tx2);margin-bottom:10px">Ποιον μήνα πλήρωσε;</div>'+b, '<button class="btn btn-out btn-sm" onclick="closeM()">Άκυρο</button>');
+}
+function tdPayDo(cid,keys){
+  var c=gc(cid); if(!c||!c.months) return;
+  var rows=tdOweRows(c).filter(function(r){ return !keys||keys.indexOf(r.year+'-'+r.month)>=0; }); if(!rows.length) return;
   var tot=rows.reduce(function(s,r){return s+r.amt;},0);
-  if(!confirm('Πληρωμή '+fmt(tot)+' από '+(c.name||'')+' ('+rows.length+(rows.length===1?' μήνας':' μήνες')+');')) return;
   rows.forEach(function(r){ var k=r.year+'-'+r.month; if(!c.months[k]&&c.months[r.month]){ c.months[k]=c.months[r.month]; delete c.months[r.month]; } if(c.months[k]) c.months[k].paid=true; });
   try{ navigator.vibrate&&navigator.vibrate(12); }catch(x){}
   renderToday(); try{renderKpi();}catch(x){}
-  if(typeof tdToast==='function') tdToast('✓ Πληρώθηκε '+fmt(tot));
+  try{ if(document.getElementById('mcl-body')) mclBody(); }catch(x){}
+  if(typeof tdToast==='function') tdToast('✓ Πληρώθηκε '+fmt(tot)+(rows.length===1?' · '+MNF[rows[0].month]:''));
   google.script.run.withSuccessHandler(function(r){if(r&&r.error){alert('Σφάλμα αποθήκευσης: '+r.error);}}).withFailureHandler(function(e){alert('Σφάλμα αποθήκευσης: '+(e&&e.message?e.message:''));}).updateClientMonths(window._kpEmail||localStorage.getItem('kipospro_email')||'',c.id,c.months);
 }
 function tdDone(id){
@@ -2433,11 +2452,12 @@ function mclTag(t,fg,bg){ return {t:t,fg:fg,bg:bg}; }
 function mclRowsC(){
   var SM=_mcl.km==null?CM:_mcl.km, SY=_mcl.ky==null?CY:_mcl.ky, other=SM!==CM||SY!==CY;
   return clients.map(function(c){
-    var owe=tdOwe(c), od=getDaysOverdue(c), rep=clientReports(c).some(function(r){return r.status!=='done';});
+    var owe=tdOwePast(c), oweC=tdOweCur(c), od=getDaysOverdue(c), rep=clientReports(c).some(function(r){return r.status!=='done';});
     var pi=planInfoFor(c.id), lv=lastVisit(c.id);
     var tag, dot;
     if(rep){ tag=mclTag('αναφορά','#fff','#B4623A'); dot='#B4623A'; }
-    else if(owe){ tag=mclTag('οφειλή '+fmt(owe),'#95681A','#FCEFD2'); dot='#B58A2B'; }
+    else if(owe){ var pr=tdOweRows(c).filter(function(r){return r.year<CY||(r.year===CY&&r.month<CM);}); tag=mclTag('χρωστάει '+(pr.length===1?tdMShort(pr[0]).toLowerCase()+' ':'')+fmt(owe),'#8E2A2A','#F5DEDE'); dot='#B03636'; }
+    else if(oweC){ tag=mclTag(MNF[CM].slice(0,3).toLowerCase()+' απλήρωτος · '+fmt(oweC),'#95681A','#FCEFD2'); dot='#B58A2B'; }
     else if(od&&od.overdue>3){ tag=mclTag('καθυστ. '+od.overdue+' μ.','#B03636','#F6E0DC'); dot='#B03636'; }
     else if(pi){ tag=mclTag('πλάνο '+planShort(pi.date),'#2C5570','#E8F0F4'); dot='#2D6B4C'; }
     else if(isAct(c,CM,CY)) { tag=mclTag('πληρωμένος','#2D6B4C','#D3E8DA'); dot='#2D6B4C'; }
