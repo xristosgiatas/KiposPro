@@ -2025,13 +2025,110 @@ function bkSheet(){
 
 /* ===== Μέτρα κήπου ===== */
 var MK={list:null,cur:null,client:'',addr:'',sel:'A'};
-var MK_DEF={U:{A:16,B:10,C:6,D:5},rect:{A:12,B:8},L:{A:14,B:10,C:6,D:4},trap:{A:14,B:9,H:7,C:7,D:8.5,E:13},tri:{A:12,B:9,C:10}};
+var MK_DEF={free:{st:[],cl:false},U:{A:16,B:10,C:6,D:5},rect:{A:12,B:8},L:{A:14,B:10,C:6,D:4},trap:{A:14,B:9,H:7,C:7,D:8.5,E:13},tri:{A:12,B:9,C:10}};
 var MK_KG={A:'Α',B:'Β',C:'Γ',D:'Δ',H:'Υ',E:'Ε'};
-var MK_SH=[['rect','Ορθογώνιο','4,4 30,4 30,22 4,22'],['L','Γ','4,4 19,4 19,11 30,11 30,22 4,22'],['trap','Τραπέζιο','10,4 24,4 30,22 4,22'],['tri','Τρίγωνο','17,3 31,23 3,23'],['U','Π','3,4 31,4 31,22 22,22 22,13 12,13 12,22 3,22']];
+var MK_SH=[['rect','Ορθογώνιο','4,4 30,4 30,22 4,22'],['L','Γ','4,4 19,4 19,11 30,11 30,22 4,22'],['trap','Τραπέζιο','10,4 24,4 30,22 4,22'],['tri','Τρίγωνο','17,3 31,23 3,23'],['U','Π','3,4 31,4 31,22 22,22 22,13 12,13 12,22 3,22'],['free','Ελεύθερο','3,4 20,4 20,9 31,9 31,22 13,22 3,15']];
 var MK_TS={mid:'Συμμετρικό',l:'Ίσια αριστερά',r:'Ίσια δεξιά',auto:'Στραβό'};
+
+/* ===== Ελεύθερο σχήμα (βελάκια) ===== */
+var FR_DIR={R:[1,0],L:[-1,0],U:[0,-1],D:[0,1],UR:[1,-1],DR:[1,1],UL:[-1,-1],DL:[-1,1]};
+var FR_SYM={R:'→',L:'←',U:'↑',D:'↓',UR:'↗',DR:'↘',UL:'↖',DL:'↙'};
+function frNum(s){ var n=parseFloat(String(s==null?'':s).replace(',','.')); return isNaN(n)?0:n; }
+function frVec(s){ var D=FR_DIR[s.d]||[1,0]; if(s.d.length===1) return [D[0]*s.len,D[1]*s.len]; var a=(s.a||45)*Math.PI/180; return [D[0]*s.len*Math.cos(a),D[1]*s.len*Math.sin(a)]; }
+function frGeo(v){
+  var st=(v&&v.st)||[], unk=[], sx=0, sy=0;
+  st.forEach(function(s,i){ if(s.u) unk.push(i); else { var q=frVec(s); sx+=q[0]; sy+=q[1]; } });
+  var vecs=st.map(function(s){ if(!s.u) return frVec(s); if(unk.length===1) return [-sx,-sy]; return frVec({d:s.d,len:1.5,a:45}); });
+  var p=[[0,0]]; vecs.forEach(function(q){ var l=p[p.length-1]; p.push([l[0]+q[0],l[1]+q[1]]); });
+  var last=p[p.length-1], gap=Math.hypot(last[0],last[1]);
+  var closed=unk.length===1||(!!(v&&v.cl)&&st.length>1)||(st.length>2&&gap<0.01);
+  var pts=(gap<0.01&&st.length>2)?p.slice(0,-1):p.slice();
+  var s=[], segs={}, lab={};
+  st.forEach(function(x,i){ var k='f'+i, L=Math.hypot(vecs[i][0],vecs[i][1]); s.push([k,0]); segs[k]=[p[i],p[i+1]];
+    lab[k]=(i+1)+' · '+(x.u&&unk.length>1?'?':mkN(L))+' μ'; });
+  if(closed&&gap>=0.01&&unk.length!==1&&st.length>1){ s.push(['fc',0]); segs.fc=[last,[0,0]]; lab.fc=mkN(gap)+' μ'; }
+  var ar=0; for(var i=0;i<pts.length;i++){ var a=pts[i], b=pts[(i+1)%pts.length]; ar+=a[0]*b[1]-b[0]*a[1]; } ar=Math.abs(ar)/2;
+  var per=0; for(var j=1;j<p.length;j++) per+=Math.hypot(p[j][0]-p[j-1][0],p[j][1]-p[j-1][1]); if(closed&&unk.length!==1) per+=gap;
+  var bad=unk.length>1?'Γράψε το μήκος σε μία από τις λοξές (πορτοκαλί)':'';
+  if(unk.length===1&&Math.hypot(sx,sy)<0.05) bad='Η λοξή βγαίνει 0 μ. · έλεγξε τα μέτρα';
+  return {p:pts,area:ar,per:per,s:s,segs:segs,lab:lab,closed:closed,gap:gap,end:last,bad:bad,firstUnk:unk.length>1?unk[0]:-1,solved:unk.length===1?unk[0]:-1,
+    solvedLen:unk.length===1?Math.hypot(sx,sy):0};
+}
+function frSt(){ MK.fr=MK.fr||{a:'',pend:null,sel:-1}; return MK.fr; }
+function frAdd(step){
+  var c=MK.cur, F=frSt(), st=(c.vals.st=c.vals.st||[]);
+  if(F.sel>=0&&F.sel<st.length) st[F.sel]=step; else st.push(step);
+  F.a=''; F.pend=null; F.sel=-1; c.vals.cl=false; mkDraw();
+}
+function frKey(k){ var F=frSt(), cur=String(F.a);
+  if(k==='⌫') F.a=cur.slice(0,-1);
+  else if(k===',') F.a=cur.indexOf(',')>=0?cur:(cur||'0')+',';
+  else if(cur.replace(',','').length<5) F.a=cur==='0'?k:cur+k;
+  if(F.pend&&!frNum(F.a)) F.pend=null;
+  mkDraw();
+}
+function frArrow(d){ var F=frSt(), n=frNum(F.a);
+  if(d.length===1){ if(!n){ F.flash=1; mkDraw(); return; } frAdd({d:d,len:n}); return; }
+  if(!n){ frAdd({d:d,u:1}); return; }
+  F.pend=d; mkDraw();
+}
+function frAng(a){ var F=frSt(); if(!F.pend) return; frAdd({d:F.pend,len:frNum(F.a),a:a}); }
+function frSel(i){ var F=frSt(); F.sel=F.sel===i?-1:i; F.pend=null; F.a=''; mkDraw(); }
+function frDelSel(){ var c=MK.cur, F=frSt(); if(F.sel<0) return; c.vals.st.splice(F.sel,1); F.sel=-1; c.vals.cl=false; mkDraw(); }
+function frUndo(){ var c=MK.cur, F=frSt(); (c.vals.st=c.vals.st||[]).pop(); F.sel=-1; F.pend=null; c.vals.cl=false; mkDraw(); }
+function frClose(){ var c=MK.cur; if((c.vals.st||[]).length<2) return; c.vals.cl=true; frSt().sel=-1; mkDraw(); }
+function frDraw(c,g,F,D){
+  var S=frSt(), f=function(x){ return x.toFixed(1); }, h='';
+  if(F.pts.length>1){
+    var pl=F.pts.map(function(q){ return f(q[0])+','+f(q[1]); }).join(' ');
+    if(g.closed) h+='<polygon points="'+pl+'" fill="#EAF2EA"/><polygon points="'+pl+'" fill="none" stroke="#12281F" stroke-width="2.6" stroke-linejoin="round"/>';
+    else { var e=F.P(g.end), s0=F.pts[0]; h+='<polygon points="'+pl+'" fill="#EAF2EA" fill-opacity=".45"/><polyline points="'+pl+'" fill="none" stroke="#12281F" stroke-width="2.6" stroke-linejoin="round"/>';
+      if(g.gap>=0.01) h+='<line x1="'+f(e[0])+'" y1="'+f(e[1])+'" x2="'+f(s0[0])+'" y2="'+f(s0[1])+'" stroke="#D9822B" stroke-width="1.6" stroke-dasharray="4 4"/>'; }
+  }
+  D.forEach(function(d){ var i=d.key==='fc'?-2:parseInt(d.key.slice(1),10), on=S.sel===i||g.firstUnk===i;
+    h+=mkDimSvg(d,g.lab[d.key]||'',1,on,d.key==='fc'?'':'frSel('+i+')'); });
+  if(F.pts.length){ var p0=F.pts[0]; h+='<circle cx="'+f(p0[0])+'" cy="'+f(p0[1])+'" r="5" fill="#2D6B4C"/>'; }
+  if(!g.closed&&(c.vals.st||[]).length){ var pe=F.P(g.end); h+='<circle cx="'+f(pe[0])+'" cy="'+f(pe[1])+'" r="6" fill="#fff" stroke="#3C74A8" stroke-width="2.5"/>'; }
+  document.getElementById('mk-svg').innerHTML=h;
+  document.getElementById('mk-area').textContent=(g.closed?'':'≈')+mkN(g.area);
+  document.getElementById('mk-per').textContent=mkN(g.per);
+  var msg=document.getElementById('mk-msg');
+  msg.style.color=g.bad?'#8E2A2A':g.solved>=0||g.closed?'#2D6B4C':'#8A4A22';
+  msg.textContent=g.bad||(g.solved>=0?'Λοξή '+(g.solved+1)+' = '+mkN(g.solvedLen)+' μ. · υπολογίστηκε ✓':(!(c.vals.st||[]).length?'':g.closed?'Κλειστό σχήμα ✓':'Λείπουν '+mkN(g.gap)+' μ. ως την αρχή'));
+  document.getElementById('mk-var').style.display='none';
+  frPanel(g);
+}
+function frPanel(g){
+  var c=MK.cur, S=frSt(), st=c.vals.st||[], el=document.getElementById('mk-fields'); if(!el) return;
+  g=g||frGeo(c.vals);
+  var chips=st.map(function(s,i){ var on=S.sel===i, unk=s.u, warn=g.firstUnk===i;
+    var v=unk?(g.solved===i?'≈'+mkN(g.solvedLen):'?'):mkN(s.len)+(s.d.length===2?' · '+(s.a||45)+'°':'');
+    return '<button onclick="frSel('+i+')" style="flex:none;height:36px;padding:0 10px;border-radius:11px;border:1.5px solid '+(on?'#3C74A8':warn?'#D9822B':'#E5E0D3')+';background:'+(on?'#E8F0F4':warn?'#FCEFD2':'#FFFDF8')+';font-family:inherit;font-size:13.5px;font-weight:800;color:#12281F;cursor:pointer;display:flex;align-items:center;gap:5px"><span style="font-size:10.5px;color:#9C8F73">'+(i+1)+'</span>'+FR_SYM[s.d]+' '+v+'</button>'; }).join('');
+  var hint=S.pend?'Πόσο γέρνει η λοξή '+FR_SYM[S.pend]+';':S.flash?'Γράψε πρώτα μήκος, μετά βελάκι':S.sel>=0?'Πλευρά '+(S.sel+1)+': γράψε νέο μήκος και πάτα βελάκι':S.a?'Πάτα βελάκι · λοξό βελάκι για λοξή πλευρά':st.length?'Λοξή χωρίς μήκος: πάτα σκέτο ↗↘↙↖ και υπολογίζεται μόνη της':'Ξεκίνα από μια γωνία: γράψε μήκος και πάτα βελάκι';
+  S.flash=0;
+  var AR=[['UL','↖'],['U','↑'],['UR','↗'],['L','←'],['',''],['R','→'],['DL','↙'],['D','↓'],['DR','↘']];
+  var arrows=AR.map(function(a){ if(!a[0]) return '<span></span>'; var dg=a[0].length===2, on=S.pend===a[0];
+    return '<button onclick="frArrow(\''+a[0]+'\')" style="border-radius:14px;border:0;background:'+(on?'#3C74A8':dg?'#E8F0F4':'#1D4632')+';color:'+(on?'#fff':dg?'#28506F':'#fff')+';font-family:inherit;font-size:22px;font-weight:800;cursor:pointer">'+a[1]+'</button>'; }).join('');
+  var keys=['1','2','3','4','5','6','7','8','9',',','0','⌫'].map(function(k){ return '<button onclick="frKey(\''+k+'\')" style="border-radius:12px;border:1px solid #E5E0D3;background:#FFFDF8;font-family:inherit;font-size:19px;font-weight:700;color:#12281F;cursor:pointer">'+k+'</button>'; }).join('');
+  var angs=S.pend?'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">'+[[30,'Λίγο','2,20 30,4'],[45,'Μισή','4,21 23,2'],[60,'Πολύ','9,22 20,2']].map(function(x){
+      return '<button onclick="frAng('+x[0]+')" style="height:58px;border-radius:14px;border:1.5px solid #3C74A8;background:#E8F0F4;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><svg width="32" height="24" viewBox="0 0 32 24"><line x1="1" y1="22" x2="31" y2="22" stroke="#A9A398" stroke-width="1.2"/><polyline points="'+x[2]+'" fill="none" stroke="#1D4632" stroke-width="3" stroke-linecap="round"/></svg><span style="font-size:12.5px;font-weight:800;color:#28506F">'+x[1]+' · '+x[0]+'°</span></button>'; }).join('')+'</div>':'';
+  el.innerHTML='<div style="grid-column:1/-1;display:flex;flex-direction:column;gap:8px">'
+    +(st.length?'<div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -2px;padding:0 2px">'+chips+'</div>':'')
+    +(S.sel>=0?'<div style="display:flex;gap:8px"><span style="flex:1"></span><button onclick="frDelSel()" style="height:34px;padding:0 12px;border-radius:10px;border:0;background:#F5DEDE;color:#8E2A2A;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer">✕ Σβήσε πλευρά '+(S.sel+1)+'</button></div>':'')
+    +'<div style="height:54px;border-radius:14px;background:#fff;border:2px solid '+(S.a?'#1D4632':'#E5E0D3')+';display:flex;align-items:center;justify-content:space-between;padding:0 14px"><span style="font-family:var(--mono);font-size:11px;font-weight:600;color:#9C8F73">ΜΗΚΟΣ</span><span style="font-size:26px;font-weight:800">'+(S.a||'0')+'<span style="font-size:14px;color:#9C8F73"> μ.</span></span></div>'
+    +'<div style="font-size:12.5px;font-weight:600;color:'+(S.pend?'#28506F':'#4E5A50')+';min-height:17px">'+hint+'</div>'
+    +angs
+    +'<div style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px">'
+    +'<div style="display:grid;grid-template-columns:repeat(3,52px);grid-auto-rows:52px;gap:6px">'+arrows+'</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:39px;gap:6px">'+keys+'</div></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1.4fr;gap:8px">'
+    +'<button onclick="frUndo()" style="height:50px;border-radius:14px;border:0;background:#EEEAE0;color:#4E5A50;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer">↶ Αναίρεση</button>'
+    +'<button onclick="frClose()" style="height:50px;border-radius:14px;border:0;background:'+(g.closed?'#E3F0E7':'#1D4632')+';color:'+(g.closed?'#1D4632':'#fff')+';font-family:inherit;font-size:15px;font-weight:800;cursor:pointer">'+(g.closed?'✓ Κλειστό σχήμα':'Κλείσε το σχήμα')+'</button></div></div>';
+}
 function mkEm(){ return window._kpEmail||localStorage.getItem('kipospro_email')||''; }
 function mkN(x){ return (Math.round(x*10)/10).toLocaleString('el-GR'); }
 function mkLbl(sh,ts){
+  if(sh==='free') return {};
   if(sh==='rect') return {A:'Μήκος',B:'Πλάτος'};
   if(sh==='L') return {A:'Συνολικό μήκος',B:'Συνολικό πλάτος',C:'Κομμένο μήκος',D:'Κομμένο πλάτος'};
   if(sh==='trap') return ts==='auto'?{A:'Μπροστά',B:'Πίσω',C:'Αριστερή πλευρά',D:'Δεξιά πλευρά',E:'Διαγώνιος ↗ (μπρ.αριστ.–πίσω δεξ.)'}:{A:'Μπροστά (μεγάλη)',B:'Πίσω (μικρή)',H:'Βάθος'};
@@ -2039,6 +2136,7 @@ function mkLbl(sh,ts){
   return {A:'Πλευρά Α',B:'Πλευρά Β',C:'Πλευρά Γ'};
 }
 function mkGeo(sh,v,o){
+  if(sh==='free') return frGeo(v);
   o=o||{}; var n=function(k){ return Math.max(0,parseFloat(String(v[k]==null?'':v[k]).replace(',','.'))||0); };
   if(sh==='U'){ var UW=n('A'),UH=n('B'),uc=Math.min(n('C'),UW),ud=Math.min(n('D'),UH),l=(UW-uc)/2,r2=(UW+uc)/2, side=o.uside||'b';
     var T=function(q){ var x=q[0],y=q[1]; if(side==='t') return [x,UH-y]; if(side==='r') return [UH-y,x]; if(side==='l') return [y,x]; return [x,y]; };
@@ -2064,7 +2162,7 @@ function mkGeo(sh,v,o){
   if(!(y2>0)) return {p:[[0,0],[a3||1,0],[(a3||1)/2,0.01]],s:[['A',0]],area:0,bad:'Αυτά τα μέτρα δεν κλείνουν τρίγωνο'};
   var y=Math.sqrt(y2); return {p:[[0,y],[a3,y],[x,0]],s:[['A',0],['C',1],['B',2]],area:a3*y/2};
 }
-function mkPer(g){ return g.p.reduce(function(s,q,i){ var r=g.p[(i+1)%g.p.length]; return s+Math.hypot(r[0]-q[0],r[1]-q[1]); },0); }
+function mkPer(g){ if(g.per!=null) return g.per; return g.p.reduce(function(s,q,i){ var r=g.p[(i+1)%g.p.length]; return s+Math.hypot(r[0]-q[0],r[1]-q[1]); },0); }
 function mkFit(g,W,H,pad,kF){
   var xs=g.p.map(function(q){return q[0];}), ys=g.p.map(function(q){return q[1];});
   var mnx=Math.min.apply(0,xs),mxx=Math.max.apply(0,xs),mny=Math.min.apply(0,ys),mxy=Math.max.apply(0,ys);
@@ -2126,7 +2224,7 @@ function mkTop(title,sub,back,right){
 function mkListView(){
   var m=mkWrap(), q=grNorm(MK.client), all=(MK.list||[]).slice().sort(function(a,b){ return String(b.date||'').localeCompare(String(a.date||'')); });
   var mine=MK.client?all.filter(function(x){ return grNorm(x.client)===q; }):all;
-  var SHN={rect:'Ορθογώνιο',L:'Γ',trap:'Τραπέζιο',tri:'Τρίγωνο',U:'Π'};
+  var SHN={rect:'Ορθογώνιο',L:'Γ',trap:'Τραπέζιο',tri:'Τρίγωνο',U:'Π',free:'Ελεύθερο'};
   var rows=mine.map(function(x){ var id=tdEsc(x.id);
     return '<div onclick="mkEdit(\''+id+'\')" style="background:#FFFDF8;border:1px solid #E5E0D3;border-radius:18px;padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer">'
       +'<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:800">'+tdEsc(x.title||SHN[x.shape]||'Μέτρηση')+'</div>'
@@ -2156,7 +2254,7 @@ function mkEditor(){
       ((MK.list||[]).some(function(x){ return String(x.id)===String(c.id); })?'<button onclick="mkDel()" style="width:42px;height:42px;border-radius:13px;border:1px solid #E5E0D3;background:#FFFDF8;font-size:16px;cursor:pointer;flex:none">🗑</button>':'')+'<button onclick="mkPrint()" style="height:42px;padding:0 12px;border-radius:13px;border:1px solid #E5E0D3;background:#FFFDF8;font-family:inherit;font-size:14px;font-weight:700;color:#243A2B;cursor:pointer;flex:none">🖨 Εκτύπωση</button>')
     +'<div style="flex:1;overflow-y:auto;padding:0 16px 12px;display:flex;flex-direction:column;gap:9px">'
     +'<input id="mk-title" value="'+tdEsc(c.title||'')+'" placeholder="Όνομα, π.χ. Πίσω κήπος" oninput="MK.cur.title=this.value" style="box-sizing:border-box;width:100%;min-height:46px;height:46px;border-radius:13px;border:1px solid #E5E0D3;background:#FFFDF8;padding:0 14px;font-family:inherit;font-size:16px;font-weight:700;color:#12281F;outline:0">'
-    +'<div id="mk-shapes" style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px"></div>'
+    +'<div id="mk-shapes" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px"></div>'
     +'<div style="background:#FFFDF8;border:1px solid #E5E0D3;border-radius:20px;padding:10px;position:relative">'
     +'<button id="mk-var" onclick="mkCycle()" style="position:absolute;right:10px;top:10px;z-index:2;height:36px;padding:0 12px;border-radius:11px;border:1px solid #E5E0D3;background:#fff;font-family:inherit;font-size:13px;font-weight:700;color:#243A2B;cursor:pointer;display:none"></button>'
     +'<svg id="mk-svg" viewBox="0 0 330 230" style="display:block;width:100%"></svg>'
@@ -2176,7 +2274,7 @@ function mkShapes(){
 }
 function mkShape(sh){
   var c=MK.cur; if(sh===c.shape) return;
-  c.bank[c.shape]=c.vals; c.shape=sh; c.vals=c.bank[sh]||JSON.parse(JSON.stringify(MK_DEF[sh]));
+  c.bank[c.shape]=c.vals; c.shape=sh; c.vals=c.bank[sh]||JSON.parse(JSON.stringify(MK_DEF[sh])); MK.fr={a:'',pend:null,sel:-1};
   MK.sel='A'; mkShapes(); mkFields(); mkDraw();
 }
 function mkCycle(){
@@ -2187,6 +2285,7 @@ function mkCycle(){
   mkDraw();
 }
 function mkFields(){
+  if(MK.cur.shape==='free'){ frPanel(); return; }
   var c=MK.cur, L=mkLbl(c.shape,c.opt.tside||'mid'), keys=Object.keys(L);
   document.getElementById('mk-fields').innerHTML=keys.map(function(k,i){
     return '<label id="mk-f-'+k+'" style="display:flex;flex-direction:column;gap:2px;background:#FFFDF8;border:2px solid #E5E0D3;border-radius:16px;padding:9px 12px 6px">'
@@ -2203,6 +2302,7 @@ function mkSel(k,noFocus){ MK.sel=k; mkDraw(); }
 function mkFocus(k){ MK.sel=k; mkDraw(); var el=document.querySelector('#mk-ov input[data-mk="'+k+'"]'); if(el){ el.focus(); try{ el.select(); }catch(x){} } }
 function mkDraw(){
   var c=MK.cur, g=mkGeo(c.shape,c.vals,c.opt), F=mkFit(g,330,230,50), D=mkDims(c.shape,g,F,16);
+  if(c.shape==='free'){ frDraw(c,g,F,D); return; }
   var poly=F.pts.map(function(q){ return q[0].toFixed(1)+','+q[1].toFixed(1); }).join(' ');
   var h='<polygon points="'+poly+'" fill="#EAF2EA"/><polygon points="'+poly+'" fill="none" stroke="#12281F" stroke-width="2.6" stroke-linejoin="round"/>';
   D.forEach(function(d){ h+=mkDimSvg(d,MK_KG[d.key]+' '+mkN(parseFloat(String(c.vals[d.key]).replace(',','.'))||0)+' μ',1,MK.sel===d.key,"mkFocus('"+d.key+"')"); });
@@ -2221,6 +2321,7 @@ function mkDraw(){
 function mkRec(){
   var c=MK.cur, g=mkGeo(c.shape,c.vals,c.opt), L=mkLbl(c.shape,c.opt.tside||'mid'), v={};
   Object.keys(L).forEach(function(k){ v[k]=parseFloat(String(c.vals[k]).replace(',','.'))||0; });
+  if(c.shape==='free') v={st:JSON.parse(JSON.stringify(c.vals.st||[])),cl:!!c.vals.cl};
   return {id:c.id,client:c.client,address:c.address||'',title:(c.title||'').trim(),shape:c.shape,opt:c.opt||{},vals:v,area:Math.round(g.area*10)/10,per:Math.round(mkPer(g)*10)/10,date:c.date||toLocalISO()};
 }
 function mkSave(){
@@ -2248,7 +2349,7 @@ function mkPrintRec(r){
   for(var gx=F.ox%(k*minor); gx<DW; gx+=k*minor){ var mj=Math.abs(((gx-F.ox)/(k*minor))%5)<0.01||Math.abs(Math.abs(((gx-F.ox)/(k*minor))%5)-5)<0.01; h+='<line x1="'+fx(gx)+'" y1="0" x2="'+fx(gx)+'" y2="'+DH+'" stroke="'+(mj?'#A9A398':'#DDD8CC')+'" stroke-width="'+(mj?1.1:0.6)+'"/>'; }
   for(var gy=F.oy%(k*minor); gy<DH; gy+=k*minor){ var mj2=Math.abs(((gy-F.oy)/(k*minor))%5)<0.01||Math.abs(Math.abs(((gy-F.oy)/(k*minor))%5)-5)<0.01; h+='<line x1="0" y1="'+fx(gy)+'" x2="'+DW+'" y2="'+fx(gy)+'" stroke="'+(mj2?'#A9A398':'#DDD8CC')+'" stroke-width="'+(mj2?1.1:0.6)+'"/>'; }
   h+='<polygon points="'+poly+'" fill="#E6F0E7" fill-opacity="0.85"/><polygon points="'+poly+'" fill="none" stroke="#12281F" stroke-width="4" stroke-linejoin="miter"/>';
-  D.forEach(function(d){ h+=mkDimSvg(d,MK_KG[d.key]+' '+mkN(parseFloat(r.vals[d.key])||0)+' μ',1.55,false,''); });
+  D.forEach(function(d){ h+=mkDimSvg(d,(g.lab&&g.lab[d.key])||(MK_KG[d.key]+' '+mkN(parseFloat(r.vals[d.key])||0)+' μ'),1.55,false,''); });
   h+='<g transform="translate(14,14)"><rect width="190" height="30" rx="6" fill="#fff" stroke="#12281F" stroke-width="1"/>'
     +'<rect x="10" y="9" width="12" height="12" fill="#fff" stroke="#A9A398" stroke-width="1.2"/>'
     +'<text x="30" y="20" font-family="sans-serif" font-size="13" font-weight="800" fill="#12281F">1 κουτάκι = '+minor+' μ.</text></g>';
@@ -2256,7 +2357,7 @@ function mkPrintRec(r){
   h+='<rect x="'+sx+'" y="'+(sy-6)+'" width="'+fx(sb*k/2)+'" height="6" fill="#12281F"/><rect x="'+fx(sx+sb*k/2)+'" y="'+(sy-6)+'" width="'+fx(sb*k/2)+'" height="6" fill="#fff" stroke="#12281F" stroke-width="1"/>'
     +'<text x="'+sx+'" y="'+(sy+16)+'" font-size="13" font-family="monospace" fill="#12281F">0</text><text x="'+fx(sx+sb*k)+'" y="'+(sy+16)+'" font-size="13" font-family="monospace" fill="#12281F" text-anchor="middle">'+sb+' μ.</text>';
   h+='<g transform="translate('+(DW-40)+',46)"><circle r="18" fill="#fff" stroke="#12281F" stroke-width="1.2"/><path d="M0 -14 L7 8 L0 3 L-7 8 Z" fill="#12281F"/><text y="-24" text-anchor="middle" font-size="14" font-weight="700" font-family="sans-serif" fill="#12281F">Β</text></g>';
-  var SHN={rect:'Ορθογώνιο',L:'Γ',trap:'Τραπέζιο',tri:'Τρίγωνο',U:'Π'}, L=mkLbl(r.shape,(r.opt||{}).tside||'mid');
+  var SHN={rect:'Ορθογώνιο',L:'Γ',trap:'Τραπέζιο',tri:'Τρίγωνο',U:'Π',free:'Ελεύθερο'}, L=mkLbl(r.shape,(r.opt||{}).tside||'mid');
   var cut=function(s,n){ s=String(s||''); return s.length>n?s.slice(0,n-1)+'…':s; };
   var px=M+DW+18, pw=PW-M-px, y=M+30, side='<text x="'+(px+14)+'" y="'+y+'" font-family="sans-serif" font-size="22" font-weight="800" fill="#12281F">ΚΑΤΟΨΗ ΚΗΠΟΥ</text>';
   y+=18;
@@ -2266,7 +2367,8 @@ function mkPrintRec(r){
   row('ΠΕΛΑΤΗΣ',cut(r.client,26)); if(r.address) row('ΔΙΕΥΘΥΝΣΗ',cut(r.address,30)); if(r.title) row('ΧΩΡΟΣ',cut(r.title,26));
   row('ΕΜΒΑΔΟΝ',mkN(r.area)+' τ.μ.',true); row('ΠΕΡΙΜΕΤΡΟΣ',mkN(r.per)+' μ.');
   side+='<line x1="'+px+'" y1="'+y+'" x2="'+(px+pw)+'" y2="'+y+'" stroke="#12281F" stroke-width="1"/>';
-  Object.keys(L).forEach(function(k2,i){ side+='<text x="'+(px+14)+'" y="'+(y+22+i*20)+'" font-family="sans-serif" font-size="13" fill="#12281F"><tspan font-weight="800">'+MK_KG[k2]+'</tspan> '+tdEsc(cut(L[k2],24))+': '+mkN(parseFloat(r.vals[k2])||0)+' μ.</text>'; });
+  if(r.shape==='free'){ L={}; Object.keys(g.lab||{}).slice(0,16).forEach(function(k3){ L[k3]=1; }); }
+  Object.keys(L).forEach(function(k2,i){ if(r.shape==='free'){ side+='<text x="'+(px+14)+'" y="'+(y+22+i*20)+'" font-family="sans-serif" font-size="13" font-weight="700" fill="#12281F">Πλευρά '+tdEsc(g.lab[k2]).replace(' · ',': ')+'.</text>'; return; } side+='<text x="'+(px+14)+'" y="'+(y+22+i*20)+'" font-family="sans-serif" font-size="13" fill="#12281F"><tspan font-weight="800">'+MK_KG[k2]+'</tspan> '+tdEsc(cut(L[k2],24))+': '+mkN(parseFloat(r.vals[k2])||0)+' μ.</text>'; });
   y+=30+Object.keys(L).length*20;
   row('ΚΛΙΜΑΚΑ','1:'+S+' (σε Α4, 100%)'); side+='<line x1="'+px+'" y1="'+y+'" x2="'+(px+pw)+'" y2="'+y+'" stroke="#12281F" stroke-width="1"/>'
     +'<text x="'+(px+14)+'" y="'+(y+18)+'" font-family="monospace" font-size="11" letter-spacing="1" fill="#4E5A50">ΚΟΥΤΑΚΙΑ</text>'
