@@ -1014,6 +1014,7 @@ body.d-fs #d-row-zones .zone-btn{padding:4px 9px;font-size:11.5px}
     <button class="si" onclick="go('archive')" id="nav-archive"><span class="si-ic"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3.5" width="14" height="4" rx="1"/><path d="M4.6 7.5v9h10.8v-9M8 11.5h4"/></svg></span>Αρχείο</button>
     <button class="si" onclick="go('pelat')" id="nav-pelat"><span class="si-ic"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="14" height="12" rx="2"/><circle cx="8" cy="9" r="1.7"/><path d="M5.4 13.8c0-1.6 1.2-2.4 2.6-2.4s2.6.8 2.6 2.4M13 8.6h2.4M13 11.6h2.4"/></svg></span>Πελατολόγιο</button>
     <button class="si" onclick="go('fin')" id="nav-fin"><span class="si-ic"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 16.5h13"/><path d="M5.5 16.5v-3.5M9 16.5v-7.5M12.5 16.5v-5M16 16.5v-9.5"/></svg></span>Οικονομικά</button>
+    <button class="si" onclick="kpSetView('mob')" id="nav-viewmob"><span class="si-ic"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg></span>Έκδοση κινητού</button>
     <button class="si" onclick="go('rem')" id="nav-rem"><span class="si-ic"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></span>Υπενθυμίσεις</button>
     <button class="si" onclick="go('mydata')" id="nav-mydata"><span class="si-ic"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2.5h7l3.5 3.5v11.5H5z"/><path d="M12 2.5V6h3.5"/><path d="M7.5 10h5M7.5 13h3.5"/></svg></span>myDATA</button>
     <button class="si" onclick="go('map')" id="nav-map"><span class="si-ic"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17s5-5.6 5-9a5 5 0 1 0-10 0c0 3.4 5 9 5 9Z"/><circle cx="10" cy="8" r="1.8"/></svg></span>Χάρτης</button>
@@ -1958,11 +1959,12 @@ function renderOwed(){
 }
 
 var MORE_IC_MK='<path d="M3 21 21 3"/><path d="M3 21h18V3"/><path d="M8 21v-3M13 21v-3M18 21v-3M21 8h-3M21 13h-3"/>';
-var MORE_IC={"UP":"<path d=\"M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9\"/><path d=\"M10.3 21a1.94 1.94 0 0 0 3.4 0\"/>","MD":"<path d=\"M4 20V10M10 20V4M16 20v-7M22 20H2\"/>","RV":"<rect x=\"3\" y=\"4\" width=\"18\" height=\"17\" rx=\"3\"/><path d=\"M3 9h18M8 2v4M16 2v4M12 13v3l2 1\"/>","KA":"<path d=\"M3 17 17 3l4 4L7 21H3z\"/><path d=\"m6 14 2 2M9 11l2 2M12 8l2 2M15 5l2 2\"/>","PR":"<path d=\"M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z\"/><path d=\"M14 3v5h5M9 13h6M9 17h4\"/>","AN":"<path d=\"M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z\"/><path d=\"M12 7v4M12 14h.01\"/>","SX":"<path d=\"M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7\"/><path d=\"M14 3l5 5h-5z\"/><path d=\"M8 10h4M8 14h3\"/><path d=\"m15 21 6-6-2-2-6 6v2z\"/>","FY":"<path d=\"M11 20A7 7 0 0 1 4 13c0-5 4-9 16-10-1 12-5 16-10 16\"/><path d=\"M4 21c3-6 7-9 11-11\"/>","XA":"<path d=\"M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z\"/><path d=\"M9 4v14M15 6v14\"/>","AR":"<rect x=\"3\" y=\"4\" width=\"18\" height=\"5\" rx=\"1\"/><path d=\"M5 9v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9M10 13h4\"/>","OI":"<path d=\"M3 3v18h18\"/><path d=\"m7 15 4-4 3 3 5-6\"/>","TI":"<path d=\"M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z\"/><path d=\"M9 8h6M9 12h6\"/>","AL":"<path d=\"M21 8 12 3 3 8v8l9 5 9-5z\"/><path d=\"m3 8 9 5 9-5M12 13v8\"/>"};
+var MORE_IC={"PC":"<rect x=\"3\" y=\"4\" width=\"18\" height=\"12\" rx=\"2\"/><path d=\"M8 20h8M12 16v4\"/>","UP":"<path d=\"M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9\"/><path d=\"M10.3 21a1.94 1.94 0 0 0 3.4 0\"/>","MD":"<path d=\"M4 20V10M10 20V4M16 20v-7M22 20H2\"/>","RV":"<rect x=\"3\" y=\"4\" width=\"18\" height=\"17\" rx=\"3\"/><path d=\"M3 9h18M8 2v4M16 2v4M12 13v3l2 1\"/>","KA":"<path d=\"M3 17 17 3l4 4L7 21H3z\"/><path d=\"m6 14 2 2M9 11l2 2M12 8l2 2M15 5l2 2\"/>","PR":"<path d=\"M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z\"/><path d=\"M14 3v5h5M9 13h6M9 17h4\"/>","AN":"<path d=\"M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z\"/><path d=\"M12 7v4M12 14h.01\"/>","SX":"<path d=\"M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7\"/><path d=\"M14 3l5 5h-5z\"/><path d=\"M8 10h4M8 14h3\"/><path d=\"m15 21 6-6-2-2-6 6v2z\"/>","FY":"<path d=\"M11 20A7 7 0 0 1 4 13c0-5 4-9 16-10-1 12-5 16-10 16\"/><path d=\"M4 21c3-6 7-9 11-11\"/>","XA":"<path d=\"M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z\"/><path d=\"M9 4v14M15 6v14\"/>","AR":"<rect x=\"3\" y=\"4\" width=\"18\" height=\"5\" rx=\"1\"/><path d=\"M5 9v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9M10 13h4\"/>","OI":"<path d=\"M3 3v18h18\"/><path d=\"m7 15 4-4 3 3 5-6\"/>","TI":"<path d=\"M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z\"/><path d=\"M9 8h6M9 12h6\"/>","AL":"<path d=\"M21 8 12 3 3 8v8l9 5 9-5z\"/><path d=\"m3 8 9 5 9-5M12 13v8\"/>"};
 MORE_IC.MK=MORE_IC_MK;
 var MORE_TILES=[
   ['ΔΟΥΛΕΙΑ',[['rem','Υπενθυμίσεις','UP'],['quote','Προσφορά','PR'],['reports','Αναφορές πελατών','AN'],['mk','Μέτρα κήπου','MK'],['design','Σχέδιο κήπου','SX'],['plants','Οδηγός φυτών','FY'],['map','Χάρτης','XA'],['archive','Αρχείο','AR']]],
-  ['ΟΙΚΟΝΟΜΙΚΑ',[['fin','Οικονομικά','OI'],['mydata','myDATA','MD'],['docs','Τιμολόγια','TI'],['supply','Αναλώσιμα','AL']]]
+  ['ΟΙΚΟΝΟΜΙΚΑ',[['fin','Οικονομικά','OI'],['mydata','myDATA','MD'],['docs','Τιμολόγια','TI'],['supply','Αναλώσιμα','AL']]],
+  ['ΡΥΘΜΙΣΕΙΣ',[['viewpc','Έκδοση υπολογιστή','PC']]]
 ];
 function renderMore(){
   var root=document.getElementById('more-root'); if(!root) return;
@@ -2841,9 +2843,11 @@ function mclAdd(){
 }
 
 /* ===== MOBILE DETECTION ===== */
+function kpView(){ try{ var q=(location.search.match(/[?&]view=(mob|pc|auto)/)||[])[1]; if(q){ if(q==='auto') localStorage.removeItem('kp_view'); else localStorage.setItem('kp_view',q); } return localStorage.getItem('kp_view')||''; }catch(e){ return ''; } }
+function kpSetView(v){ try{ if(v) localStorage.setItem('kp_view',v); else localStorage.removeItem('kp_view'); }catch(e){} checkMobile(); try{ go(document.body.classList.contains('mob-mode')?'today':'dash'); }catch(e){} }
 function checkMobile(){
-  var sw=screen.width;
-  if(sw<721){document.body.classList.add('mob-mode');}
+  var sw=screen.width, fv=kpView();
+  if(fv==='mob'||(fv!=='pc'&&sw<721)){document.body.classList.add('mob-mode');}
   else{document.body.classList.remove('mob-mode');document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('show');}
 }
 checkMobile();
@@ -4106,7 +4110,7 @@ function renderMydata2(){
   var inc=BK?s(BI,'net'):s(I,'net'), exp=BK?s(BE,'net'):s(E,'net');
   var stamp=D&&D.fetchedAt?new Date(D.fetchedAt):null;
   var ago=stamp?Math.round((Date.now()-stamp)/60000):null;
-  var h='<div class="td-wrap" style="gap:12px;max-width:'+(window.innerWidth>900?'980px':'640px')+';margin:0 auto">';
+  var h='<div class="td-wrap" style="gap:12px;max-width:'+(!document.body.classList.contains('mob-mode')?'980px':'640px')+';margin:0 auto">';
   h+='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">'
     +'<div style="display:flex;align-items:center;gap:6px"><button class="btn btn-sm" onclick="mdYear(-1)">‹</button><b style="font-size:18px">'+MD.y+'</b><button class="btn btn-sm" onclick="mdYear(1)">›</button></div>'
     +'<button class="btn btn-sm" onclick="mdLoad(true)" style="border-radius:999px">'+(MD.loading?'⏳ Φόρτωση…':'↻ '+(ago==null?'Ανανέωση':ago<1?'μόλις τώρα':ago<60?'πριν '+ago+'′':'πριν '+Math.round(ago/60)+' ώρες'))+'</button></div>';
@@ -4301,7 +4305,7 @@ function fabInit(){
   b.onclick=function(){ fabOpen(); };
   document.body.appendChild(sh); document.body.appendChild(m); document.body.appendChild(b); fabVis();
 }
-function fabVis(){ var b=document.getElementById('fab-btn'); if(!b) return; var mob=window.innerWidth<900; var pg=['today','clients','plan','more'].some(function(p){ var e=document.getElementById('pg-'+p); return e&&e.offsetParent; });
+function fabVis(){ var b=document.getElementById('fab-btn'); if(!b) return; var mob=document.body.classList.contains('mob-mode'); var pg=['today','clients','plan','more'].some(function(p){ var e=document.getElementById('pg-'+p); return e&&e.offsetParent; });
   b.style.display=mob&&pg?'flex':'none'; if(!(mob&&pg)) fabOpen(false); }
 setTimeout(fabInit,800); setInterval(fabVis,700); window.addEventListener('resize',fabVis);
 
@@ -4310,6 +4314,7 @@ var PAGE_TITLES={rem:'Υπενθυμίσεις',mydata:'myDATA',today:'Σήμε�
 
 function go(page){
   if(page==='mk'){ mkOpen(''); return; }
+  if(page==='viewpc'){ kpSetView(screen.width<721?'pc':''); return; }
   if(_userPlan==='basic' && PRO_FEATURES.indexOf(page)>=0){
     showUpgradePrompt(page);
     return;
