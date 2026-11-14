@@ -1592,6 +1592,13 @@ function ge(id){return ektas.find(function(e){return e.id==id;});}
 function fmtDate(d){if(!d)return "";var p=d.split("-");return p.length===3?p[2]+"/"+p[1]+"/"+p[0]:d;}
 function fmt(n){var v=parseFloat(n);return (isNaN(v)?0:Math.round(v))+'€';}
 function fmtD(n){return (Math.round(n*100)/100)+'€';}
+function kpNK(k){ var p=String(k).split('-'); return p.length>1?(parseInt(p[0],10)+'-'+parseInt(p[1],10)):(KP_LEGACY_Y+'-'+parseInt(k,10)); }
+function kpIsP(v){ return !!v&&(v.paid===true||v.paid==='true'||v.paid===1||v.paid==='1'); }
+function kpPaidSnap(M){ var s={}; Object.keys(M||{}).forEach(function(k){ s[kpNK(k)]=kpIsP(M[k]); }); return s; }
+/* Σφραγίζει την ώρα κάθε αλλαγής πληρωμής, ώστε μια παλιά συσκευή να μη σβήνει πληρωμές */
+function kpStampM(id,M){ try{ var c=gc(id), s=(c&&c._ps)||{}, now=Date.now();
+  Object.keys(M||{}).forEach(function(k){ var v=M[k]; if(!v||typeof v!=='object') return; var n=kpNK(k); if(s[n]===undefined||s[n]!==kpIsP(v)) v.paidTs=now; });
+  if(c) c._ps=kpPaidSnap(M); }catch(e){} return M; }
 function mKey(m,y){return (y!==undefined?y:kpiY)+'-'+m;}
 function mVal(c,m,y){if(!c.months)return undefined;var ny=(y!==undefined?y:kpiY);var nk=ny+'-'+m;if(c.months[nk]!==undefined)return c.months[nk];if(ny===KP_LEGACY_Y&&c.months[m]!==undefined)return c.months[m];return undefined;}
 /* Μήνες χωρίς χρονιά = 2026 (παλιά μορφή). Ποτέ CY, αλλιώς το 2027 θα τους διάβαζε ως δικούς του. */
@@ -1915,7 +1922,7 @@ function tdPayDo(cid,keys){
   renderToday(); try{renderKpi();}catch(x){}
   try{ if(document.getElementById('mcl-body')) mclBody(); }catch(x){}
   if(typeof tdToast==='function') tdToast('✓ Πληρώθηκε '+fmt(tot)+(rows.length===1?' · '+MNF[rows[0].month]:''));
-  google.script.run.withSuccessHandler(function(r){if(r&&r.error){alert('Σφάλμα αποθήκευσης: '+r.error);}}).withFailureHandler(function(e){alert('Σφάλμα αποθήκευσης: '+(e&&e.message?e.message:''));}).updateClientMonths(window._kpEmail||localStorage.getItem('kipospro_email')||'',c.id,c.months);
+  google.script.run.withSuccessHandler(function(r){if(r&&r.error){alert('Σφάλμα αποθήκευσης: '+r.error);}}).withFailureHandler(function(e){alert('Σφάλμα αποθήκευσης: '+(e&&e.message?e.message:''));}).updateClientMonths(window._kpEmail||localStorage.getItem('kipospro_email')||'',c.id,kpStampM(c.id,c.months));
 }
 function tdDone(id){
   var e=schedule.find(function(s){return String(s.id)===String(id);}); if(!e) return;
@@ -4001,6 +4008,7 @@ function loadData(){
             var ky=p.length>1?parseInt(p[0],10):KP_LEGACY_Y;
             if(isNaN(km)||isNaN(ky)||km<0||km>11) delete c.months[k];
           });
+          c._ps=kpPaidSnap(c.months);
           c.defVisits=parseInt(c.defVisits)||2;
           c.defPrice=parseFloat(c.defPrice)||80;
           return c;
@@ -4424,7 +4432,7 @@ function payMonth(id,m,y,paid){
   c.months[key].paid=paid;
   google.script.run.withSuccessHandler(function(r){if(r&&r.error){alert('Σφάλμα αποθήκευσης: '+r.error);}})
     .withFailureHandler(function(e){alert('Σφάλμα αποθήκευσης: '+(e&&e.message?e.message:''));})
-    .updateClientMonths(window._kpEmail||localStorage.getItem('kipospro_email')||'',id,c.months);
+    .updateClientMonths(window._kpEmail||localStorage.getItem('kipospro_email')||'',id,kpStampM(id,c.months));
 }
 var _payUndo=null;
 function payFromList(id,m,y,which){
@@ -6290,7 +6298,7 @@ function saveExtra(){
   if(!c.months[key].extras) c.months[key].extras=[];
   c.months[key].extras.push({name:name,cost:cost});
   closeM(); renderDet(extraTarget.id);
-  google.script.run.withSuccessHandler(function(r){if(r&&r.error){alert('Σφάλμα αποθήκευσης: '+r.error);}}).withFailureHandler(function(e){alert('Σφάλμα αποθήκευσης: '+(e&&e.message?e.message:''));}).updateClientMonths(window._kpEmail||localStorage.getItem('kipospro_email')||'',extraTarget.id,c.months);
+  google.script.run.withSuccessHandler(function(r){if(r&&r.error){alert('Σφάλμα αποθήκευσης: '+r.error);}}).withFailureHandler(function(e){alert('Σφάλμα αποθήκευσης: '+(e&&e.message?e.message:''));}).updateClientMonths(window._kpEmail||localStorage.getItem('kipospro_email')||'',extraTarget.id,kpStampM(extraTarget.id,c.months));
 }
 function rmExtra(cid,m,ei){
   var c=gc(cid);
@@ -6300,7 +6308,7 @@ function rmExtra(cid,m,ei){
   if(!c.months[key])return;
   c.months[key].extras=(c.months[key].extras||[]).filter(function(_,i){return i!==ei;});
   renderDet(cid);
-  google.script.run.withSuccessHandler(function(r){if(r&&r.error){alert('Σφάλμα αποθήκευσης: '+r.error);}}).withFailureHandler(function(e){alert('Σφάλμα αποθήκευσης: '+(e&&e.message?e.message:''));}).updateClientMonths(window._kpEmail||localStorage.getItem('kipospro_email')||'',cid,c.months);
+  google.script.run.withSuccessHandler(function(r){if(r&&r.error){alert('Σφάλμα αποθήκευσης: '+r.error);}}).withFailureHandler(function(e){alert('Σφάλμα αποθήκευσης: '+(e&&e.message?e.message:''));}).updateClientMonths(window._kpEmail||localStorage.getItem('kipospro_email')||'',cid,kpStampM(cid,c.months));
 }
 function saveNote(id){
   var c=gc(id); if(!c) return;
@@ -6324,7 +6332,7 @@ function togAct(id,m){
   }
   renderDet(id);
   renderKpi();
-  google.script.run.withSuccessHandler(function(r){if(r&&r.error){alert('Σφάλμα αποθήκευσης: '+r.error);}}).withFailureHandler(function(e){alert('Σφάλμα αποθήκευσης: '+(e&&e.message?e.message:''));}).updateClientMonths(window._kpEmail||localStorage.getItem('kipospro_email')||'',id,c.months);
+  google.script.run.withSuccessHandler(function(r){if(r&&r.error){alert('Σφάλμα αποθήκευσης: '+r.error);}}).withFailureHandler(function(e){alert('Σφάλμα αποθήκευσης: '+(e&&e.message?e.message:''));}).updateClientMonths(window._kpEmail||localStorage.getItem('kipospro_email')||'',id,kpStampM(id,c.months));
 }
 function togPay(id,m){
   var c=gc(id);
@@ -6333,7 +6341,7 @@ function togPay(id,m){
   if(!c.months[key]){if(c.months[m]){c.months[key]=c.months[m];delete c.months[m];}else return;}
   c.months[key].paid=!c.months[key].paid;
   renderDet(id); renderKpi();
-  google.script.run.withSuccessHandler(function(r){if(r&&r.error){alert('Σφάλμα αποθήκευσης: '+r.error);}}).withFailureHandler(function(e){alert('Σφάλμα αποθήκευσης: '+(e&&e.message?e.message:''));}).updateClientMonths(window._kpEmail||localStorage.getItem('kipospro_email')||'',id,c.months);
+  google.script.run.withSuccessHandler(function(r){if(r&&r.error){alert('Σφάλμα αποθήκευσης: '+r.error);}}).withFailureHandler(function(e){alert('Σφάλμα αποθήκευσης: '+(e&&e.message?e.message:''));}).updateClientMonths(window._kpEmail||localStorage.getItem('kipospro_email')||'',id,kpStampM(id,c.months));
 }
 function upM(id,m,f,v){
   var c=gc(id);
@@ -6341,7 +6349,7 @@ function upM(id,m,f,v){
   if(!c||!c.months)return;
   if(!c.months[key]){if(c.months[m]){c.months[key]=c.months[m];delete c.months[m];}else return;}
   c.months[key][f]=parseFloat(v)||0;
-  google.script.run.withSuccessHandler(function(r){if(r&&r.error){alert('Σφάλμα αποθήκευσης: '+r.error);}}).withFailureHandler(function(e){alert('Σφάλμα αποθήκευσης: '+(e&&e.message?e.message:''));}).updateClientMonths(window._kpEmail||localStorage.getItem('kipospro_email')||'',id,c.months);
+  google.script.run.withSuccessHandler(function(r){if(r&&r.error){alert('Σφάλμα αποθήκευσης: '+r.error);}}).withFailureHandler(function(e){alert('Σφάλμα αποθήκευσης: '+(e&&e.message?e.message:''));}).updateClientMonths(window._kpEmail||localStorage.getItem('kipospro_email')||'',id,kpStampM(id,c.months));
 }
 function delC(id){
   if(!confirm('Διαγραφή πελάτη;'))return;

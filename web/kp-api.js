@@ -23,7 +23,7 @@
   };
   var SLOW = { createWorkReport:1, mydata_summary:1, uploadStagePhoto:1, uploadOfferPhoto:1, uploadJobPhoto:1, uploadPhoto:1, uploadDocFile:1, createQuotePdf:1, createReceipt:1, sendReceiptEmail:1, loadAll:1, prosf_savePdf:1 };
 
-  var KP_VERSION = '2026-11-13c';
+  var KP_VERSION = '2026-11-14a';
   window.KP_WEB = true;
   window.KP_VERSION = KP_VERSION;
 
