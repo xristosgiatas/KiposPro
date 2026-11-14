@@ -5167,30 +5167,44 @@ function planShort(iso){
   return DG_DN[(d.getDay()+6)%7]+' '+d.getDate()+' '+mn[d.getMonth()];
 }
 
-function openTaxList(){
-  var list=clients.filter(isTaxRcpt).sort(function(a,b){return String(a.name||'').localeCompare(String(b.name||''),'el');});
-  var body;
-  if(!list.length){
-    body='<div class="empty">Κανένας κήπος δεν θέλει παραστατικό.<br><span style="font-size:12px">Ενεργοποίησέ το από το 🧾 στην καρτέλα του πελάτη.</span></div>';
-  } else {
-    var tot=0;
-    body=list.map(function(c){
-      var pr=0; try{pr=gP(c,kpiM,kpiY)||0;}catch(e){}
-      tot+=pr;
-      var paid=false; try{var mv=mVal(c,kpiM,kpiY); paid=!!(mv&&mv.paid);}catch(e){}
-      var sub=[c.coName&&c.coName!==c.name?c.coName:'', c.afm?'ΑΦΜ '+c.afm:'', c.doy?'ΔΟΥ '+c.doy:''].filter(Boolean).join(' · ');
-      return '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--brd);border-radius:8px;margin-bottom:6px">'
-        +'<div style="flex:1;min-width:0;cursor:pointer" onclick="closeM();showDet(\''+c.id+'\',\'clients\')">'
-          +'<div style="font-weight:700;font-size:14px">'+(c.name||'')+'</div>'
-          +(sub?'<div style="font-size:12px;color:var(--tx2);margin-top:2px">'+sub+'</div>':'<div style="font-size:12px;color:#b45309;margin-top:2px">Λείπουν στοιχεία ΑΦΜ/ΔΟΥ</div>')
-        +'</div>'
-        +(pr?'<div style="text-align:right;flex-shrink:0"><div style="font-weight:800;font-size:14px;color:var(--gd)">'+fmt(pr)+'</div><div style="font-size:11px;color:'+(paid?'var(--g)':'var(--mut)')+'">'+(paid?'Πληρωμένο':'Απλήρωτο')+'</div></div>':'')
-        +'<button class="btn btn-sm" style="background:#3C6A88;color:#fff;flex-shrink:0" onclick="closeM();openReceiptForClient(\''+c.id+'\')">Απόδειξη</button>'
-      +'</div>';
-    }).join('')
-    +'<div style="display:flex;justify-content:space-between;padding:10px 4px 0;font-size:13px;color:var(--tx2)"><span>'+list.length+' κήπ'+(list.length===1?'ος':'οι')+'</span><span>Σύνολο μήνα: <b style="color:var(--gd)">'+fmt(tot)+'</b></span></div>';
-  }
-  openM('🧾 Κήποι με παραστατικό', body, '<button class="btn btn-out btn-sm" onclick="closeM()">Κλείσιμο</button>');
+var _tx=null;
+function openTaxList(){ _tx={m:kpiM,y:kpiY}; txRender(); }
+function txNav(d){ _tx.m+=d; if(_tx.m<0){ _tx.m=11; _tx.y--; } if(_tx.m>11){ _tx.m=0; _tx.y++; } txRender(); }
+function txToggle(id){
+  var c=gc(id); if(!c) return; var mv=mVal(c,_tx.m,_tx.y); if(!mv) return;
+  if(mv.taxCut) delete mv.taxCut; else { var d=new Date(); mv.taxCut=('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear(); }
+  txRender();
+  google.script.run.withSuccessHandler(function(){}).withFailureHandler(function(err){ alert('Δεν αποθηκεύτηκε: '+((err&&err.message)||err)); })
+    .updateClientMonths(window._kpEmail||localStorage.getItem('kipospro_email')||'',c.id,kpStampM(c.id,c.months));
+}
+function txRender(){
+  var MF=['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
+  var m=_tx.m, y=_tx.y;
+  var list=clients.filter(isTaxRcpt).map(function(c){
+    var mv=mVal(c,m,y), act=false; try{ act=!!mv&&isAct(c,m,y); }catch(e){}
+    var pr=0; try{ pr=act?(gP(c,m,y)||0):0; }catch(e){}
+    return {c:c,mv:mv,act:act,pr:pr,paid:!!(mv&&mv.paid),cut:mv&&mv.taxCut?String(mv.taxCut):''};
+  });
+  list.sort(function(a,b){ var r=function(x){ return x.cut?2:(!x.act?3:(x.paid?0:1)); }; return r(a)-r(b)||String(a.c.name||'').localeCompare(String(b.c.name||''),'el'); });
+  var act=list.filter(function(x){return x.act;}), done=act.filter(function(x){return x.cut;}).length;
+  var body='<div style="display:flex;flex-direction:column;gap:10px">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;background:var(--paper,#FFFDF8);border:1px solid var(--brd);border-radius:16px;padding:6px"><button onclick="txNav(-1)" style="width:42px;height:42px;border-radius:12px;border:0;background:#EEEAE0;font:inherit;font-size:18px;font-weight:800;cursor:pointer">‹</button><b style="font-size:17px">'+MF[m]+' '+y+'</b><button onclick="txNav(1)" style="width:42px;height:42px;border-radius:12px;border:0;background:#EEEAE0;font:inherit;font-size:18px;font-weight:800;cursor:pointer">›</button></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:#E3F0E7;border-radius:14px;padding:10px 12px"><div style="font-size:22px;font-weight:800;color:#1D4632">'+done+' / '+act.length+'</div><div style="font-size:12px;font-weight:700;color:#2D6B4C">Κόπηκαν</div></div><div style="background:#FCEFD2;border-radius:14px;padding:10px 12px"><div style="font-size:22px;font-weight:800;color:#8A4A22">'+(act.length-done)+'</div><div style="font-size:12px;font-weight:700;color:#8A4A22">Θέλουν παραστατικό</div></div></div>';
+  if(!list.length) body+='<div class="empty">Κανένας κήπος δεν θέλει παραστατικό.<br><span style="font-size:12px">Ενεργοποίησέ το από το 🧾 στην καρτέλα του πελάτη.</span></div>';
+  list.forEach(function(x){
+    var c=x.c, id=tdEsc(c.id), afm=c.afm?'ΑΦΜ '+tdEsc(c.afm):'Λείπει ΑΦΜ';
+    var bar=x.cut?'#2D6B4C':(!x.act?'#E5E0D3':(x.paid?'#D9822B':'#C9C3B6'));
+    var st=x.cut?'✓ Κόπηκε '+tdEsc(x.cut):(!x.act?'Ανενεργός μήνας':(x.paid?'Πληρωμένος · θέλει παραστατικό':'Απλήρωτος'));
+    var stc=x.cut?'#2D6B4C':(!x.act?'#9C8F73':(x.paid?'#8A4A22':'#9C8F73'));
+    body+='<div style="background:var(--paper,#FFFDF8);border:1px solid var(--brd);border-left:3px solid '+bar+';border-radius:16px;padding:12px 12px 12px 14px;display:flex;align-items:center;gap:10px;opacity:'+(x.act?1:.6)+'">'
+      +'<div style="flex:1;min-width:0;cursor:pointer" onclick="closeM();showDet(\''+id+'\',\'clients\')"><div style="font-size:15px;font-weight:800">'+tdEsc(c.name||'')+'</div><div style="font-family:var(--mono);font-size:11.5px;color:'+(c.afm?'#9C8F73':'#b45309')+';margin-top:2px">'+afm+'</div><div style="font-size:12.5px;font-weight:700;color:'+stc+';margin-top:5px">'+st+'</div></div>'
+      +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none">'+(x.pr?'<b style="font-size:15px">'+fmt(x.pr)+'</b>':'')
+      +(x.act?'<button onclick="txToggle(\''+id+'\')" style="height:38px;padding:0 12px;border-radius:11px;border:0;background:'+(x.cut?'#EEEAE0':'#3C6A88')+';color:'+(x.cut?'#4E5A50':'#fff')+';font:inherit;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap">'+(x.cut?'↶ Αναίρεση':'🧾 Το έκοψα')+'</button>':'')
+      +(x.act&&!x.cut?'<button onclick="closeM();openReceiptForClient(\''+id+'\')" style="height:30px;padding:0 10px;border-radius:9px;border:1px solid var(--brd);background:transparent;color:#4E5A50;font:inherit;font-size:12px;font-weight:700;cursor:pointer">Αναφορά εργασιών</button>':'')
+      +'</div></div>';
+  });
+  body+='</div>';
+  openM('🧾 Παραστατικά', body, '<button class="btn btn-out btn-sm" onclick="closeM()">Κλείσιμο</button>');
 }
 function updTaxCount(){
   var el=document.getElementById('vf-tax-n'); if(!el) return;
