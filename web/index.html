@@ -4421,6 +4421,10 @@ function renderViva(){
   h+='<div style="background:#12281F;color:#F4F1EA;border-radius:20px;padding:18px 20px"><div style="font-size:13px;font-weight:700;color:#BFD6C7">Υπόλοιπο</div><div style="font-size:34px;font-weight:800;margin-top:2px">'+vvEur(tot)+'</div>'
     +(W.length>1?'<div style="display:flex;flex-direction:column;gap:4px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(244,241,234,.15)">'+W.map(function(w){ return '<div style="display:flex;justify-content:space-between;font-size:13.5px"><span>'+tdEsc(w.name)+'</span><b>'+vvEur(w.balance)+'</b></div>'; }).join('')+'</div>':(W[0]&&W[0].iban?'<div style="font-family:var(--mono);font-size:11.5px;color:#BFD6C7;margin-top:6px">'+tdEsc(W[0].iban)+'</div>':''))+'</div>';
   if(D.note) h+='<div style="background:#FCEFD2;color:#8A4A22;border-radius:14px;padding:12px 14px;font-weight:700;font-size:13px">'+tdEsc(D.note)+'</div>';
+  var MDD=null; try{ MDD=(window.MD&&MD.data&&MD.data.docs)||JSON.parse(localStorage.getItem('kp_md_'+new Date().getFullYear())||'null'); if(MDD&&MDD.docs) MDD=MDD.docs; }catch(e){}
+  var vvShop=function(t){ if(t.who||!MDD||t.amount>=0) return ''; var a=Math.abs(t.amount), td=new Date(String(t.date).slice(0,10)).getTime(), best='', bd=9;
+    MDD.forEach(function(d){ if(d.dir!=='out'||Math.abs(Math.abs(d.gross)-a)>0.011) return; var dd=Math.abs(new Date(d.date).getTime()-td)/864e5; if(dd<=4&&dd<bd){ bd=dd; best=d.issuerName||''; } }); return best; };
+  (D.trn||[]).forEach(function(t){ if(!t.who){ var s=vvShop(t); if(s) t.who=s, t.whoGuess=1; } });
   var T=D.trn||[], qn=grNorm(VV.q||'');
   var L=T.filter(function(t){ if(VV.dir==='in'&&t.amount<=0) return false; if(VV.dir==='out'&&t.amount>=0) return false; return !qn||grNorm((t.who||'')+' '+(t.desc||'')).indexOf(qn)>=0; });
   var inS=L.filter(function(t){return t.amount>0;}).reduce(function(s,t){return s+t.amount;},0), outS=L.filter(function(t){return t.amount<0;}).reduce(function(s,t){return s-t.amount;},0);
@@ -4431,7 +4435,7 @@ function renderViva(){
     +'<div style="margin-top:4px">'+(L.length?L.slice(0,200).map(function(t){ var inn=t.amount>0, d=String(t.date||'');
       return '<div style="display:flex;gap:11px;align-items:center;padding:11px 0;border-top:1px solid #EEEAE0">'
         +'<span style="width:34px;height:34px;border-radius:50%;flex:none;background:'+(inn?'#E3F0E7':'#EEEAE0')+';color:'+(inn?'#2D6B4C':'#12281F')+';display:flex;align-items:center;justify-content:center;font-weight:800">'+(inn?'↗':'↙')+'</span>'
-        +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+tdEsc(t.who||t.desc||'—')+'</div><div style="font-size:11.5px;color:#9C8F73;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+d.slice(8,10)+'/'+d.slice(5,7)+' '+d.slice(11,16)+(t.who&&t.desc?' · '+tdEsc(t.desc):'')+'</div></div>'
+        +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+tdEsc(t.who||t.desc||'—')+(t.whoGuess?' <span style="font-size:11px;font-weight:600;color:#9C8F73">· από myDATA</span>':'')+'</div><div style="font-size:11.5px;color:#9C8F73;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+d.slice(8,10)+'/'+d.slice(5,7)+' '+d.slice(11,16)+(t.who&&t.desc?' · '+tdEsc(t.desc):'')+'</div></div>'
         +'<b style="flex:none;font-size:14.5px;color:'+(inn?'#2D6B4C':'#12281F')+'">'+(inn?'+':'')+vvEur(t.amount)+'</b></div>'; }).join(''):'<div style="padding:14px 0;color:#9C8F73;text-align:center">Καμία κίνηση</div>')+'</div></div>';
   h+='<div style="font-size:11.5px;color:#9C8F73;text-align:center;padding:4px 0 20px">Από τη Viva · μόνο ανάγνωση</div></div>';
   root.innerHTML=h;
