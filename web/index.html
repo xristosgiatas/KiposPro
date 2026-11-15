@@ -4459,7 +4459,8 @@ function renderViva(){
     cur=k;
     G.forEach(function(g){ var p=document.getElementById('sbp-'+g.k), r=document.getElementById('sbr-'+g.k); if(p) p.style.display=g.k===k?'flex':'none'; if(r) r.classList.toggle('on',g.k===k); });
   }
-  function badges(){
+  window.sbEmoji=function(){ var EM=window._sbEM||{}; Object.keys(EM).forEach(function(id){ var b=document.getElementById('nav-'+id); var ic=b&&b.querySelector('.si-ic'); if(ic&&ic.getAttribute('data-em')!==EM[id]){ ic.textContent=EM[id]; ic.setAttribute('data-em',EM[id]); ic.style.fontSize='17px'; ic.style.lineHeight='1'; ic.style.color='initial'; } }); };
+  function badges(){ try{ sbEmoji(); }catch(e){}
     var dayN=0, rb=document.getElementById('reports-badge'); if(rb&&rb.style.display!=='none') dayN+=parseInt(rb.textContent,10)||1;
     var rn=document.querySelector('#nav-rem .rem-n'); if(rn) dayN+=parseInt(rn.textContent,10)||1;
     var b=document.getElementById('sbr-b-day'); if(b){ b.style.display=dayN?'block':'none'; b.textContent=dayN; }
@@ -4511,7 +4512,7 @@ function renderViva(){
     // ό,τι κουμπί δεν ανήκει σε ομάδα πάει στους Πελάτες
     [].slice.call(nav.querySelectorAll('.si')).forEach(function(btn){ if(!btn.closest('.sb2-p')) document.getElementById('sbp-cl').appendChild(btn); });
     var EM={schedule:'📅',rem:'🔔',reports:'💬',clients:'🌿',appts:'🛠',quote:'📋',ekta:'🧱',pelat:'👤',archive:'🗄',fin:'📊',docs:'🧾',mydata:'🏛',viva:'💳',map:'🗺',plants:'🌱',design:'📐',supply:'📦',zoom:'🔍',viewmob:'📱'};
-    Object.keys(EM).forEach(function(id){ var b=document.getElementById('nav-'+id); var ic=b&&b.querySelector('.si-ic'); if(ic){ ic.innerHTML=EM[id]; ic.style.fontSize='17px'; ic.style.lineHeight='1'; } });
+    window._sbEM=EM; sbEmoji();
     var vb=document.getElementById('nav-viva'); if(vb&&!document.getElementById('sbr-viva-bal')){ var s=document.createElement('span'); s.id='sbr-viva-bal'; s.style.cssText='margin-left:auto;font-size:12px;font-weight:700;color:#2D6B4C'; vb.appendChild(s); }
     nav.innerHTML=''; nav.classList.add('sb2'); nav.appendChild(rail); nav.appendChild(panels);
     var sb=nav.closest('.sb')||nav; sb.addEventListener('mouseleave',function(){ hover=null; var a=activeGroup(); if(a) show(a); });
