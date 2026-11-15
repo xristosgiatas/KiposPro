@@ -4406,7 +4406,7 @@ try{ VV.data=JSON.parse(localStorage.getItem('kp_viva')||'null'); }catch(e){}
 function vvEur(n){ return (n<0?'−':'')+(Math.abs(Math.round((n||0)*100)/100)).toLocaleString('el-GR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'; }
 function vvLoad(force){ if(VV.loading) return; VV.loading=true; VV.err=''; renderViva();
   google.script.run.withSuccessHandler(function(s){ VV.loading=false; try{ VV.data=typeof s==='string'?JSON.parse(s):s; localStorage.setItem('kp_viva',JSON.stringify(VV.data)); }catch(e){ VV.err='Λάθος απάντηση'; } renderViva(); })
-    .withFailureHandler(function(e){ VV.loading=false; VV.err=(e&&e.message)||String(e); renderViva(); }).viva_summary(90,!!force); }
+    .withFailureHandler(function(e){ VV.loading=false; VV.err=(e&&e.message)||String(e); renderViva(); }).viva_summary(mkEm(),90,!!force); }
 function vvSet(k,v){ VV[k]=v; renderViva(); }
 function renderViva(){
   var root=document.getElementById('viva-root'); if(!root) return;
