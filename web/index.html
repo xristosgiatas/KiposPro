@@ -4510,6 +4510,8 @@ function renderViva(){
     });
     // ό,τι κουμπί δεν ανήκει σε ομάδα πάει στους Πελάτες
     [].slice.call(nav.querySelectorAll('.si')).forEach(function(btn){ if(!btn.closest('.sb2-p')) document.getElementById('sbp-cl').appendChild(btn); });
+    var EM={schedule:'📅',rem:'🔔',reports:'💬',clients:'🌿',appts:'🛠',quote:'📋',ekta:'🧱',pelat:'👤',archive:'🗄',fin:'📊',docs:'🧾',mydata:'🏛',viva:'💳',map:'🗺',plants:'🌱',design:'📐',supply:'📦',zoom:'🔍',viewmob:'📱'};
+    Object.keys(EM).forEach(function(id){ var b=document.getElementById('nav-'+id); var ic=b&&b.querySelector('.si-ic'); if(ic){ ic.innerHTML=EM[id]; ic.style.fontSize='17px'; ic.style.lineHeight='1'; } });
     var vb=document.getElementById('nav-viva'); if(vb&&!document.getElementById('sbr-viva-bal')){ var s=document.createElement('span'); s.id='sbr-viva-bal'; s.style.cssText='margin-left:auto;font-size:12px;font-weight:700;color:#2D6B4C'; vb.appendChild(s); }
     nav.innerHTML=''; nav.classList.add('sb2'); nav.appendChild(rail); nav.appendChild(panels);
     var sb=nav.closest('.sb')||nav; sb.addEventListener('mouseleave',function(){ hover=null; var a=activeGroup(); if(a) show(a); });
