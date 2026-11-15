@@ -1017,6 +1017,7 @@ body.d-fs #d-row-zones .zone-btn{padding:4px 9px;font-size:11.5px}
     <button class="si" onclick="kpZoomCycle()" id="nav-zoom"><span class="si-ic"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4M8 11h6"/></svg></span>Μέγεθος οθόνης</button>
     <button class="si" onclick="kpSetView('mob')" id="nav-viewmob"><span class="si-ic"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg></span>Έκδοση κινητού</button>
     <button class="si" onclick="go('rem')" id="nav-rem"><span class="si-ic"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></span>Υπενθυμίσεις</button>
+    <button class="si" onclick="go('viva')" id="nav-viva"><span class="si-ic"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></svg></span>Viva</button>
     <button class="si" onclick="go('mydata')" id="nav-mydata"><span class="si-ic"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2.5h7l3.5 3.5v11.5H5z"/><path d="M12 2.5V6h3.5"/><path d="M7.5 10h5M7.5 13h3.5"/></svg></span>myDATA</button>
     <button class="si" onclick="go('map')" id="nav-map"><span class="si-ic"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17s5-5.6 5-9a5 5 0 1 0-10 0c0 3.4 5 9 5 9Z"/><circle cx="10" cy="8" r="1.8"/></svg></span>Χάρτης</button>
     <button class="si" onclick="go('plants')" id="nav-plants"><span class="si-ic"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12h8l-1 5H7Z"/><path d="M10 12V7"/><path d="M10 8.5C7.2 8.5 6 6.6 6 4.5c2.6 0 4 1.7 4 4Z"/><path d="M10 9.5c2.8 0 4-1.9 4-4-2.6 0-4 1.7-4 4Z"/></svg></span>Φυτά</button>
@@ -1148,6 +1149,7 @@ body.d-fs #d-row-zones .zone-btn{padding:4px 9px;font-size:11.5px}
   </div>
 
   <div class="page" id="pg-rem"><div id="rem-root"></div></div>
+  <div class="page" id="pg-viva"><div id="viva-root"></div></div>
   <div class="page" id="pg-mydata"><div id="md-root"></div></div>
   <!-- ΕΣΟΔΑ / ΕΞΟΔΑ -->
   <div class="page" id="pg-fin">
@@ -1967,11 +1969,11 @@ function renderOwed(){
 }
 
 var MORE_IC_MK='<path d="M3 21 21 3"/><path d="M3 21h18V3"/><path d="M8 21v-3M13 21v-3M18 21v-3M21 8h-3M21 13h-3"/>';
-var MORE_IC={"ZM":"<circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"m20 20-4-4M8 11h6\"/>","PC":"<rect x=\"3\" y=\"4\" width=\"18\" height=\"12\" rx=\"2\"/><path d=\"M8 20h8M12 16v4\"/>","UP":"<path d=\"M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9\"/><path d=\"M10.3 21a1.94 1.94 0 0 0 3.4 0\"/>","MD":"<path d=\"M4 20V10M10 20V4M16 20v-7M22 20H2\"/>","RV":"<rect x=\"3\" y=\"4\" width=\"18\" height=\"17\" rx=\"3\"/><path d=\"M3 9h18M8 2v4M16 2v4M12 13v3l2 1\"/>","KA":"<path d=\"M3 17 17 3l4 4L7 21H3z\"/><path d=\"m6 14 2 2M9 11l2 2M12 8l2 2M15 5l2 2\"/>","PR":"<path d=\"M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z\"/><path d=\"M14 3v5h5M9 13h6M9 17h4\"/>","AN":"<path d=\"M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z\"/><path d=\"M12 7v4M12 14h.01\"/>","SX":"<path d=\"M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7\"/><path d=\"M14 3l5 5h-5z\"/><path d=\"M8 10h4M8 14h3\"/><path d=\"m15 21 6-6-2-2-6 6v2z\"/>","FY":"<path d=\"M11 20A7 7 0 0 1 4 13c0-5 4-9 16-10-1 12-5 16-10 16\"/><path d=\"M4 21c3-6 7-9 11-11\"/>","XA":"<path d=\"M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z\"/><path d=\"M9 4v14M15 6v14\"/>","AR":"<rect x=\"3\" y=\"4\" width=\"18\" height=\"5\" rx=\"1\"/><path d=\"M5 9v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9M10 13h4\"/>","OI":"<path d=\"M3 3v18h18\"/><path d=\"m7 15 4-4 3 3 5-6\"/>","TI":"<path d=\"M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z\"/><path d=\"M9 8h6M9 12h6\"/>","AL":"<path d=\"M21 8 12 3 3 8v8l9 5 9-5z\"/><path d=\"m3 8 9 5 9-5M12 13v8\"/>"};
+var MORE_IC={"VV":"<rect x=\"3\" y=\"6\" width=\"18\" height=\"13\" rx=\"2\"/><path d=\"M3 10h18M7 15h4\"/>","ZM":"<circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"m20 20-4-4M8 11h6\"/>","PC":"<rect x=\"3\" y=\"4\" width=\"18\" height=\"12\" rx=\"2\"/><path d=\"M8 20h8M12 16v4\"/>","UP":"<path d=\"M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9\"/><path d=\"M10.3 21a1.94 1.94 0 0 0 3.4 0\"/>","MD":"<path d=\"M4 20V10M10 20V4M16 20v-7M22 20H2\"/>","RV":"<rect x=\"3\" y=\"4\" width=\"18\" height=\"17\" rx=\"3\"/><path d=\"M3 9h18M8 2v4M16 2v4M12 13v3l2 1\"/>","KA":"<path d=\"M3 17 17 3l4 4L7 21H3z\"/><path d=\"m6 14 2 2M9 11l2 2M12 8l2 2M15 5l2 2\"/>","PR":"<path d=\"M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z\"/><path d=\"M14 3v5h5M9 13h6M9 17h4\"/>","AN":"<path d=\"M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z\"/><path d=\"M12 7v4M12 14h.01\"/>","SX":"<path d=\"M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7\"/><path d=\"M14 3l5 5h-5z\"/><path d=\"M8 10h4M8 14h3\"/><path d=\"m15 21 6-6-2-2-6 6v2z\"/>","FY":"<path d=\"M11 20A7 7 0 0 1 4 13c0-5 4-9 16-10-1 12-5 16-10 16\"/><path d=\"M4 21c3-6 7-9 11-11\"/>","XA":"<path d=\"M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z\"/><path d=\"M9 4v14M15 6v14\"/>","AR":"<rect x=\"3\" y=\"4\" width=\"18\" height=\"5\" rx=\"1\"/><path d=\"M5 9v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9M10 13h4\"/>","OI":"<path d=\"M3 3v18h18\"/><path d=\"m7 15 4-4 3 3 5-6\"/>","TI":"<path d=\"M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z\"/><path d=\"M9 8h6M9 12h6\"/>","AL":"<path d=\"M21 8 12 3 3 8v8l9 5 9-5z\"/><path d=\"m3 8 9 5 9-5M12 13v8\"/>"};
 MORE_IC.MK=MORE_IC_MK;
 var MORE_TILES=[
   ['ΔΟΥΛΕΙΑ',[['rem','Υπενθυμίσεις','UP'],['quote','Προσφορά','PR'],['reports','Αναφορές πελατών','AN'],['mk','Μέτρα κήπου','MK'],['design','Σχέδιο κήπου','SX'],['plants','Οδηγός φυτών','FY'],['map','Χάρτης','XA'],['archive','Αρχείο','AR']]],
-  ['ΟΙΚΟΝΟΜΙΚΑ',[['fin','Οικονομικά','OI'],['mydata','myDATA','MD'],['docs','Τιμολόγια','TI'],['supply','Αναλώσιμα','AL']]],
+  ['ΟΙΚΟΝΟΜΙΚΑ',[['fin','Οικονομικά','OI'],['mydata','myDATA','MD'],['viva','Viva','VV'],['docs','Τιμολόγια','TI'],['supply','Αναλώσιμα','AL']]],
   ['ΡΥΘΜΙΣΕΙΣ',[['viewpc','Έκδοση υπολογιστή','PC'],['zoom','Μέγεθος οθόνης','ZM']]]
 ];
 function renderMore(){
@@ -4397,8 +4399,46 @@ function planSwipeBind(){
 }
 var _swRS=renderSchedule; renderSchedule=function(){ _swRS.apply(this,arguments); try{ planSwipeBind(); }catch(x){} };
 
+
+/* ===== VIVA (υπόλοιπο + κινήσεις) ===== */
+var VV={data:null,loading:false,err:'',dir:'all',q:''};
+try{ VV.data=JSON.parse(localStorage.getItem('kp_viva')||'null'); }catch(e){}
+function vvEur(n){ return (n<0?'−':'')+(Math.abs(Math.round((n||0)*100)/100)).toLocaleString('el-GR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'; }
+function vvLoad(force){ if(VV.loading) return; VV.loading=true; VV.err=''; renderViva();
+  google.script.run.withSuccessHandler(function(s){ VV.loading=false; try{ VV.data=typeof s==='string'?JSON.parse(s):s; localStorage.setItem('kp_viva',JSON.stringify(VV.data)); }catch(e){ VV.err='Λάθος απάντηση'; } renderViva(); })
+    .withFailureHandler(function(e){ VV.loading=false; VV.err=(e&&e.message)||String(e); renderViva(); }).viva_summary(90,!!force); }
+function vvSet(k,v){ VV[k]=v; renderViva(); }
+function renderViva(){
+  var root=document.getElementById('viva-root'); if(!root) return;
+  if(!VV.data&&!VV.loading&&!VV.err) setTimeout(function(){ vvLoad(false); },0);
+  var card='background:var(--paper,#FFFDF8);border:1px solid var(--brd,#E5E0D3);border-radius:20px;padding:16px 18px';
+  var D=VV.data, ago=D&&D.fetchedAt?Math.round((Date.now()-new Date(D.fetchedAt))/60000):null;
+  var h='<div class="td-wrap" style="gap:12px;max-width:'+(window.innerWidth>900?'820px':'640px')+';margin:0 auto">';
+  h+='<div style="display:flex;justify-content:flex-end"><button class="btn btn-sm" onclick="vvLoad(true)" style="border-radius:999px">'+(VV.loading?'⏳ Φόρτωση…':'↻ '+(ago==null?'Ανανέωση':ago<1?'μόλις τώρα':ago<60?'πριν '+ago+'′':'πριν '+Math.round(ago/60)+' ώρες'))+'</button></div>';
+  if(VV.err) h+='<div style="background:#F5DEDE;color:#8E2A2A;border-radius:14px;padding:12px 14px;font-weight:700;font-size:13.5px">'+tdEsc(VV.err)+'</div>';
+  if(!D){ root.innerHTML=h+(VV.loading?'<div style="'+card+';text-align:center;color:#4E5A50">Φόρτωση από τη Viva…</div>':'')+'</div>'; return; }
+  var W=D.wallets||[], tot=W.reduce(function(s,w){ return s+(+w.balance||0); },0);
+  h+='<div style="background:#12281F;color:#F4F1EA;border-radius:20px;padding:18px 20px"><div style="font-size:13px;font-weight:700;color:#BFD6C7">Υπόλοιπο</div><div style="font-size:34px;font-weight:800;margin-top:2px">'+vvEur(tot)+'</div>'
+    +(W.length>1?'<div style="display:flex;flex-direction:column;gap:4px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(244,241,234,.15)">'+W.map(function(w){ return '<div style="display:flex;justify-content:space-between;font-size:13.5px"><span>'+tdEsc(w.name)+'</span><b>'+vvEur(w.balance)+'</b></div>'; }).join('')+'</div>':(W[0]&&W[0].iban?'<div style="font-family:var(--mono);font-size:11.5px;color:#BFD6C7;margin-top:6px">'+tdEsc(W[0].iban)+'</div>':''))+'</div>';
+  if(D.note) h+='<div style="background:#FCEFD2;color:#8A4A22;border-radius:14px;padding:12px 14px;font-weight:700;font-size:13px">'+tdEsc(D.note)+'</div>';
+  var T=D.trn||[], qn=grNorm(VV.q||'');
+  var L=T.filter(function(t){ if(VV.dir==='in'&&t.amount<=0) return false; if(VV.dir==='out'&&t.amount>=0) return false; return !qn||grNorm((t.who||'')+' '+(t.desc||'')).indexOf(qn)>=0; });
+  var inS=L.filter(function(t){return t.amount>0;}).reduce(function(s,t){return s+t.amount;},0), outS=L.filter(function(t){return t.amount<0;}).reduce(function(s,t){return s-t.amount;},0);
+  h+='<div style="'+card+'"><div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:16px">Κινήσεις</b><span style="font-size:12px;color:#4E5A50">τελευταίες 90 μέρες</span></div>'
+    +'<input value="'+tdEsc(VV.q)+'" oninput="VV.q=this.value;clearTimeout(window._vvT);window._vvT=setTimeout(renderViva,250)" placeholder="Αναζήτηση…" style="width:100%;box-sizing:border-box;height:40px;margin-top:10px;border-radius:12px;border:1px solid #E5E0D3;padding:0 12px;font:inherit;font-size:16px">'
+    +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px">'+[['all','Όλες'],['in','↗ Μπήκαν'],['out','↙ Βγήκαν']].map(function(p){ var on=VV.dir===p[0]; return '<button onclick="vvSet(\'dir\',\''+p[0]+'\')" style="height:36px;border-radius:999px;border:0;background:'+(on?'#12281F':'#EEEAE0')+';color:'+(on?'#fff':'#243A2B')+';font:inherit;font-weight:700;font-size:13px;cursor:pointer">'+p[1]+'</button>'; }).join('')+'</div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-top:10px"><span style="color:#2D6B4C">Μπήκαν '+vvEur(inS)+'</span><span style="color:#8E2A2A">Βγήκαν '+vvEur(outS)+'</span></div>'
+    +'<div style="margin-top:4px">'+(L.length?L.slice(0,200).map(function(t){ var inn=t.amount>0, d=String(t.date||'');
+      return '<div style="display:flex;gap:11px;align-items:center;padding:11px 0;border-top:1px solid #EEEAE0">'
+        +'<span style="width:34px;height:34px;border-radius:50%;flex:none;background:'+(inn?'#E3F0E7':'#EEEAE0')+';color:'+(inn?'#2D6B4C':'#12281F')+';display:flex;align-items:center;justify-content:center;font-weight:800">'+(inn?'↗':'↙')+'</span>'
+        +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+tdEsc(t.who||t.desc||'—')+'</div><div style="font-size:11.5px;color:#9C8F73;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+d.slice(8,10)+'/'+d.slice(5,7)+' '+d.slice(11,16)+(t.who&&t.desc?' · '+tdEsc(t.desc):'')+'</div></div>'
+        +'<b style="flex:none;font-size:14.5px;color:'+(inn?'#2D6B4C':'#12281F')+'">'+(inn?'+':'')+vvEur(t.amount)+'</b></div>'; }).join(''):'<div style="padding:14px 0;color:#9C8F73;text-align:center">Καμία κίνηση</div>')+'</div></div>';
+  h+='<div style="font-size:11.5px;color:#9C8F73;text-align:center;padding:4px 0 20px">Από τη Viva · μόνο ανάγνωση</div></div>';
+  root.innerHTML=h;
+}
+
 /* ===== NAV ===== */
-var PAGE_TITLES={rem:'Υπενθυμίσεις',mydata:'myDATA',today:'Σήμερα',owed:'Οφειλές',more:'Περισσότερα',clients:'Συντηρήσεις',ekta:'Κατασκευές/Καθαρισμοί',pelat:'Πελατολόγιο',fin:'Οικονομικά',docs:'Τιμολόγια',quote:'Προσφορά',reports:'Αναφορές',supply:'Αναλώσιμα',map:'Χάρτης',plants:'Φυτά',design:'Σχέδιο Κήπου',appts:'Δουλειές',archive:'Αρχείο',detail:'Πελάτης',edet:'Έκτακτη'};
+var PAGE_TITLES={viva:'Viva',rem:'Υπενθυμίσεις',mydata:'myDATA',today:'Σήμερα',owed:'Οφειλές',more:'Περισσότερα',clients:'Συντηρήσεις',ekta:'Κατασκευές/Καθαρισμοί',pelat:'Πελατολόγιο',fin:'Οικονομικά',docs:'Τιμολόγια',quote:'Προσφορά',reports:'Αναφορές',supply:'Αναλώσιμα',map:'Χάρτης',plants:'Φυτά',design:'Σχέδιο Κήπου',appts:'Δουλειές',archive:'Αρχείο',detail:'Πελάτης',edet:'Έκτακτη'};
 
 function go(page){
   if(page==='mk'){ mkOpen(''); return; }
@@ -4426,6 +4466,7 @@ function go(page){
   if(page==='pelat'){  renderPelat(''); vcfInfo(); }
   if(page==='fin'){renderFin();}
   if(page==='mydata') renderMydata();
+  if(page==='viva') renderViva();
   if(page==='rem') renderRem();
   if(page==='analysis'){ go('fin'); setFinView('an'); return; }
   if(page==='docs')renderDocs('');
