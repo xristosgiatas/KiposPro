@@ -1072,6 +1072,7 @@ body.d-fs #d-row-zones .zone-btn{padding:4px 9px;font-size:11.5px}
       <button class="mnb" id="vf-2" onclick="setVisitFilter(2)">2×<span class="vf-u">/μήνα</span></button>
       <button class="mnb" id="vf-3" onclick="setVisitFilter(3)">3×<span class="vf-u">/μήνα</span></button>
       <button class="mnb" id="vf-4" onclick="setVisitFilter(4)">4×<span class="vf-u">/μήνα</span></button>
+      <span id="cl-ord-d" style="display:inline-flex"></span>
       <button class="mnb" id="vf-tax" onclick="openTaxList()" style="margin-left:auto;background:#EEF3F7;color:#3C6A88;border-color:#C9D8E3;font-weight:700">🧾 Παραστατικά <span id="vf-tax-n"></span></button>
     </div>
     <div id="rep-banner-c"></div>
@@ -2765,6 +2766,10 @@ function renderMobClients(){
   root.innerHTML=h;
   mclBody();
 }
+var CL_ORD=(function(){ try{ return localStorage.getItem('kp_cl_ord')||'area'; }catch(e){ return 'area'; } })();
+function clOrd(v){ CL_ORD=v; try{ localStorage.setItem('kp_cl_ord',v); }catch(e){} try{ if(document.body.classList.contains('mob-mode')) mclBody(); else renderClients(); }catch(e){} }
+function clOrdBtns(){ var b=function(k,l){ var on=CL_ORD===k; return '<button onclick="clOrd(\''+k+'\')" style="flex:1;height:34px;border:0;border-radius:9px;background:'+(on?'#1D4632':'transparent')+';color:'+(on?'#fff':'#4E5A50')+';font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;padding:0 12px">'+l+'</button>'; };
+  return '<div style="display:flex;gap:3px;background:#EEEAE0;border-radius:12px;padding:3px">'+b('area','📍 Ανά περιοχή')+b('urg','🗓 Σειρά επίσκεψης')+'</div>'; }
 function mclBody(){
   var el=document.getElementById('mcl-body'); if(!el) return;
   var x=document.getElementById('mcl-x'); if(x) x.style.display=_mcl.q.trim()?'block':'none';
@@ -2837,8 +2842,15 @@ function mclBody(){
     h+='<div class="mcl-chips" style="margin-top:10px">'+F.map(function(f){ var n=f[2]?rows.filter(f[2]).length:rows.length; if(f[2]&&!n&&_mcl.f!==f[0]) return ''; return '<button class="'+(_mcl.f===f[0]?'on':'')+'" onclick="mclF(\''+f[0]+'\')">'+f[1]+' <span style="font-family:var(--mono);font-size:11px;opacity:.7">'+n+'</span></button>'; }).join('')
       +'<button onclick="openTaxList()" style="background:#EEF3F7;color:#3C6A88;border-color:#C9D8E3">🧾 Παραστατικά</button></div>';
     var ff=F.find(function(f){return f[0]===_mcl.f;}); if(ff&&ff[2]) rows=rows.filter(ff[2]);
+    h+='<div style="margin-top:10px">'+clOrdBtns()+'</div>';
   }
   if(!rows.length){ h+='<div class="empty" style="margin-top:14px">Δεν υπάρχουν καταχωρίσεις</div>'; el.innerHTML=h; return; }
+  if(_mcl.seg==='c'&&CL_ORD==='urg'){
+    rows=rows.slice().sort(function(a,b){ return a.urg-b.urg; });
+    h+='<div style="display:flex;flex-direction:column;gap:14px;margin-top:14px">'+mclGroup('c:urg','Σειρά επίσκεψης',rows)+'</div>';
+    h+='<button onclick="arcShow()" style="width:100%;margin-top:16px;height:48px;border-radius:14px;border:1px dashed #C9C3B6;background:transparent;font-family:inherit;font-size:14px;font-weight:700;color:var(--tx2);cursor:pointer">📦 Αρχείο συντηρήσεων · '+archClients.length+'</button>';
+    el.innerHTML=h; return;
+  }
   var by={}; rows.forEach(function(r){ (by[r.area]=by[r.area]||[]).push(r); });
   var useU=_mcl.seg==='c';
   keys=null;
@@ -3146,10 +3158,11 @@ function renderSchedule(){
       var apTime=(isEkta&&c)?fmtTime(c.time):'';
       var addrForMap=displayAddr||(c&&c.address)||'';
       var esc=addrForMap.replace(/"/g,'&quot;');
-      html+='<div data-addr="'+esc+'" onclick="openMapFor(this.dataset.addr,event)" style="cursor:pointer">'
-        +'<div style="font-size:12px;font-weight:700">'+(isOffer?'🤝 ':isEkta?'⚡ ':'')+displayName+(addrForMap?' <span style="color:#94a3b8;font-weight:400">🗺</span>':'')+'</div>';
+      var openJs=!c?'':e.type==='appt'?"mclApptSheet('"+c.id+"')":e.type==='offer'?"mclOpen('p','"+c.id+"')":e.type==='ekta'?'':"showDet('"+c.id+"','schedule')";
+      html+='<div>'
+        +'<div'+(openJs?' onclick="event.stopPropagation();'+openJs+'" title="Άνοιγμα καρτέλας"':'')+' style="font-size:12px;font-weight:700;'+(openJs?'cursor:pointer;text-decoration:underline;text-decoration-color:#cbd5e1;text-underline-offset:2px':'')+'">'+(isOffer?'🤝 ':isEkta?'⚡ ':'')+displayName+'</div>';
       if(apTime) html+='<div style="font-family:var(--mono);font-size:10px;color:'+(isOffer?'#3C6A88':'#6366f1')+';margin-top:1px">'+apTime+'</div>';
-      if(displayAddr) html+='<div style="font-size:10px;color:#94a3b8;margin-top:1px">'+displayAddr+'</div>';
+      if(displayAddr) html+='<div data-addr="'+esc+'" onclick="event.stopPropagation();openMapFor(this.dataset.addr,event)" title="Άνοιγμα στο Maps" style="font-size:10px;color:#3C6A88;margin-top:1px;cursor:pointer">🗺 '+displayAddr+'</div>';
       if(addrForMap) html+='<div data-km="'+esc+'" style="font-family:var(--mono);font-size:10px;color:var(--gd);margin-top:2px">…</div>';
       if(!isEkta && c){
         var _openRep=(window.reports||[]).filter(function(r){return String(r.clientId)===String(c.id)&&r.status!=='done';});
@@ -5067,12 +5080,15 @@ function renderClients(){
   if(!clients.length){g.innerHTML='<div class="empty">Δεν υπάρχουν πελάτες ακόμα.<br>Πάτα «Νέος Πελάτης»!</div>';return;}
 
   updTaxCount();
+  var od_=document.getElementById('cl-ord-d'); if(od_) od_.innerHTML=clOrdBtns();
   var filteredClients=clients.filter(function(c){
     if(visitFilter===0) return true;
     return parseInt(c.defVisits||2)===visitFilter;
   });
   var grpOrder={red:0,soon:1,ok:2,novisit:3};
+  var byArea=CL_ORD==='area';
   var sortedClients=[].concat(filteredClients).sort(function(a,b){
+    if(byArea){ var aa=getArea(a.address||'')||'Άλλο', ab=getArea(b.address||'')||'Άλλο'; if(aa!==ab){ if(aa==='Άλλο') return 1; if(ab==='Άλλο') return -1; return aa.localeCompare(ab,'el'); } }
     var oa=getDaysOverdue(a), ob=getDaysOverdue(b);
     var ga=oa?(oa.overdue>3?'red':oa.overdue>=0||oa.soon?'soon':'ok'):'novisit';
 
@@ -5103,7 +5119,9 @@ function renderClients(){
     var bcol=grp==='red'?'#B03636':grp==='soon'?'#B58A2B':grp==='novisit'?'#A9A398':'var(--brd)';
     var bw=grp!=='ok'?'3':'1';
     var hdr='';
-    if(grp!==prevGroup){
+    if(byArea){ var ar=getArea(c.address||'')||'Άλλο'; if(ar!==prevGroup){ prevGroup=ar; var nA=sortedClients.filter(function(x){ return (getArea(x.address||'')||'Άλλο')===ar; }).length;
+      hdr='<div class="grp-hd"><span class="grp-dot" style="background:var(--g)"></span><span style="color:var(--gd)">📍 '+ar+' · '+nA+'</span><span class="grp-rule"></span></div>'; } }
+    else if(grp!==prevGroup){
       prevGroup=grp;
       var gTxt={red:'Χρειάζονται επίσκεψη',soon:'Σύντομα / Εκκρεμεί',novisit:'Χωρίς ιστορικό',ok:'Εντάξει'}[grp];
       var gCol={red:'#B4623A',soon:'#B58A2B',novisit:'#A9A398',ok:'var(--g)'}[grp];
