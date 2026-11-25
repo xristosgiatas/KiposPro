@@ -3066,13 +3066,33 @@ function ntfMark(e,val){
   google.script.run.withSuccessHandler(function(){}).withFailureHandler(function(){})
     .setScheduleNotified(window._kpEmail||localStorage.getItem('kipospro_email')||'', e.id, e.notified);
 }
+function ntfAny(e){ if(!e) return null; var t=e.type||'client';
+  var pool=t==='appt'?appointments:t==='offer'?offers:t==='ekta'?ektas:clients;
+  return (pool||[]).find(function(x){return String(x.id)===String(e.clientId);})||null; }
+function ntfTextFor(e,c){ var t=e.type||'client'; if(t==='client') return ntfText(e.date);
+  var d=new Date(e.date+'T12:00:00'), when=NTF_DAYS[d.getDay()]+' '+d.getDate()+'/'+(d.getMonth()+1);
+  var tm=c&&c.time?fmtTime(c.time):''; if(tm) when+=' στις '+tm;
+  if(t==='offer') return 'Γεια σας, επιβεβαιώνουμε το ραντεβού για να δούμε τον χώρο σας και να σας δώσουμε προσφορά, '+when+'.\nΕυχαριστούμε πολύ!';
+  if(t==='appt') return 'Γεια σας, έχουμε προγραμματίσει την εργασία στον κήπο σας για '+when+'.\nΕυχαριστούμε πολύ!';
+  return 'Γεια σας, έχουμε προγραμματίσει την επίσκεψη στον κήπο σας για '+when+'.\nΕυχαριστούμε πολύ!'; }
 function ntfSend(sid){
   var e=schedule.find(function(s){return String(s.id)===String(sid);}); if(!e) return;
-  var c=ntfClient(e); if(!c||!c.tel){ toast('Δεν υπάρχει τηλέφωνο'); return; }
+  var c=ntfAny(e); if(!c||!c.tel){ toast('Δεν υπάρχει τηλέφωνο'); return; }
+  if(document.querySelector('#modal-bg.open')){ ntfSendReady(sid); return; }
+  var id=String(sid).replace(/'/g,''), txt=ntfTextFor(e,c);
+  openM('💬 '+tdEsc(c.name||'Πελάτης'),
+    '<div style="display:flex;flex-direction:column;gap:10px">'
+    +'<button onclick="closeM();ntfSendReady(\''+id+'\')" style="text-align:left;border:1.5px solid #C9D8E3;background:#F3F7FA;border-radius:14px;padding:12px 14px;font-family:inherit;cursor:pointer;color:#12281F"><div style="font-weight:800;font-size:15px;color:#2C5570;margin-bottom:5px">Έτοιμο μήνυμα</div><div style="font-size:13px;line-height:1.45;white-space:pre-line;color:#4E5A50">'+tdEsc(txt)+'</div></button>'
+    +'<button onclick="closeM();location.href=ntfSmsUrl(\''+String(c.tel).replace(/[^\d+]/g,'')+'\',\'\')" style="height:52px;border-radius:14px;border:1.5px solid var(--brd);background:var(--paper);font-family:inherit;font-size:15px;font-weight:800;color:#12281F;cursor:pointer">✎ Γράψε δικό σου μήνυμα</button>'
+    +'</div>','<button class="btn btn-out" onclick="closeM()">Άκυρο</button>');
+}
+function ntfSendReady(sid){
+  var e=schedule.find(function(s){return String(s.id)===String(sid);}); if(!e) return;
+  var c=ntfAny(e); if(!c||!c.tel) return;
   ntfMark(e,e.date);
   renderSchedule();
   if(document.querySelector('#modal-bg.open')) ntfOpenWeek();
-  location.href=ntfSmsUrl(c.tel, ntfText(e.date));
+  location.href=ntfSmsUrl(c.tel, ntfTextFor(e,c));
 }
 function ntfUnmark(sid){
   var e=schedule.find(function(s){return String(s.id)===String(sid);}); if(!e) return;
@@ -3171,7 +3191,7 @@ function renderSchedule(){
           html+='<button onclick="openReportsFor(\''+c.id+'\')" style="display:block;margin-top:3px;background:'+(_urg?'#9A4A1E':'#FBF0D6')+';color:'+(_urg?'#fff':'#7A5200')+';border:none;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:800;cursor:pointer">🔔 '+_openRep.length+' αναφορ'+(_openRep.length===1?'ά':'ές')+(_urg?' · επείγον':'')+'</button>';
         }
       }
-      if(!isEkta && e.notified){
+      if(e.notified){
         html+=(e.notified===e.date)
           ?'<div style="font-size:10px;font-weight:700;color:#2C5570;margin-top:2px">✓ ενημερώθηκε</div>'
           :'<div style="font-size:10px;font-weight:700;color:#b45309;margin-top:2px">⚠ άλλαξε μέρα — ξαναστείλε</div>';
@@ -3180,8 +3200,10 @@ function renderSchedule(){
       html+='<div style="display:flex;gap:4px;margin-top:5px">';
       if(e.type==='appt'){
         html+='<button onclick="go(\'appts\');" style="flex:1;background:#e0e7ff;color:#3730a3;border:none;border-radius:5px;padding:3px 0;font-size:11px;font-weight:700;cursor:pointer">Ραντεβού</button>';
+        if(c&&c.tel) html+='<button data-sid="'+e.id+'" onclick="ntfSend(this.dataset.sid)" title="Μήνυμα στον πελάτη" style="background:#E8F0F4;color:#2C5570;border:none;border-radius:5px;padding:3px 8px;font-size:12px;cursor:pointer">💬</button>';
       } else if(isOffer){
         html+='<button onclick="go(\'appts\');" style="flex:1;background:#E8F0F4;color:#2C5570;border:none;border-radius:5px;padding:3px 0;font-size:11px;font-weight:700;cursor:pointer">Προσφορά</button>';
+        if(c&&c.tel) html+='<button data-sid="'+e.id+'" onclick="ntfSend(this.dataset.sid)" title="Μήνυμα στον πελάτη" style="background:#E8F0F4;color:#2C5570;border:none;border-radius:5px;padding:3px 8px;font-size:12px;cursor:pointer">💬</button>';
       } else {
         html+='<button data-sid="'+e.id+'" data-cid="'+(c?c.id:e.clientId)+'" onclick="schedVisit(this.dataset.sid,this.dataset.cid)" style="flex:1;background:var(--gl);color:var(--gd);border:none;border-radius:5px;padding:3px 0;font-size:11px;font-weight:700;cursor:pointer">✓ Επίσκεψη</button>';
         if(c&&c.tel) html+='<button data-sid="'+e.id+'" onclick="ntfSend(this.dataset.sid)" title="Μήνυμα στον πελάτη" style="background:#E8F0F4;color:#2C5570;border:none;border-radius:5px;padding:3px 8px;font-size:12px;cursor:pointer">💬</button>';
@@ -4402,13 +4424,29 @@ function planMoveOne(sid){
 function planSwipeBind(){
   var root=document.getElementById('schedule-root'); if(!root||root._swB) return; root._swB=true;
   var S=null;
-  root.addEventListener('touchstart',function(ev){ var c=ev.target.closest&&ev.target.closest('.sd-card'); if(!c||ev.target.closest('button')){ S=null; return; } var t=ev.touches[0]; S={c:c,x:t.clientX,y:t.clientY,dx:0,h:false}; },{passive:true});
+  var under=function(s){ if(s.u) return s.u; var c=s.c, p=c.parentNode; if(getComputedStyle(p).position==='static') p.style.position='relative';
+    c.style.position='relative'; c.style.zIndex='2';
+    var u=document.createElement('div'); u.style.cssText='position:absolute;z-index:1;display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-weight:800;font-size:13px;color:#fff;pointer-events:none;border-radius:6px;'
+      +'top:'+c.offsetTop+'px;left:'+c.offsetLeft+'px;width:'+c.offsetWidth+'px;height:'+c.offsetHeight+'px';
+    u.innerHTML='<span>€ Πληρωμή</span><span>📅 Άλλη μέρα</span>'; p.insertBefore(u,c); s.u=u; return u; };
+  root.addEventListener('touchstart',function(ev){ var c=ev.target.closest&&ev.target.closest('.sd-card'); if(!c||ev.target.closest('button')){ S=null; return; } var t=ev.touches[0]; S={c:c,x:t.clientX,y:t.clientY,dx:0,h:false,u:null}; },{passive:true});
   root.addEventListener('touchmove',function(ev){ if(!S||(typeof SD!=='undefined'&&SD.on)) return; var t=ev.touches[0], dx=t.clientX-S.x, dy=t.clientY-S.y;
-    if(!S.h){ if(Math.abs(dx)>14&&Math.abs(dx)>Math.abs(dy)*1.4&&dx<0){ S.h=true; try{ if(SD.t){ clearTimeout(SD.t); SD.t=null; } }catch(x){} } else if(Math.abs(dy)>12){ S=null; return; } }
-    if(S.h){ S.dx=Math.max(-140,Math.min(0,dx)); S.c.style.transition='none'; S.c.style.transform='translateX('+S.dx+'px)'; S.c.style.boxShadow='inset -'+Math.min(8,Math.round(-S.dx/12))+'px 0 0 '+(S.dx<-80?'#3C74A8':'#B9CDE0'); }
+    if(!S.h){ if(Math.abs(dx)>14&&Math.abs(dx)>Math.abs(dy)*1.4){ S.h=true; try{ if(SD.t){ clearTimeout(SD.t); SD.t=null; } }catch(x){} } else if(Math.abs(dy)>12){ S=null; return; } }
+    if(S.h){ S.dx=Math.max(-140,Math.min(140,dx)); var u=under(S), go=Math.abs(S.dx)>80;
+      u.style.background=S.dx>0?(go?'#2D6B4C':'#6FA286'):(go?'#3C74A8':'#7FA6C8');
+      u.firstChild.style.opacity=S.dx>0?1:0; u.lastChild.style.opacity=S.dx<0?1:0;
+      S.c.style.transition='none'; S.c.style.transform='translateX('+S.dx+'px)'; }
   },{passive:true});
-  root.addEventListener('touchend',function(){ if(!S) return; var s=S; S=null; if(!s.h) return; s.c.style.transition='transform .18s'; s.c.style.transform=''; s.c.style.boxShadow='';
-    if(s.dx<-80){ try{ navigator.vibrate&&navigator.vibrate(12); }catch(x){} planMoveOne(s.c.getAttribute('data-sid')); } });
+  root.addEventListener('touchend',function(){ if(!S) return; var s=S; S=null; if(!s.h) return;
+    s.c.style.transition='transform .18s'; s.c.style.transform='';
+    var u=s.u; setTimeout(function(){ if(u) u.remove(); s.c.style.zIndex=''; },200);
+    var sid=s.c.getAttribute('data-sid');
+    if(s.dx<-80){ try{ navigator.vibrate&&navigator.vibrate(12); }catch(x){} planMoveOne(sid); }
+    else if(s.dx>80){ try{ navigator.vibrate&&navigator.vibrate(12); }catch(x){}
+      var e=(schedule||[]).find(function(x){ return String(x.id)===String(sid); });
+      if(!e||(e.type||'client')!=='client'){ toast('Η πληρωμή με σύρσιμο είναι μόνο για συντηρήσεις'); return; }
+      swPay(e.clientId); setTimeout(function(){ try{ renderSchedule(); }catch(x){} },300); }
+  });
 }
 var _swRS=renderSchedule; renderSchedule=function(){ _swRS.apply(this,arguments); try{ planSwipeBind(); }catch(x){} };
 
