@@ -2530,7 +2530,8 @@ function offInfo(o){
   else if(st==='note') txt='Πήγες'+(o.visitedAt?' '+planShort(String(o.visitedAt).slice(0,10)):'')+' · γράψε τιμή';
   else if(st==='price'){ var d=o.quotedAt?offDays(o.quotedAt):null; txt='Έδωσες '+fmt(parseFloat(o.amount))+(d==null||isNaN(d)?'':d<=0?' σήμερα':d===1?' χθες':' πριν '+d+' μέρες'); call=d!=null&&d>=7; }
   else txt='Στο αρχείο';
-  return {st:st,late:late,txt:txt,call:call};
+  var _tm=new Date(); _tm.setDate(_tm.getDate()+1); var tom=st==='go'&&o.date===toLocalISO(_tm);
+  return {st:st,late:late,txt:txt,call:call,tom:tom};
 }
 function offSave(o,msg){ google.script.run.withSuccessHandler(function(){}).withFailureHandler(function(e){ alert('Σφάλμα αποθήκευσης: '+(e&&e.message||e)); }).saveOffer(window._kpEmail||localStorage.getItem('kipospro_email')||'',o); renderOffers(); if(msg) toast(msg); }
 function offWent(id){ var o=(offers||[]).find(function(x){return String(x.id)===String(id);}); if(!o) return;
@@ -2579,7 +2580,7 @@ function offCardHtml(o,mob,actions){
   var sp="event.stopPropagation();";
   var btn='height:44px;border-radius:12px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer';
   var dg=mob?' mcl-drag" data-cid="'+id+'" data-dgt="offer" data-lix="'+id+'" data-cname="'+tdEsc(o.name||''):'';
-  return '<div class="'+(mob?'td-row':'')+dg+'" onclick="'+(mob?"mclOpen('p','"+id+"')":(I.st==='arc'?"if(confirm('Επαναφορά από το αρχείο;'))unarchiveOffer(mclOEl('"+id+"'))":"editOffer(mclOEl('"+id+"'))"))+'" style="display:flex;flex-direction:column;align-items:stretch;text-align:left;width:100%;box-sizing:border-box;gap:6px;background:var(--paper,#FFFDF8);border:1px solid var(--brd,#E5E0D3);border-left:4px solid '+bar+';border-radius:18px;padding:13px 14px;cursor:pointer">'
+  return '<div class="'+(mob?'td-row':'')+dg+'" onclick="'+(mob?"mclOpen('p','"+id+"')":(I.st==='arc'?"if(confirm('Επαναφορά από το αρχείο;'))unarchiveOffer(mclOEl('"+id+"'))":"editOffer(mclOEl('"+id+"'))"))+'" style="display:flex;flex-direction:column;align-items:stretch;text-align:left;width:100%;box-sizing:border-box;gap:6px;background:'+(I.tom?'#EAF4EC':'var(--paper,#FFFDF8)')+';border:1px solid '+(I.tom?'#BFDCC8':'var(--brd,#E5E0D3)')+';border-left:4px solid '+bar+';border-radius:18px;padding:13px 14px;cursor:pointer">'
     +'<div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span onclick="'+sp+'editOffer(mclOEl(\''+id+'\'))" title="Άνοιγμα καρτέλας" style="font-size:15.5px;font-weight:800;color:#12281F;cursor:pointer">'+tdEsc(o.name||'—')+'</span><span style="font-family:var(--mono);font-size:11.5px;font-weight:700;color:#4E5A50;white-space:nowrap">'+tdEsc((getArea(o.address||'')||'').replace(/^Άλλο$/,''))+'</span></div>'
     +(offIsNew(o)?'<div style="align-self:flex-start;background:#2D6B4C;color:#fff;border-radius:7px;padding:3px 8px;font-size:11.5px;font-weight:800">🌐 Νέο από site</div>':'')
     +(o.address?'<div data-addr="'+tdEsc(o.address)+'" onclick="'+sp+'openMapFor(this.dataset.addr,event)" title="Άνοιγμα στο Maps" style="align-self:flex-start;font-family:var(--mono);font-size:11.5px;color:#3C6A88;cursor:pointer">🗺 '+tdEsc(o.address)+'</div>':'')
