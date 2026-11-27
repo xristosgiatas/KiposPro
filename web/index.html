@@ -1855,7 +1855,7 @@ function renderToday(){
       +(cur.tel?'</a>':'</button>')
       +'<button onclick="tdMsg(\''+sid+'\')" aria-label="Μήνυμα"'+(cur.tel?'':' disabled style="opacity:.35"')+'><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.7A8 8 0 1 1 21 12z"/></svg></button>'
       +'<button data-addr="'+tdEsc(cur.addr)+'" onclick="openMapFor(this.dataset.addr,event)" aria-label="Χάρτης"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></button>'
-      +'<button class="dn" onclick="tdDone(\''+sid+'\')">✓ Επίσκεψη</button>'
+      +(cur.e.type==='offer'?'<button class="dn" onclick="offWent(\''+tdEsc(cur.e.clientId)+'\')">📍 Πήγα</button>':'<button class="dn" onclick="tdDone(\''+sid+'\')">✓ Επίσκεψη</button>')
       +'</div>'
       +(cur.c&&isAct(cur.c,CM,CY)?(owe>0
         ?'<button onclick="tdPay(\''+tdEsc(cur.c.id)+'\')" style="height:52px;width:100%;border-radius:14px;border:0;background:#FCEFD2;color:#6E4C12;font-family:inherit;font-size:16px;font-weight:800;cursor:pointer">€ Πληρωμή'+(tdOweRows(cur.c).length>1?' · διάλεξε μήνα':' '+fmt(owe))+'</button>'
@@ -2531,7 +2531,34 @@ function offInfo(o){
   return {st:st,late:late,txt:txt,call:call};
 }
 function offSave(o,msg){ google.script.run.withSuccessHandler(function(){}).withFailureHandler(function(e){ alert('Σφάλμα αποθήκευσης: '+(e&&e.message||e)); }).saveOffer(window._kpEmail||localStorage.getItem('kipospro_email')||'',o); renderOffers(); if(msg) toast(msg); }
-function offWent(id){ var o=(offers||[]).find(function(x){return x.id==id;}); if(!o) return; o.visited='1'; o.visitedAt=toLocalISO(); offSave(o,'📝 Πέρασε στο «Πήγα, θέλει τιμή»'); }
+function offWent(id){ var o=(offers||[]).find(function(x){return String(x.id)===String(id);}); if(!o) return;
+  var B='display:block;width:100%;height:54px;border-radius:14px;border:0;font:inherit;font-size:16px;font-weight:800;cursor:pointer;margin-top:8px';
+  openM('📍 Πήγα · '+tdEsc(o.name||''),
+    '<div style="font-size:16px;font-weight:700;margin-bottom:6px">Έδωσες τιμή;</div>'
+    +'<button style="'+B+';background:#2D6B4C;color:#fff" onclick="offWentPrice(\''+tdEsc(o.id)+'\')">💶 Ναι, έδωσα τιμή</button>'
+    +'<button style="'+B+';background:#E4EDF6;color:#28506F" onclick="offWentNo(\''+tdEsc(o.id)+'\')">📝 Όχι ακόμα · θέλει τιμή</button>',
+    '<button class="btn btn-out btn-sm" onclick="closeM()">Άκυρο</button>');
+}
+function offWentNo(id){ var o=(offers||[]).find(function(x){return String(x.id)===String(id);}); if(!o) return; closeM(); o.visited='1'; o.visitedAt=toLocalISO(); offSave(o,'📝 Πέρασε στο «Πήγα, θέλει τιμή»'); offPlanDone(o.id); }
+function offWentPrice(id){ var o=(offers||[]).find(function(x){return String(x.id)===String(id);}); if(!o) return;
+  var B='display:block;width:100%;height:54px;border-radius:14px;border:0;font:inherit;font-size:16px;font-weight:800;cursor:pointer;margin-top:8px';
+  openM('💶 Τιμή · '+tdEsc(o.name||''),
+    '<div class="frm"><label>Πόσο έδωσες (€)</label><input id="ow-amt" type="number" inputmode="decimal" value="'+(parseFloat(o.amount)>0?o.amount:'')+'" style="font-size:22px;font-weight:800;color:var(--gd)"></div>'
+    +'<div style="font-size:16px;font-weight:700;margin:12px 0 2px">Υπάρχει συμφωνία;</div>'
+    +'<button style="'+B+';background:#2D6B4C;color:#fff" onclick="offWentDeal(\''+tdEsc(o.id)+'\',true)">🤝 Ναι · πάει στις Δουλειές</button>'
+    +'<button style="'+B+';background:#E3F0E7;color:#2D6B4C" onclick="offWentDeal(\''+tdEsc(o.id)+'\',false)">⏳ Όχι ακόμα · «Έδωσα τιμή»</button>',
+    '<button class="btn btn-out btn-sm" onclick="closeM()">Άκυρο</button>');
+  setTimeout(function(){ var i=document.getElementById('ow-amt'); if(i) i.focus(); },150);
+}
+function offWentDeal(id,deal){ var o=(offers||[]).find(function(x){return String(x.id)===String(id);}); if(!o) return;
+  var a=parseFloat(String((document.getElementById('ow-amt')||{}).value||'').replace(',','.'))||0;
+  if(!a){ var i=document.getElementById('ow-amt'); if(i){ i.style.borderColor='#B03636'; i.focus(); } return; }
+  o.amount=a; o.visited='1'; o.visitedAt=o.visitedAt||toLocalISO(); o.quotedAt=toLocalISO(); closeM();
+  offPlanDone(o.id);
+  if(deal){ offSave(o,''); setTimeout(function(){ offerOk(mclOEl(o.id)); },150); }
+  else offSave(o,'💶 Πέρασε στο «Έδωσα τιμή» · '+fmt(a));
+}
+function offPlanDone(oid){ try{ (schedule||[]).filter(function(s){ return s.type==='offer'&&String(s.clientId)===String(oid)&&s.date<=toLocalISO(); }).forEach(function(s){ schedRemove(s.id); }); }catch(e){} try{ renderToday(); }catch(e){} }
 function offDay(id){ editOffer(mclOEl(id)); }
 function offTilesHtml(cols){
   var c=offCounts(), cur=offCur(), nn=offNewCount();
@@ -3166,7 +3193,11 @@ function renderSchedule(){
     if(!entries.length){
       html+='<div style="font-size:11px;color:#cbd5e1;text-align:center;padding:6px 0">Κενό</div>';
     }
+    var _oN=entries.filter(function(x){return x.type==='offer';}).length;
+    if(_oN&&_oN<entries.length) entries=entries.filter(function(x){return x.type!=='offer';}).concat(entries.filter(function(x){return x.type==='offer';}));
+    var _oSplit=false;
     entries.forEach(function(e){
+      if(e.type==='offer'&&!_oSplit){ _oSplit=true; html+='<div style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.1em;color:#3C6A88;margin:8px 0 4px;padding-top:6px;border-top:1px dashed #C9D8E3">ΡΑΝΤΕΒΟΥ ΠΡΟΣΦΟΡΑΣ</div>'; }
       var isEkta=e.type==='ekta'||e.type==='appt'||e.type==='offer';
       var isOffer=e.type==='offer';
       var pool=e.type==='appt'?appointments:(e.type==='offer'?offers:(e.type==='ekta'?ektas:clients));
@@ -3176,7 +3207,7 @@ function renderSchedule(){
       var od=!isEkta&&c?getDaysOverdue(c):null;
       var urgent=od&&(od.overdue>0||od.soon);
       var borderCol=isOffer?'#3C6A88':isEkta?'#818cf8':urgent?'#f59e0b':'var(--gm)';
-      html+='<div class="sd-card" data-sid="'+e.id+'" data-day="'+date+'" style="background:#fff;border:1px solid '+(isOffer?'#dbe6ee':isEkta?'#e0e7ff':urgent?'#fbbf24':'#e2e8f0')+';border-left:3px solid '+borderCol+';border-radius:6px;padding:5px 7px;margin-bottom:4px;touch-action:pan-y">';
+      html+='<div class="sd-card" data-sid="'+e.id+'" data-day="'+date+'" style="background:'+(isOffer?'#EEF4F9':'#fff')+';border:1px solid '+(isOffer?'#dbe6ee':isEkta?'#e0e7ff':urgent?'#fbbf24':'#e2e8f0')+';border-left:3px solid '+borderCol+';border-radius:6px;padding:5px 7px;margin-bottom:4px;touch-action:pan-y">';
       var apTime=(isEkta&&c)?fmtTime(c.time):'';
       var addrForMap=displayAddr||(c&&c.address)||'';
       var esc=addrForMap.replace(/"/g,'&quot;');
@@ -3204,7 +3235,7 @@ function renderSchedule(){
         html+='<button onclick="go(\'appts\');" style="flex:1;background:#e0e7ff;color:#3730a3;border:none;border-radius:5px;padding:3px 0;font-size:11px;font-weight:700;cursor:pointer">Ραντεβού</button>';
         if(c&&c.tel) html+='<button data-sid="'+e.id+'" onclick="ntfSend(this.dataset.sid)" title="Μήνυμα στον πελάτη" style="background:#E8F0F4;color:#2C5570;border:none;border-radius:5px;padding:3px 8px;font-size:12px;cursor:pointer">💬</button>';
       } else if(isOffer){
-        html+='<button onclick="go(\'appts\');" style="flex:1;background:#E8F0F4;color:#2C5570;border:none;border-radius:5px;padding:3px 0;font-size:11px;font-weight:700;cursor:pointer">Προσφορά</button>';
+        html+='<button data-oid="'+(c?c.id:e.clientId)+'" onclick="offWent(this.dataset.oid)" style="flex:1;background:#3C6A88;color:#fff;border:none;border-radius:5px;padding:3px 0;font-size:11px;font-weight:700;cursor:pointer">📍 Πήγα</button>';
         if(c&&c.tel) html+='<button data-sid="'+e.id+'" onclick="ntfSend(this.dataset.sid)" title="Μήνυμα στον πελάτη" style="background:#E8F0F4;color:#2C5570;border:none;border-radius:5px;padding:3px 8px;font-size:12px;cursor:pointer">💬</button>';
       } else {
         html+='<button data-sid="'+e.id+'" data-cid="'+(c?c.id:e.clientId)+'" onclick="schedVisit(this.dataset.sid,this.dataset.cid)" style="flex:1;background:var(--gl);color:var(--gd);border:none;border-radius:5px;padding:3px 0;font-size:11px;font-weight:700;cursor:pointer">✓ Επίσκεψη</button>';
