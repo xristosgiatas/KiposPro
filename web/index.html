@@ -1810,7 +1810,7 @@ function renderToday(){
   var d=new Date(); d.setDate(d.getDate()+_tdOff); var T=toLocalISO(d);
   var DN=['ΚΥΡΙΑΚΗ','ΔΕΥΤΕΡΑ','ΤΡΙΤΗ','ΤΕΤΑΡΤΗ','ΠΕΜΠΤΗ','ΠΑΡΑΣΚΕΥΗ','ΣΑΒΒΑΤΟ'];
   var MNG=['ΙΑΝΟΥΑΡΙΟΥ','ΦΕΒΡΟΥΑΡΙΟΥ','ΜΑΡΤΙΟΥ','ΑΠΡΙΛΙΟΥ','ΜΑΪΟΥ','ΙΟΥΝΙΟΥ','ΙΟΥΛΙΟΥ','ΑΥΓΟΥΣΤΟΥ','ΣΕΠΤΕΜΒΡΙΟΥ','ΟΚΤΩΒΡΙΟΥ','ΝΟΕΜΒΡΙΟΥ','ΔΕΚΕΜΒΡΙΟΥ'];
-  var left=schedule.filter(function(s){return s.date===T;}).sort(function(a,b){return (a.order||0)-(b.order||0);}).map(tdItem);
+  var left=schedule.filter(function(s){return s.date===T;}).sort(function(a,b){ var oa=a.type==='offer'?1:0, ob=b.type==='offer'?1:0; if(oa!==ob) return oa-ob; return (a.order||0)-(b.order||0);}).map(tdItem);
   var done=(visits||[]).filter(function(v){return v.date===T;});
   var total=left.length+done.length;
   if(_tdSel && !left.some(function(x){return String(x.e.id)===String(_tdSel);})) _tdSel=null;
@@ -1834,8 +1834,8 @@ function renderToday(){
   if(cur){
     var pos=left.indexOf(cur)+1, owe=tdOwe(cur.client);
     var myReps=cur.client?clientReports(cur.client).filter(function(r){return r.status!=='done';}):[];
-    h+='<div class="td-card">'
-      +'<div class="t1"><span>'+(_tdOff!==0?'ΠΡΟΓΡΑΜΜΑ':_tdSel&&pos>1?'ΕΠΙΛΕΓΜΕΝΟΣ':'ΕΠΟΜΕΝΟΣ')+' · '+(done.length+pos)+'/'+total+'</span><span id="td-km"></span></div>'
+    h+='<div class="td-card"'+(cur.e.type==='offer'?' style="background:#28506F"':'')+'>'
+      +'<div class="t1"><span>'+(cur.e.type==='offer'?'🤝 ΡΑΝΤΕΒΟΥ ΠΡΟΣΦΟΡΑΣ · ':'')+(_tdOff!==0?'ΠΡΟΓΡΑΜΜΑ':_tdSel&&pos>1?'ΕΠΙΛΕΓΜΕΝΟΣ':'ΕΠΟΜΕΝΟΣ')+' · '+(done.length+pos)+'/'+total+'</span><span id="td-km"></span></div>'
       +'<div><div class="nm">'+tdEsc(cur.name)+'</div>'+(cur.addr?'<div class="ad">'+tdEsc(cur.addr)+'</div>':'')+'</div>';
     var chips='';
     if(cur.c){ var oR=tdOweRows(cur.c), oP=oR.filter(function(r){return r.year<CY||(r.year===CY&&r.month<CM);}), oC=oR.filter(function(r){return r.year===CY&&r.month===CM;});
@@ -1872,11 +1872,13 @@ function renderToday(){
     done.forEach(function(v){
       h+='<div class="td-row dn"><div class="td-no">✓</div><div style="flex:1;min-width:0"><div class="n">'+tdEsc(v.clientName||'')+'</div></div></div>';
     });
+    var _tdOS=false, _tdHasC=left.some(function(x){return x.e.type!=='offer';});
     left.forEach(function(x,i){
-      var owe=tdOwe(x.client), rep=x.client&&clientReports(x.client).some(function(r){return r.status!=='done';});
-      h+='<div class="td-row'+(x===cur?' sel':'')+'"'+(x.client?' data-swc="'+tdEsc(x.client.id)+'" data-cname="'+tdEsc(x.name)+'"':'')+' onclick="tdPick(\''+tdEsc(x.e.id)+'\')">'
-        +'<div class="td-no">'+(done.length+i+1)+'</div>'
-        +'<div style="flex:1;min-width:0"><div class="n">'+tdEsc(x.name)+'</div><div class="s">'+tdEsc(x.addr||'')+'</div></div>'
+      var owe=tdOwe(x.client), rep=x.client&&clientReports(x.client).some(function(r){return r.status!=='done';}), isO=x.e.type==='offer';
+      if(isO&&!_tdOS&&_tdHasC){ _tdOS=true; h+='<div style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.12em;color:#3C6A88;padding:10px 14px 6px;background:#EEF4F9;border-top:1px dashed #C9D8E3">ΡΑΝΤΕΒΟΥ ΠΡΟΣΦΟΡΑΣ</div>'; }
+      h+='<div class="td-row'+(x===cur?' sel':'')+'"'+(x.client?' data-swc="'+tdEsc(x.client.id)+'" data-cname="'+tdEsc(x.name)+'"':'')+(isO&&x!==cur?' style="background:#EEF4F9"':'')+' onclick="tdPick(\''+tdEsc(x.e.id)+'\')">'
+        +'<div class="td-no"'+(isO?' style="background:#DCE8F1;color:#28506F"':'')+'>'+(done.length+i+1)+'</div>'
+        +'<div style="flex:1;min-width:0"><div class="n">'+(isO?'🤝 ':'')+tdEsc(x.name)+'</div><div class="s">'+(isO?'Ραντεβού προσφοράς'+(x.c&&x.c.time?' · '+fmtTime(x.c.time):'')+(x.addr?' · ':''):'')+tdEsc(x.addr||'')+'</div></div>'
         +(rep?'<span style="font-size:11px;font-weight:800;color:#fff;background:var(--red);border-radius:8px;padding:4px 7px">!</span>':'')
         +(x.client&&tdOwePast(x.client)?'<span style="font-family:var(--mono);font-size:12px;font-weight:700;color:#8E2A2A;background:#F5DEDE;border-radius:8px;padding:4px 7px">χρωστ. '+fmt(tdOwePast(x.client))+'</span>':'')
         +'</div>';
