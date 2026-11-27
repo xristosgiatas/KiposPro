@@ -2530,7 +2530,7 @@ function offInfo(o){
   else if(st==='note') txt='Πήγες'+(o.visitedAt?' '+planShort(String(o.visitedAt).slice(0,10)):'')+' · γράψε τιμή';
   else if(st==='price'){ var d=o.quotedAt?offDays(o.quotedAt):null; txt='Έδωσες '+fmt(parseFloat(o.amount))+(d==null||isNaN(d)?'':d<=0?' σήμερα':d===1?' χθες':' πριν '+d+' μέρες'); call=d!=null&&d>=7; }
   else txt='Στο αρχείο';
-  var _tm=new Date(); _tm.setDate(_tm.getDate()+1); var tom=st==='go'&&o.date===toLocalISO(_tm);
+  var tom=st==='go'&&!!o.date&&o.date>today;
   return {st:st,late:late,txt:txt,call:call,tom:tom};
 }
 function offSave(o,msg){ google.script.run.withSuccessHandler(function(){}).withFailureHandler(function(e){ alert('Σφάλμα αποθήκευσης: '+(e&&e.message||e)); }).saveOffer(window._kpEmail||localStorage.getItem('kipospro_email')||'',o); renderOffers(); if(msg) toast(msg); }
@@ -11048,7 +11048,7 @@ function openAddOffer(){
     +'<div class="frm"><label>Διεύθυνση</label><input id="ap-a" placeholder="π.χ. Λ. Βουλιαγμένης 12"></div>'
     +'<div class="frm"><label>Τηλέφωνο</label><input id="ap-t" type="tel" placeholder="6971234567"></div>'
     +'<div class="f2">'
-    +'<div class="frm"><label>Ημερομηνία</label><input id="ap-d" type="date" value="'+TODAY+'"></div>'
+    +'<div class="frm"><label>Ημερομηνία (αν την κανονίσατε)</label><input id="ap-d" type="date" value=""></div>'
     +'<div class="frm"><label>Ώρα</label><input id="ap-h" type="time"></div>'
     +'</div>'
     +'<div class="frm"><label>Περιγραφή εργασίας</label><textarea id="ap-desc" rows="2" style="width:100%;min-height:64px;resize:vertical;font:inherit;line-height:1.4" oninput="this.style.height=\'auto\';this.style.height=this.scrollHeight+\'px\'" placeholder="π.χ. Κλάδεμα κήπου"></textarea></div>'
